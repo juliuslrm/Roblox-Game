@@ -1,5 +1,13 @@
 # Changelog Gameplay
 
+## 0.1.1 – detaillierte Maschinen
+
+- Alle 31 Werkstatt-Bauteile neu modelliert: Detail-Baukasten (Rohre mit Flanschen, Zahnräder,
+  Handräder, Manometer, Eisenbänder mit Nieten, Einzelbohlen, Pflastersockel, Kristalle, Runen)
+- Jede Maschine zeigt ihre Anschlüsse: Trichter hinten (Eingang), Rutsche vorn (Ausgang),
+  Rohrstutzen links mit blauem Ring (Flüssigkeit rein), rechts mit orangem Ring (raus)
+- Dreiecksbudget je Bauteil von 1 500 auf 4 500 angehoben; Summe 34 668
+
 ## 0.1.0 – erste durchgängige Version (nur lokal getestet)
 
 - Datenbasis: 45 Items, 30 Rezepte (+5 Versorgung), 18 Maschinen, 13 Logistik-/Lagerteile,

@@ -6,42 +6,42 @@
    "category": "machines",
    "blend": "assets/machines/mach_kettle.blend",
    "glb": "exports/glb/machines/mach_kettle.glb",
-   "triangles": 252,
-   "vertices": 142,
+   "triangles": 1510,
+   "vertices": 915,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.85,
-     -1.85,
+     -1.92,
+     -1.86,
      0.0
     ],
     "max": [
      1.85,
      1.85,
-     4.6448
+     5.4712
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.85,
+     -1.92,
      0.0,
      -1.85
     ],
     "max": [
      1.85,
-     4.6448,
-     1.85
+     5.4712,
+     1.86
     ],
     "size": [
-     3.7,
-     4.6448,
-     3.7
+     3.77,
+     5.4712,
+     3.71
     ],
     "center": [
-     0.0,
-     2.3224,
-     0.0
+     -0.035,
+     2.7356,
+     0.005
     ]
    },
    "colliders": [],
@@ -49,7 +49,7 @@
     {
      "position": [
       0.0,
-      3.6,
+      3.7,
       -0.0
      ],
      "color": [
@@ -57,8 +57,22 @@
       1.0,
       0.5
      ],
-     "brightness": 0.6,
+     "brightness": 0.7,
      "range": 10
+    },
+    {
+     "position": [
+      0.0,
+      0.9,
+      -0.0
+     ],
+     "color": [
+      1.0,
+      0.6,
+      0.25
+     ],
+     "brightness": 0.7,
+     "range": 8
     }
    ],
    "machine": "kettle",
@@ -66,48 +80,48 @@
     2,
     2
    ],
-   "backface_pixels": 0
+   "backface_pixels": 1
   },
   "mach_grinder": {
    "category": "machines",
    "blend": "assets/machines/mach_grinder.blend",
    "glb": "exports/glb/machines/mach_grinder.glb",
-   "triangles": 184,
-   "vertices": 104,
+   "triangles": 1228,
+   "vertices": 760,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.85,
-     -1.85,
+     -1.9775,
+     -1.895,
      0.0
     ],
     "max": [
-     2.05,
+     2.04,
      1.85,
-     3.5
+     4.2033
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.85,
+     -1.9775,
      0.0,
      -1.85
     ],
     "max": [
-     2.05,
-     3.5,
-     1.85
+     2.04,
+     4.2033,
+     1.895
     ],
     "size": [
-     3.9,
-     3.5,
-     3.7
+     4.0175,
+     4.2033,
+     3.745
     ],
     "center": [
-     0.1,
-     1.75,
-     0.0
+     0.0312,
+     2.1016,
+     0.0225
     ]
    },
    "colliders": [],
@@ -123,42 +137,42 @@
    "category": "machines",
    "blend": "assets/machines/mach_saw.blend",
    "glb": "exports/glb/machines/mach_saw.glb",
-   "triangles": 156,
-   "vertices": 96,
+   "triangles": 1330,
+   "vertices": 841,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -2.85,
-     -1.85,
+     -2.9478,
+     -1.925,
      0.0
     ],
     "max": [
-     2.85,
-     1.85,
-     4.2
+     2.9393,
+     1.875,
+     4.5
     ]
    },
    "bounds_roblox": {
     "min": [
-     -2.85,
+     -2.9478,
      0.0,
-     -1.85
+     -1.875
     ],
     "max": [
-     2.85,
-     4.2,
-     1.85
+     2.9393,
+     4.5,
+     1.925
     ],
     "size": [
-     5.7,
-     4.2,
-     3.7
+     5.8871,
+     4.5,
+     3.8
     ],
     "center": [
-     0.0,
-     2.1,
-     0.0
+     -0.0042,
+     2.25,
+     0.025
     ]
    },
    "colliders": [],
@@ -174,41 +188,41 @@
    "category": "machines",
    "blend": "assets/machines/mach_crusher.blend",
    "glb": "exports/glb/machines/mach_crusher.glb",
-   "triangles": 84,
-   "vertices": 56,
+   "triangles": 792,
+   "vertices": 498,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.85,
+     -1.9,
      -1.85,
      0.0
     ],
     "max": [
+     1.96,
      1.85,
-     1.85,
-     5.5
+     6.35
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.85,
+     -1.9,
      0.0,
      -1.85
     ],
     "max": [
-     1.85,
-     5.5,
+     1.96,
+     6.35,
      1.85
     ],
     "size": [
-     3.7,
-     5.5,
+     3.86,
+     6.35,
      3.7
     ],
     "center": [
-     0.0,
-     2.75,
+     0.03,
+     3.175,
      0.0
     ]
    },
@@ -225,20 +239,20 @@
    "category": "machines",
    "blend": "assets/machines/mach_furnace.blend",
    "glb": "exports/glb/machines/mach_furnace.glb",
-   "triangles": 144,
-   "vertices": 92,
+   "triangles": 1022,
+   "vertices": 655,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -2.85,
-     -1.85,
+     -1.98,
      0.0
     ],
     "max": [
-     2.85,
+     2.9604,
      1.85,
-     6.3
+     7.5
     ]
    },
    "bounds_roblox": {
@@ -248,35 +262,35 @@
      -1.85
     ],
     "max": [
-     2.85,
-     6.3,
-     1.85
+     2.9604,
+     7.5,
+     1.98
     ],
     "size": [
-     5.7,
-     6.3,
-     3.7
+     5.8104,
+     7.5,
+     3.83
     ],
     "center": [
-     0.0,
-     3.15,
-     0.0
+     0.0552,
+     3.75,
+     0.065
     ]
    },
    "colliders": [],
    "lights": [
     {
      "position": [
-      -0.4,
-      1.5,
-      1.9
+      -0.6,
+      1.4,
+      2.0
      ],
      "color": [
       1.0,
       0.6,
       0.25
      ],
-     "brightness": 1.0,
+     "brightness": 1.1,
      "range": 12
     }
    ],
@@ -291,46 +305,61 @@
    "category": "machines",
    "blend": "assets/machines/mach_glassbench.blend",
    "glb": "exports/glb/machines/mach_glassbench.glb",
-   "triangles": 208,
-   "vertices": 124,
+   "triangles": 972,
+   "vertices": 584,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.85,
-     -1.85,
+     -1.8949,
+     -1.91,
      0.0
     ],
     "max": [
-     1.9744,
-     1.85,
-     4.4
+     1.9443,
+     1.875,
+     4.6
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.85,
+     -1.8949,
      0.0,
-     -1.85
+     -1.875
     ],
     "max": [
-     1.9744,
-     4.4,
-     1.85
+     1.9443,
+     4.6,
+     1.91
     ],
     "size": [
-     3.8244,
-     4.4,
-     3.7
+     3.8392,
+     4.6,
+     3.785
     ],
     "center": [
-     0.0622,
-     2.2,
-     0.0
+     0.0247,
+     2.3,
+     0.0175
     ]
    },
    "colliders": [],
-   "lights": [],
+   "lights": [
+    {
+     "position": [
+      -1.1,
+      3.3,
+      -0.2
+     ],
+     "color": [
+      1.0,
+      0.65,
+      0.3
+     ],
+     "brightness": 0.8,
+     "range": 9
+    }
+   ],
    "machine": "glassbench",
    "footprint_cells": [
     2,
@@ -342,46 +371,61 @@
    "category": "machines",
    "blend": "assets/machines/mach_extractor.blend",
    "glb": "exports/glb/machines/mach_extractor.glb",
-   "triangles": 196,
-   "vertices": 110,
+   "triangles": 1802,
+   "vertices": 1103,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -2.85,
+     -2.92,
      -1.85,
      0.0
     ],
     "max": [
-     2.85,
+     2.92,
      1.85,
-     5.3459
+     5.5297
     ]
    },
    "bounds_roblox": {
     "min": [
-     -2.85,
+     -2.92,
      0.0,
      -1.85
     ],
     "max": [
-     2.85,
-     5.3459,
+     2.92,
+     5.5297,
      1.85
     ],
     "size": [
-     5.7,
-     5.3459,
+     5.84,
+     5.5297,
      3.7
     ],
     "center": [
      0.0,
-     2.6729,
+     2.7648,
      0.0
     ]
    },
    "colliders": [],
-   "lights": [],
+   "lights": [
+    {
+     "position": [
+      -1.2,
+      1.6,
+      1.7
+     ],
+     "color": [
+      0.6,
+      1.0,
+      0.6
+     ],
+     "brightness": 0.6,
+     "range": 9
+    }
+   ],
    "machine": "extractor",
    "footprint_cells": [
     3,
@@ -393,42 +437,42 @@
    "category": "machines",
    "blend": "assets/machines/mach_bottler.blend",
    "glb": "exports/glb/machines/mach_bottler.glb",
-   "triangles": 282,
-   "vertices": 165,
+   "triangles": 1498,
+   "vertices": 913,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.85,
-     -1.85,
+     -1.92,
+     -1.91,
      0.0
     ],
     "max": [
-     1.85,
-     1.85,
-     6.5
+     1.9633,
+     1.875,
+     7.1
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.85,
+     -1.92,
      0.0,
-     -1.85
+     -1.875
     ],
     "max": [
-     1.85,
-     6.5,
-     1.85
+     1.9633,
+     7.1,
+     1.91
     ],
     "size": [
-     3.7,
-     6.5,
-     3.7
+     3.8833,
+     7.1,
+     3.785
     ],
     "center": [
-     0.0,
-     3.25,
-     0.0
+     0.0216,
+     3.55,
+     0.0175
     ]
    },
    "colliders": [],
@@ -444,42 +488,42 @@
    "category": "machines",
    "blend": "assets/machines/mach_mixer.blend",
    "glb": "exports/glb/machines/mach_mixer.glb",
-   "triangles": 264,
-   "vertices": 146,
+   "triangles": 1516,
+   "vertices": 934,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.85,
-     -1.85,
+     -1.95,
+     -1.9,
      0.0
     ],
     "max": [
+     1.95,
      1.85,
-     1.85,
-     5.3
+     6.55
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.85,
+     -1.95,
      0.0,
      -1.85
     ],
     "max": [
-     1.85,
-     5.3,
-     1.85
+     1.95,
+     6.55,
+     1.9
     ],
     "size": [
-     3.7,
-     5.3,
-     3.7
+     3.9,
+     6.55,
+     3.75
     ],
     "center": [
      0.0,
-     2.65,
-     0.0
+     3.275,
+     0.025
     ]
    },
    "colliders": [],
@@ -495,20 +539,20 @@
    "category": "machines",
    "blend": "assets/machines/mach_runetable.blend",
    "glb": "exports/glb/machines/mach_runetable.glb",
-   "triangles": 172,
-   "vertices": 110,
+   "triangles": 1316,
+   "vertices": 852,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -2.85,
-     -2.85,
+     -2.89,
      0.0
     ],
     "max": [
      2.85,
      2.85,
-     4.7
+     5.1
     ]
    },
    "bounds_roblox": {
@@ -519,18 +563,18 @@
     ],
     "max": [
      2.85,
-     4.7,
-     2.85
+     5.1,
+     2.89
     ],
     "size": [
      5.7,
-     4.7,
-     5.7
+     5.1,
+     5.74
     ],
     "center": [
      0.0,
-     2.35,
-     0.0
+     2.55,
+     0.02
     ]
    },
    "colliders": [],
@@ -538,7 +582,7 @@
     {
      "position": [
       0.0,
-      4.2,
+      4.3,
       -0.0
      ],
      "color": [
@@ -546,7 +590,7 @@
       0.7,
       1.0
      ],
-     "brightness": 0.8,
+     "brightness": 0.9,
      "range": 12
     }
    ],
@@ -561,58 +605,58 @@
    "category": "machines",
    "blend": "assets/machines/mach_forge.blend",
    "glb": "exports/glb/machines/mach_forge.glb",
-   "triangles": 108,
-   "vertices": 70,
+   "triangles": 1230,
+   "vertices": 787,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -2.85,
-     -2.85,
+     -2.995,
+     -2.98,
      0.0
     ],
     "max": [
-     2.85,
+     3.0268,
      2.85,
      7.6
     ]
    },
    "bounds_roblox": {
     "min": [
-     -2.85,
+     -2.995,
      0.0,
      -2.85
     ],
     "max": [
-     2.85,
+     3.0268,
      7.6,
-     2.85
+     2.98
     ],
     "size": [
-     5.7,
+     6.0218,
      7.6,
-     5.7
+     5.83
     ],
     "center": [
-     0.0,
+     0.0159,
      3.8,
-     0.0
+     0.065
     ]
    },
    "colliders": [],
    "lights": [
     {
      "position": [
-      -0.8,
-      3.4,
-      -0.9
+      -0.9,
+      3.8,
+      -1.0
      ],
      "color": [
       1.0,
       0.55,
       0.2
      ],
-     "brightness": 1.2,
+     "brightness": 1.3,
      "range": 14
     }
    ],
@@ -621,48 +665,48 @@
     3,
     3
    ],
-   "backface_pixels": 0
+   "backface_pixels": 1
   },
   "mach_enchanter": {
    "category": "machines",
    "blend": "assets/machines/mach_enchanter.blend",
    "glb": "exports/glb/machines/mach_enchanter.glb",
-   "triangles": 104,
-   "vertices": 68,
+   "triangles": 1224,
+   "vertices": 764,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -2.85,
-     -2.85,
+     -2.92,
+     -2.925,
      0.0
     ],
     "max": [
      2.85,
      2.85,
-     5.2
+     5.7075
     ]
    },
    "bounds_roblox": {
     "min": [
-     -2.85,
+     -2.92,
      0.0,
      -2.85
     ],
     "max": [
      2.85,
-     5.2,
-     2.85
+     5.7075,
+     2.925
     ],
     "size": [
-     5.7,
-     5.2,
-     5.7
+     5.77,
+     5.7075,
+     5.775
     ],
     "center": [
-     0.0,
-     2.6,
-     0.0
+     -0.035,
+     2.8538,
+     0.0375
     ]
    },
    "colliders": [],
@@ -670,15 +714,15 @@
     {
      "position": [
       0.0,
-      4.5,
-      -0.5
+      4.8,
+      -0.4
      ],
      "color": [
       0.75,
       0.5,
       1.0
      ],
-     "brightness": 0.9,
+     "brightness": 1.0,
      "range": 14
     }
    ],
@@ -693,20 +737,20 @@
    "category": "machines",
    "blend": "assets/machines/mach_infuser.blend",
    "glb": "exports/glb/machines/mach_infuser.glb",
-   "triangles": 248,
-   "vertices": 140,
+   "triangles": 2130,
+   "vertices": 1295,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -2.85,
-     -2.85,
+     -2.89,
      0.0
     ],
     "max": [
      2.85,
      2.85,
-     5.1038
+     6.6378
     ]
    },
    "bounds_roblox": {
@@ -717,22 +761,37 @@
     ],
     "max": [
      2.85,
-     5.1038,
-     2.85
+     6.6378,
+     2.89
     ],
     "size": [
      5.7,
-     5.1038,
-     5.7
+     6.6378,
+     5.74
     ],
     "center": [
      0.0,
-     2.5519,
-     0.0
+     3.3189,
+     0.02
     ]
    },
    "colliders": [],
-   "lights": [],
+   "lights": [
+    {
+     "position": [
+      0.0,
+      4.6,
+      0.5
+     ],
+     "color": [
+      0.9,
+      0.6,
+      1.0
+     ],
+     "brightness": 0.9,
+     "range": 12
+    }
+   ],
    "machine": "infuser",
    "footprint_cells": [
     3,
@@ -744,20 +803,20 @@
    "category": "machines",
    "blend": "assets/machines/mach_crystal_refiner.blend",
    "glb": "exports/glb/machines/mach_crystal_refiner.glb",
-   "triangles": 128,
-   "vertices": 78,
+   "triangles": 1704,
+   "vertices": 1072,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -2.85,
-     -2.85,
+     -2.89,
      0.0
     ],
     "max": [
      2.85,
      2.85,
-     5.4
+     6.0
     ]
    },
    "bounds_roblox": {
@@ -768,18 +827,18 @@
     ],
     "max": [
      2.85,
-     5.4,
-     2.85
+     6.0,
+     2.89
     ],
     "size": [
      5.7,
-     5.4,
-     5.7
+     6.0,
+     5.74
     ],
     "center": [
      0.0,
-     2.7,
-     0.0
+     3.0,
+     0.02
     ]
    },
    "colliders": [],
@@ -787,7 +846,7 @@
     {
      "position": [
       0.0,
-      4.2,
+      4.8,
       -0.0
      ],
      "color": [
@@ -795,7 +854,7 @@
       0.9,
       1.0
      ],
-     "brightness": 1.0,
+     "brightness": 1.1,
      "range": 14
     }
    ],
@@ -810,42 +869,42 @@
    "category": "machines",
    "blend": "assets/machines/mach_advanced_cauldron.blend",
    "glb": "exports/glb/machines/mach_advanced_cauldron.glb",
-   "triangles": 376,
-   "vertices": 212,
+   "triangles": 2564,
+   "vertices": 1596,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -3.85,
-     -3.85,
+     -3.92,
+     -3.92,
      0.0
     ],
     "max": [
      3.85,
      3.85,
-     8.6
+     9.2
     ]
    },
    "bounds_roblox": {
     "min": [
-     -3.85,
+     -3.92,
      0.0,
      -3.85
     ],
     "max": [
      3.85,
-     8.6,
-     3.85
+     9.2,
+     3.92
     ],
     "size": [
-     7.7,
-     8.6,
-     7.7
+     7.77,
+     9.2,
+     7.77
     ],
     "center": [
-     0.0,
-     4.3,
-     0.0
+     -0.035,
+     4.6,
+     0.035
     ]
    },
    "colliders": [],
@@ -853,7 +912,7 @@
     {
      "position": [
       0.0,
-      6.0,
+      6.2,
       -0.0
      ],
      "color": [
@@ -861,8 +920,22 @@
       0.5,
       1.0
      ],
-     "brightness": 1.4,
+     "brightness": 1.5,
      "range": 18
+    },
+    {
+     "position": [
+      0.0,
+      1.2,
+      -0.0
+     ],
+     "color": [
+      1.0,
+      0.6,
+      0.25
+     ],
+     "brightness": 0.8,
+     "range": 10
     }
    ],
    "machine": "advanced_cauldron",
@@ -876,42 +949,42 @@
    "category": "machines",
    "blend": "assets/machines/mach_herb_grower.blend",
    "glb": "exports/glb/machines/mach_herb_grower.glb",
-   "triangles": 240,
-   "vertices": 148,
+   "triangles": 1844,
+   "vertices": 1150,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -2.884,
-     -2.884,
+     -2.95,
+     -2.96,
      0.0
     ],
     "max": [
-     2.884,
-     2.884,
-     4.25
+     2.95,
+     2.95,
+     5.93
     ]
    },
    "bounds_roblox": {
     "min": [
-     -2.884,
+     -2.95,
      0.0,
-     -2.884
+     -2.95
     ],
     "max": [
-     2.884,
-     4.25,
-     2.884
+     2.95,
+     5.93,
+     2.96
     ],
     "size": [
-     5.768,
-     4.25,
-     5.768
+     5.9,
+     5.93,
+     5.91
     ],
     "center": [
      0.0,
-     2.125,
-     0.0
+     2.965,
+     0.005
     ]
    },
    "colliders": [],
@@ -921,52 +994,67 @@
     3,
     3
    ],
-   "backface_pixels": 1
+   "backface_pixels": 0
   },
   "mach_quarry_drill": {
    "category": "machines",
    "blend": "assets/machines/mach_quarry_drill.blend",
    "glb": "exports/glb/machines/mach_quarry_drill.glb",
-   "triangles": 158,
-   "vertices": 97,
+   "triangles": 1574,
+   "vertices": 995,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -2.85,
-     -2.85,
+     -2.97,
+     -2.94,
      0.0
     ],
     "max": [
      2.85,
      2.85,
-     6.4
+     7.7
     ]
    },
    "bounds_roblox": {
     "min": [
-     -2.85,
+     -2.97,
      0.0,
      -2.85
     ],
     "max": [
      2.85,
-     6.4,
-     2.85
+     7.7,
+     2.94
     ],
     "size": [
-     5.7,
-     6.4,
-     5.7
+     5.82,
+     7.7,
+     5.79
     ],
     "center": [
-     0.0,
-     3.2,
-     0.0
+     -0.06,
+     3.85,
+     0.045
     ]
    },
    "colliders": [],
-   "lights": [],
+   "lights": [
+    {
+     "position": [
+      2.2,
+      1.2,
+      -1.2
+     ],
+     "color": [
+      1.0,
+      0.6,
+      0.25
+     ],
+     "brightness": 0.7,
+     "range": 8
+    }
+   ],
    "machine": "quarry_drill",
    "footprint_cells": [
     3,
@@ -978,42 +1066,42 @@
    "category": "machines",
    "blend": "assets/machines/mach_well_pump.blend",
    "glb": "exports/glb/machines/mach_well_pump.glb",
-   "triangles": 156,
-   "vertices": 88,
+   "triangles": 936,
+   "vertices": 582,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.7,
-     -1.6168,
+     -1.8045,
+     -1.896,
      0.0
     ],
     "max": [
-     1.7344,
-     1.6168,
-     4.6949
+     1.9434,
+     1.8343,
+     5.6175
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.7,
+     -1.8045,
      0.0,
-     -1.6168
+     -1.8343
     ],
     "max": [
-     1.7344,
-     4.6949,
-     1.6168
+     1.9434,
+     5.6175,
+     1.896
     ],
     "size": [
-     3.4344,
-     4.6949,
-     3.2336
+     3.7479,
+     5.6175,
+     3.7303
     ],
     "center": [
-     0.0172,
-     2.3474,
-     0.0
+     0.0694,
+     2.8087,
+     0.0308
     ]
    },
    "colliders": [],
@@ -1029,41 +1117,41 @@
    "category": "machines",
    "blend": "assets/machines/logi_wooden_belt.blend",
    "glb": "exports/glb/machines/logi_wooden_belt.glb",
-   "triangles": 66,
-   "vertices": 45,
+   "triangles": 214,
+   "vertices": 141,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.85,
+     -0.95,
      -1.0,
      0.0
     ],
     "max": [
-     0.85,
+     0.95,
      1.0,
-     0.76
+     0.69
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.85,
+     -0.95,
      0.0,
      -1.0
     ],
     "max": [
-     0.85,
-     0.76,
+     0.95,
+     0.69,
      1.0
     ],
     "size": [
-     1.7,
-     0.76,
+     1.9,
+     0.69,
      2.0
     ],
     "center": [
      0.0,
-     0.38,
+     0.345,
      0.0
     ]
    },
@@ -1074,14 +1162,14 @@
     1,
     1
    ],
-   "backface_pixels": 1
+   "backface_pixels": 0
   },
   "logi_belt_turn": {
    "category": "machines",
    "blend": "assets/machines/logi_belt_turn.blend",
    "glb": "exports/glb/machines/logi_belt_turn.glb",
-   "triangles": 48,
-   "vertices": 32,
+   "triangles": 146,
+   "vertices": 97,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -1093,7 +1181,7 @@
     "max": [
      0.95,
      0.95,
-     0.75
+     0.9
     ]
    },
    "bounds_roblox": {
@@ -1104,17 +1192,17 @@
     ],
     "max": [
      0.95,
-     0.75,
+     0.9,
      0.95
     ],
     "size": [
      1.9,
-     0.75,
+     0.9,
      1.9
     ],
     "center": [
      0.0,
-     0.375,
+     0.45,
      0.0
     ]
    },
@@ -1125,48 +1213,48 @@
     1,
     1
    ],
-   "backface_pixels": 0
+   "backface_pixels": 2
   },
   "logi_input_hopper": {
    "category": "machines",
    "blend": "assets/machines/logi_input_hopper.blend",
    "glb": "exports/glb/machines/logi_input_hopper.glb",
-   "triangles": 60,
-   "vertices": 36,
+   "triangles": 424,
+   "vertices": 272,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.8,
-     -1.0,
+     -0.89,
+     -0.98,
      0.0
     ],
     "max": [
-     0.8,
-     0.9,
-     1.7
+     0.935,
+     0.89,
+     1.88
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.8,
+     -0.89,
      0.0,
-     -0.9
+     -0.89
     ],
     "max": [
-     0.8,
-     1.7,
-     1.0
+     0.935,
+     1.88,
+     0.98
     ],
     "size": [
-     1.6,
-     1.7,
-     1.9
+     1.825,
+     1.88,
+     1.87
     ],
     "center": [
-     0.0,
-     0.85,
-     0.05
+     0.0225,
+     0.94,
+     0.045
     ]
    },
    "colliders": [],
@@ -1182,8 +1270,8 @@
    "category": "machines",
    "blend": "assets/machines/logi_splitter.blend",
    "glb": "exports/glb/machines/logi_splitter.glb",
-   "triangles": 76,
-   "vertices": 48,
+   "triangles": 354,
+   "vertices": 227,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -1195,7 +1283,7 @@
     "max": [
      0.95,
      0.95,
-     1.2
+     1.5962
     ]
    },
    "bounds_roblox": {
@@ -1206,17 +1294,17 @@
     ],
     "max": [
      0.95,
-     1.2,
+     1.5962,
      0.95
     ],
     "size": [
      1.9,
-     1.2,
+     1.5962,
      1.9
     ],
     "center": [
      0.0,
-     0.6,
+     0.7981,
      0.0
     ]
    },
@@ -1233,42 +1321,42 @@
    "category": "machines",
    "blend": "assets/machines/logi_merger.blend",
    "glb": "exports/glb/machines/logi_merger.glb",
-   "triangles": 52,
-   "vertices": 32,
+   "triangles": 294,
+   "vertices": 181,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.95,
-     -0.95,
+     -0.9692,
+     -0.97,
      0.0
     ],
     "max": [
-     0.95,
-     0.95,
-     1.2
+     0.9692,
+     0.9692,
+     1.5
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.95,
+     -0.9692,
      0.0,
-     -0.95
+     -0.9692
     ],
     "max": [
-     0.95,
-     1.2,
-     0.95
+     0.9692,
+     1.5,
+     0.97
     ],
     "size": [
-     1.9,
-     1.2,
-     1.9
+     1.9383,
+     1.5,
+     1.9392
     ],
     "center": [
      0.0,
-     0.6,
-     0.0
+     0.75,
+     0.0004
     ]
    },
    "colliders": [],
@@ -1284,93 +1372,108 @@
    "category": "machines",
    "blend": "assets/machines/logi_filter_sorter.blend",
    "glb": "exports/glb/machines/logi_filter_sorter.glb",
-   "triangles": 56,
-   "vertices": 38,
+   "triangles": 248,
+   "vertices": 164,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.95,
-     -0.95,
+     -0.97,
+     -0.97,
      0.0
     ],
     "max": [
      0.95,
      0.95,
-     2.4
+     3.0
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.95,
+     -0.97,
      0.0,
      -0.95
     ],
     "max": [
      0.95,
-     2.4,
-     0.95
+     3.0,
+     0.97
     ],
     "size": [
-     1.9,
-     2.4,
-     1.9
+     1.92,
+     3.0,
+     1.92
     ],
     "center": [
-     0.0,
-     1.2,
-     0.0
+     -0.01,
+     1.5,
+     0.01
     ]
    },
    "colliders": [],
-   "lights": [],
+   "lights": [
+    {
+     "position": [
+      0.0,
+      2.4,
+      -0.0
+     ],
+     "color": [
+      0.5,
+      0.7,
+      1.0
+     ],
+     "brightness": 0.5,
+     "range": 7
+    }
+   ],
    "machine": "filter_sorter",
    "footprint_cells": [
     1,
     1
    ],
-   "backface_pixels": 0
+   "backface_pixels": 2
   },
   "logi_vertical_lift": {
    "category": "machines",
    "blend": "assets/machines/logi_vertical_lift.blend",
    "glb": "exports/glb/machines/logi_vertical_lift.glb",
-   "triangles": 120,
-   "vertices": 80,
+   "triangles": 660,
+   "vertices": 424,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.95,
-     -0.95,
+     -0.96,
+     -0.9694,
      0.0
     ],
     "max": [
-     0.95,
-     0.95,
-     11.9
+     0.975,
+     0.96,
+     12.0074
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.95,
+     -0.96,
      0.0,
-     -0.95
+     -0.96
     ],
     "max": [
-     0.95,
-     11.9,
-     0.95
+     0.975,
+     12.0074,
+     0.9694
     ],
     "size": [
-     1.9,
-     11.9,
-     1.9
+     1.935,
+     12.0074,
+     1.9294
     ],
     "center": [
-     0.0,
-     5.95,
-     0.0
+     0.0075,
+     6.0037,
+     0.0047
     ]
    },
    "colliders": [],
@@ -1386,42 +1489,42 @@
    "category": "machines",
    "blend": "assets/machines/logi_magical_gate.blend",
    "glb": "exports/glb/machines/logi_magical_gate.glb",
-   "triangles": 60,
-   "vertices": 40,
+   "triangles": 440,
+   "vertices": 288,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.95,
+     -0.9935,
      -0.95,
      0.0
     ],
     "max": [
+     0.9935,
      0.95,
-     0.95,
-     3.7
+     3.75
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.95,
+     -0.9935,
      0.0,
      -0.95
     ],
     "max": [
-     0.95,
-     3.7,
+     0.9935,
+     3.75,
      0.95
     ],
     "size": [
-     1.9,
-     3.7,
+     1.9869,
+     3.75,
      1.9
     ],
     "center": [
      0.0,
-     1.85,
-     0.0
+     1.875,
+     -0.0
     ]
    },
    "colliders": [],
@@ -1429,7 +1532,7 @@
     {
      "position": [
       0.0,
-      2.0,
+      1.9,
       -0.0
      ],
      "color": [
@@ -1437,7 +1540,7 @@
       0.5,
       1.0
      ],
-     "brightness": 0.8,
+     "brightness": 0.9,
      "range": 10
     }
    ],
@@ -1446,47 +1549,47 @@
     1,
     1
    ],
-   "backface_pixels": 0
+   "backface_pixels": 2
   },
   "logi_pipe_straight": {
    "category": "machines",
    "blend": "assets/machines/logi_pipe_straight.blend",
    "glb": "exports/glb/machines/logi_pipe_straight.glb",
-   "triangles": 60,
-   "vertices": 36,
+   "triangles": 520,
+   "vertices": 314,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -1.0,
      -1.0,
-     0.0136
+     0.0
     ],
     "max": [
      1.0,
      1.0,
-     0.7064
+     0.8
     ]
    },
    "bounds_roblox": {
     "min": [
      -1.0,
-     0.0136,
+     0.0,
      -1.0
     ],
     "max": [
      1.0,
-     0.7064,
+     0.8,
      1.0
     ],
     "size": [
      2.0,
-     0.6928,
+     0.8,
      2.0
     ],
     "center": [
      0.0,
-     0.36,
+     0.4,
      0.0
     ]
    },
@@ -1503,41 +1606,41 @@
    "category": "machines",
    "blend": "assets/machines/logi_pipe_bend.blend",
    "glb": "exports/glb/machines/logi_pipe_bend.glb",
-   "triangles": 60,
-   "vertices": 36,
+   "triangles": 680,
+   "vertices": 420,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -1.0,
      -1.0,
-     0.0136
+     0.0
     ],
     "max": [
      1.0,
      1.0,
-     0.7064
+     1.0
     ]
    },
    "bounds_roblox": {
     "min": [
      -1.0,
-     0.0136,
+     0.0,
      -1.0
     ],
     "max": [
      1.0,
-     0.7064,
+     1.0,
      1.0
     ],
     "size": [
      2.0,
-     0.6928,
+     1.0,
      2.0
     ],
     "center": [
      0.0,
-     0.36,
+     0.5,
      0.0
     ]
    },
@@ -1554,41 +1657,41 @@
    "category": "machines",
    "blend": "assets/machines/logi_fluid_tank.blend",
    "glb": "exports/glb/machines/logi_fluid_tank.glb",
-   "triangles": 192,
-   "vertices": 106,
+   "triangles": 1676,
+   "vertices": 1032,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.85,
-     -1.85,
+     -1.92,
+     -1.92,
      0.0
     ],
     "max": [
-     1.85,
-     1.85,
-     5.1
+     1.92,
+     1.92,
+     6.0
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.85,
+     -1.92,
      0.0,
-     -1.85
+     -1.92
     ],
     "max": [
-     1.85,
-     5.1,
-     1.85
+     1.92,
+     6.0,
+     1.92
     ],
     "size": [
-     3.7,
-     5.1,
-     3.7
+     3.84,
+     6.0,
+     3.84
     ],
     "center": [
      0.0,
-     2.55,
+     3.0,
      0.0
     ]
    },
@@ -1605,41 +1708,41 @@
    "category": "machines",
    "blend": "assets/machines/logi_storage_crate.blend",
    "glb": "exports/glb/machines/logi_storage_crate.glb",
-   "triangles": 168,
-   "vertices": 112,
+   "triangles": 664,
+   "vertices": 440,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -1.8,
-     -1.84,
+     -1.9,
+     -1.93,
      0.0
     ],
     "max": [
-     1.8,
-     1.8,
-     3.1
+     1.9,
+     1.89,
+     3.5177
     ]
    },
    "bounds_roblox": {
     "min": [
-     -1.8,
+     -1.9,
      0.0,
-     -1.8
+     -1.89
     ],
     "max": [
-     1.8,
-     3.1,
-     1.84
+     1.9,
+     3.5177,
+     1.93
     ],
     "size": [
-     3.6,
-     3.1,
-     3.64
+     3.8,
+     3.5177,
+     3.82
     ],
     "center": [
      0.0,
-     1.55,
+     1.7588,
      0.02
     ]
    },
@@ -1656,46 +1759,61 @@
    "category": "machines",
    "blend": "assets/machines/logi_shop_shelf.blend",
    "glb": "exports/glb/machines/logi_shop_shelf.glb",
-   "triangles": 786,
-   "vertices": 439,
+   "triangles": 2156,
+   "vertices": 1256,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -2.85,
-     -0.85,
+     -3.01,
+     -0.9966,
      0.0
     ],
     "max": [
-     2.85,
-     0.825,
-     7.0
+     3.01,
+     0.95,
+     7.1391
     ]
    },
    "bounds_roblox": {
     "min": [
-     -2.85,
+     -3.01,
      0.0,
-     -0.825
+     -0.95
     ],
     "max": [
-     2.85,
-     7.0,
-     0.85
+     3.01,
+     7.1391,
+     0.9966
     ],
     "size": [
-     5.7,
-     7.0,
-     1.675
+     6.02,
+     7.1391,
+     1.9466
     ],
     "center": [
      0.0,
-     3.5,
-     0.0125
+     3.5695,
+     0.0233
     ]
    },
    "colliders": [],
-   "lights": [],
+   "lights": [
+    {
+     "position": [
+      0.0,
+      5.4,
+      0.9
+     ],
+     "color": [
+      1.0,
+      0.82,
+      0.55
+     ],
+     "brightness": 0.6,
+     "range": 10
+    }
+   ],
    "machine": "shop_shelf",
    "footprint_cells": [
     3,

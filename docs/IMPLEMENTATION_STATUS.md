@@ -26,7 +26,7 @@ spec_adapter 11/11 · Dorf-Builder-Mock bestanden · Weltvalidierung 34/34 · Ga
 | 6 | Flüssigkeiten, Etagen | DONE · TESTED_LOCAL | UNVERIFIED_STUDIO (Treppe, Etagenböden). PARTIAL: Kennzahlen-Fenster zeigt nur Durchsatz/Lager |
 | 7 | High-Tier-Inhalte | DONE · TESTED_LOCAL | – |
 | 8 | Co-op, Blueprints | DONE · TESTED_LOCAL | OPEN: keine Bedienoberfläche für Einladungen und Blueprints |
-| 9 | Art, Polish, Performance | PARTIAL: 31 Maschinen-Meshes gebaut und geprüft | OPEN: Animation, Sound, VFX, Performance-Messung |
+| 9 | Art, Polish, Performance | PARTIAL: 31 detaillierte Maschinen-Meshes gebaut und geprüft | OPEN: Animation, Sound, VFX, Performance-Messung |
 | 10 | Studio-Übergabe | DONE (Doku, `check_all.sh`) | BLOCKED pending Studio |
 
 ## Phase 0 – Repo audit: DONE
@@ -99,9 +99,11 @@ unverändert.
 
 ## Phase 9 – Art und Performance
 
-- DONE/TESTED_LOCAL: 31 Maschinen-/Logistik-Meshes (`blender/village/machines.py`,
-  `blender/build_gameplay_assets.py`), 5 264 Dreiecke gesamt, Footprint-, glTF-, UV- und
-  Rückseitenprüfung ohne Befund; Vorschau `previews/assets/machines_1.png`, `machines_2.png`.
+- DONE/TESTED_LOCAL: 31 detaillierte Maschinen-/Logistik-Meshes (`blender/village/machines.py`,
+  `blender/build_gameplay_assets.py`) mit Einzelbohlen, Nieten, Zahnrädern, Rohren, Ventilen,
+  Manometern und sichtbaren Ein-/Ausgängen; 146–2 564 Dreiecke je Mesh, 34 668 gesamt (Budget
+  4 500 je Mesh); Footprint-, glTF-, UV- und Rückseitenprüfung ohne Befund; Vorschau
+  `previews/assets/machines_1.png` bis `machines_3.png`.
 - OPEN: Animationen, Sound, Partikel, NPC-Wege, englische Lokalisierung, Performance-Messung.
 
 ## Phase 10 – Studio-Übergabe

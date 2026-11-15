@@ -25,7 +25,7 @@ from village import scene as sc  # noqa: E402
 from village.machines import MACHINES  # noqa: E402
 from village.meshkit import MeshBuilder  # noqa: E402
 
-TRI_BUDGET = 1500
+TRI_BUDGET = 4500
 CELL = 2.0
 
 
@@ -120,8 +120,9 @@ def main():
         registry.ASSETS.update({n: {"category": "machines", "fn": fn, "dir": "assets/machines", "default_collision": "proxy"}
                                 for n, fn in MACHINES.items()})
         names = list(MACHINES)
-        render_previews.render_sheet(names[:18], sc.path("previews", "assets", "machines_1.png"), 6, 11, az=-112, el=24)
-        render_previews.render_sheet(names[18:], sc.path("previews", "assets", "machines_2.png"), 5, 7, az=-112, el=24)
+        render_previews.render_sheet(names[:9], sc.path("previews", "assets", "machines_1.png"), 3, 11, az=-118, el=22)
+        render_previews.render_sheet(names[9:18], sc.path("previews", "assets", "machines_2.png"), 3, 13, az=-118, el=22)
+        render_previews.render_sheet(names[18:], sc.path("previews", "assets", "machines_3.png"), 5, 7, az=-118, el=22)
     sys.exit(1 if problems else 0)
 
 
