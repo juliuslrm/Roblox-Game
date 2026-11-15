@@ -105,28 +105,64 @@ function Bot:entitiesOf(machineId)
 	return list
 end
 
+-- true if the cells in front of every port are free (room for hopper + crate, pump, belt)
+local function portsOpen(P, def, gx, gz, rot, floor, ground)
+	local Grid = D.GridMath
+	local n = Place.cells(P)
+	for _, port in ipairs(def.ports) do
+		local px, pz, dir = Grid.port(def, port, gx, gz, rot)
+		local depth = (port.type == "solid" and port.mode == "in") and 3 or (port.type == "fluid") and 2 or 1
+		local width = (depth > 1) and 1 or 0
+		local side = (dir + 1) % 4
+		for k = 1, depth do
+			for lat = 0, width do
+				local x = px + Grid.DX[dir] * k + Grid.DX[side] * lat
+				local z = pz + Grid.DZ[dir] * k + Grid.DZ[side] * lat
+				if x < 0 or z < 0 or x >= n or z >= n or Place.reserved(P, floor, x, z)
+					or ground[Grid.key(floor, x, z)] then return false end
+			end
+		end
+	end
+	return true
+end
+
 -- Finds a legal spot (optionally one that satisfies predicate(graph, uid) after a trial insert).
 function Bot:findSpot(machineId, predicate, floor)
 	local P = self.P
 	local n = Place.cells(P)
 	floor = floor or 1
+	local ground = Place.occupancy(P)
+	local def = Machines[machineId]
 	for rot = 0, 3 do
 		for gz = 0, n - 1 do
 			for gx = 0, n - 1 do
 				if Place.check(P, machineId, gx, gz, floor, rot) == nil then
-					if not predicate then return gx, gz, rot end
-					local e = { uid = "trial", machine = machineId, gx = gx, gz = gz, floor = floor, rot = rot }
-					table.insert(P.workshop.layout, e)
-					P.workshop.buffers.trial = Place.newBuffer()
-					local good = predicate(Logistics.build(P), "trial")
-					table.remove(P.workshop.layout)
-					P.workshop.buffers.trial = nil
-					if good then return gx, gz, rot end
+					if not predicate then
+						if def.kind ~= "machine" or portsOpen(P, def, gx, gz, rot, floor, ground) then return gx, gz, rot end
+					else
+						local e = { uid = "trial", machine = machineId, gx = gx, gz = gz, floor = floor, rot = rot }
+						table.insert(P.workshop.layout, e)
+						P.workshop.buffers.trial = Place.newBuffer()
+						local good = predicate(Logistics.build(P), "trial")
+						table.remove(P.workshop.layout)
+						P.workshop.buffers.trial = nil
+						if good then return gx, gz, rot end
+					end
 				end
 			end
 		end
 	end
 	return nil
+end
+
+-- Buys the next plot size (researching what it needs).
+function Bot:expand()
+	local nextTier = Config.plotTiers[self.P.workshop.sizeTier + 1]
+	if not nextTier then error("workshop is full and cannot grow") end
+	if nextTier.research then self:research(nextTier.research) end
+	self:afford(nextTier.cost)
+	self:enter()
+	self:act("BuyUpgrade", { kind = "plot" })
 end
 
 function Bot:afford(coins)
@@ -143,7 +179,13 @@ function Bot:build(machineId, predicate, floor)
 	self:afford(Machines[machineId].cost)
 	self:enter()
 	local gx, gz, rot = self:findSpot(machineId, predicate, floor)
-	if not gx then error("no spot for " .. machineId) end
+	if not gx then
+		if predicate then error("no connecting spot for " .. machineId) end
+		self:expand()
+		return self:build(machineId, predicate, floor)
+	end
+	self:afford(Machines[machineId].cost)
+	self:enter()
 	return self:act("PlaceMachine", { machine = machineId, gx = gx, gz = gz, floor = floor or 1, rot = rot }).uid
 end
 
@@ -208,13 +250,9 @@ function Bot:collect(uid)
 	end
 end
 
--- Brews cheap potions, stocks the shelf and waits for customers.
+-- Brews potions (self.sellItem, default the starter tonic), stocks the shelf and waits for customers.
 function Bot:sellBatch()
-	local best = "tonic_minor"
-	for _, id in ipairs({ "potion_vigor", "tonic_bottled" }) do
-		local r = self:recipeFor(id)
-		if self.P.research[r.requiredResearch] and #self:entitiesOf(r.machineId) > 0 and self.richSales then best = id end
-	end
+	local best = self.sellItem or "tonic_minor"
 	self:ensure(best, self:count(best) + 4)
 	self:enter()
 	local shelf = self:entitiesOf("shop_shelf")[1].uid
@@ -229,6 +267,7 @@ end
 -- ---- automation helpers ----
 -- crate -> hopper -> machine. Returns crate uid.
 function Bot:feedLine(machineUid)
+	self:research("storage")           -- more than two crates need the storage research
 	local hopper = self:build("input_hopper", function(G, uid) return G.solid[uid][1] == machineUid end)
 	local crate = self:build("storage_crate", function(G) return G.hopperSrc[hopper] == "trial" end)
 	return crate

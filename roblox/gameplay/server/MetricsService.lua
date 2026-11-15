@@ -2,32 +2,32 @@
 local D = require(script.Parent.Data)
 local Config, Items = D.Config, D.Items
 local Metrics = {}
-function Metrics.new() return { log = {}, head = 1 } end
+-- log is a queue with explicit head / tail indices (the # operator is unreliable once entries are pruned)
+function Metrics.new() return { log = {}, head = 1, tail = 0 } end
 function Metrics.record(stats, clock, ev)
-	stats.log[#stats.log + 1] = { t = clock, item = ev.item, n = ev.n, auto = ev.auto, kind = ev.type }
+	stats.tail = stats.tail + 1
+	stats.log[stats.tail] = { t = clock, item = ev.item, n = ev.n, auto = ev.auto, kind = ev.type }
 end
 function Metrics.prune(stats, clock)
 	local limit = clock - Config.sim.statsWindowSec
 	local log = stats.log
-	while log[stats.head] and log[stats.head].t < limit do
+	while stats.head <= stats.tail and log[stats.head].t < limit do
 		log[stats.head] = nil
 		stats.head = stats.head + 1
 	end
 	if stats.head > 4096 then            -- compact the array from time to time
-		local fresh = {}
-		for i = stats.head, stats.head + 100000 do
-			if not log[i] then break end
-			fresh[#fresh + 1] = log[i]
+		local fresh, n = {}, 0
+		for i = stats.head, stats.tail do
+			n = n + 1
+			fresh[n] = log[i]
 		end
-		stats.log, stats.head = fresh, 1
+		stats.log, stats.head, stats.tail = fresh, 1, n
 	end
 end
 local function each(stats, clock, windowSec, fn)
-	local i = stats.head
-	while stats.log[i] do
+	for i = stats.head, stats.tail do
 		local r = stats.log[i]
 		if r.t >= clock - windowSec then fn(r) end
-		i = i + 1
 	end
 end
 -- pieces per minute of crafted outputs (liquids count per 1000 ml)

@@ -183,6 +183,18 @@ test("production", "same inputs give the same result (determinism)", function()
 	eq(run(), run())
 end)
 
+test("production", "statistics queue survives pruning (rate over a sliding window)", function()
+	local Metrics = loadModule("server/MetricsService")
+	local st = Metrics.new()
+	for i = 1, 6000 do
+		Metrics.record(st, i, { type = "craft", item = "tonic_minor", n = 1, auto = (i % 2 == 0) })
+		Metrics.prune(st, i)
+	end
+	truthy(Metrics.rate(st, 6000, 60) >= 60 and Metrics.rate(st, 6000, 60) <= 61)
+	eq(Metrics.autoProductLines(st, 6000, 60), 1)
+	truthy(st.tail - st.head <= Config.sim.statsWindowSec + 1)
+end)
+
 -- ============ placement ============
 test("placement", "bounds, overlap, reserved cells, rotation, locks, funds", function()
 	local bot = Bot.new() bot:enter()
