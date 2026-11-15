@@ -1,5 +1,8 @@
 # KI-Übergabe: Stylized Village (Roblox-Dorf aus Blender)
 
+> Das Gameplay („Arcane Village") liegt unter `roblox/gameplay/`. Einstieg dafür:
+> `docs/IMPLEMENTATION_STATUS.md` und `docs/GAMEPLAY_ARCHITECTURE.md`. Dieses Dokument beschreibt die Welt.
+
 Dieses Dokument ist eine eigenständige Zusammenfassung für eine andere KI. Es erklärt, was das
 Projekt ist, wo was liegt und wie die Teile zusammenhängen. Alles hier Beschriebene existiert im
 Repository `juliuslrm/Roblox-Game`, Branch `claude/roblox-village-blender-xekw0z`.

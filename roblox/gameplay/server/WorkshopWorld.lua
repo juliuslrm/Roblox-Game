@@ -130,6 +130,9 @@ local function entityModel(self, room, e)
 	if template and template:IsA("BasePart") then
 		body = template:Clone()
 		body.Anchored = true
+		-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
+		local k = math.max(body.Size.X, body.Size.Z) / (math.max(def.w, def.d) * cs)
+		if k > 1.05 or k < 0.6 then body.Size = body.Size / k end
 		body.CFrame = CFrame.new(base - Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
 	else
 		body = part({ Size = Vector3.new(w * cs - 0.2, height, d * cs - 0.2), Position = base,
