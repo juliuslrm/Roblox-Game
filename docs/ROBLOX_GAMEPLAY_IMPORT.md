@@ -3,6 +3,23 @@
 > Ungeprüft in Studio. Voraussetzung ist die importierte Dorfwelt nach `docs/ROBLOX_IMPORT.md`
 > (insbesondere `ServerStorage.VillageWorld.WorldLayout`).
 
+## 0. Schnellstart mit der fertigen Place-Datei
+
+`exports/roblox/ArcaneVillage.rbxlx` in Roblox Studio öffnen (Datei → Von Datei öffnen) und Play
+drücken. Die Datei enthält alle Skripte am richtigen Platz; die Schritte 1 und 2 entfallen.
+
+Beim Start baut `VillageAutoBuild` das Dorf selbst:
+
+| Zustand | Ergebnis |
+|---|---|
+| keine Meshes importiert | Voxel-Gelände aus der Höhenkarte, je Gebäude ein farbiger Block in Originalgröße und -lage („Greybox") |
+| `ServerStorage.VillageAssets` vorhanden, ohne Geländekacheln | echte Modelle auf Voxel-Gelände |
+| `VillageAssets` mit Geländekacheln | vollständiges Dorf wie in den Vorschauen |
+
+Das Spiel (Sammeln, Werkstatt, Maschinen, Verkauf) läuft in allen drei Zuständen mit denselben
+Koordinaten. Die Datei wird mit `python scripts/build_place.py` neu erzeugt. Sie ist wohlgeformtes
+XML im rbxlx-Aufbau, wurde aber nie in Studio geöffnet.
+
 ## 1. Skripte
 
 Mit Rojo: `rojo serve` im Repository, in Studio verbinden. `default.project.json` legt an:

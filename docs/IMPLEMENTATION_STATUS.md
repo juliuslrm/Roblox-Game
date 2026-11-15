@@ -112,6 +112,16 @@ unverändert.
   `docs/BLOCKERS_STUDIO.md`, `docs/CHANGELOG_GAMEPLAY.md`, `scripts/check_all.sh`.
 - BLOCKED pending Studio: Import, erster Start, alle Punkte der Testmatrix.
 
+## Place-Datei und Auto-Aufbau
+
+- `exports/roblox/ArcaneVillage.rbxlx` (erzeugt von `scripts/build_place.py`): alle Skripte in
+  ReplicatedStorage, ServerScriptService, ServerStorage und StarterPlayerScripts.
+- `roblox/VillageAutoBuild.lua`: baut beim Serverstart das Dorf – mit importierten Meshes über den
+  Welt-Builder, sonst als Greybox (Voxel-Gelände + ein Block je Gebäude).
+- TESTED_LOCAL (`tests/test_place_and_autobuild.py`): XML wohlgeformt, Skriptquellen vollständig,
+  31 Greybox-Blöcke stimmen auf 0,0001 Studs mit dem Plan überein, alle drei Modi laufen im Mock.
+- UNVERIFIED_STUDIO: Öffnen der Datei in Studio, Dauer des Voxel-Aufbaus (36 864 FillBlock-Aufrufe).
+
 ## Offene Punkte gegenüber der Spezifikation
 
 | Spec | Fehlt |

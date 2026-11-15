@@ -6,25 +6,45 @@
       "$className": "ServerStorage",
       "VillageWorld": {
         "$className": "Folder",
-        "VillageWorldBuilder": { "$path": "roblox/VillageWorldBuilder.lua" },
-        "VillageTerrainBuilder": { "$path": "roblox/VillageTerrainBuilder.lua" },
-        "WorldLayout": { "$path": "roblox/WorldLayout.lua" },
-        "WorldHeightmap": { "$path": "roblox/WorldHeightmap.lua" }
+        "VillageWorldBuilder": {
+          "$path": "roblox/VillageWorldBuilder.lua"
+        },
+        "VillageTerrainBuilder": {
+          "$path": "roblox/VillageTerrainBuilder.lua"
+        },
+        "WorldLayout": {
+          "$path": "roblox/WorldLayout.lua"
+        },
+        "WorldHeightmap": {
+          "$path": "roblox/WorldHeightmap.lua"
+        },
+        "VillageAutoBuild": {
+          "$path": "roblox/VillageAutoBuild.lua"
+        }
       }
     },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
-      "ArcaneShared": { "$path": "roblox/gameplay/shared" }
+      "ArcaneShared": {
+        "$path": "roblox/gameplay/shared"
+      }
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "ArcaneServer": { "$path": "roblox/gameplay/server" }
+      "ArcaneServer": {
+        "$path": "roblox/gameplay/server"
+      },
+      "VillageAutoBuild": {
+        "$path": "roblox/VillageAutoBuild.server.lua"
+      }
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "ArcaneClient": { "$path": "roblox/gameplay/client" }
+        "ArcaneClient": {
+          "$path": "roblox/gameplay/client"
+        }
       }
     }
   }

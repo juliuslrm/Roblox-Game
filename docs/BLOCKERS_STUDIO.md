@@ -4,6 +4,7 @@ Alles hier ist geschrieben, aber nie in Roblox gelaufen. Reihenfolge = sinnvolle
 
 | # | Zu prüfen | Datei | Risiko |
 |---|---|---|---|
+| 0 | `exports/roblox/ArcaneVillage.rbxlx` lässt sich öffnen; beim Start erscheint „[Village] built in mode …" | `scripts/build_place.py`, `VillageAutoBuild` | hoch – Dateiformat aus dem Gedächtnis |
 | 1 | Rojo-Sync legt `ArcaneShared`, `ArcaneServer`, `ArcaneClient` richtig an; `Bootstrap` wird Script bzw. LocalScript | `default.project.json` | mittel |
 | 2 | Server startet ohne Fehler, Meldung „[Arcane] server ready" | `Bootstrap.server.lua` | hoch – viele API-Aufrufe aus dem Gedächtnis |
 | 3 | Marker stehen vor den Gebäuden auf dem Boden (Raycast), nicht darunter oder in Wänden | `Bootstrap.server.lua` | mittel |

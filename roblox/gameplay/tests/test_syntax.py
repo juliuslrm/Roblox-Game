@@ -20,7 +20,7 @@ def main():
     files = []
     for base, _dirs, names in os.walk(GAMEPLAY):
         files += [os.path.join(base, n) for n in names if n.endswith(".lua")]
-    files += [os.path.join(ROOT, "roblox", n) for n in ("VillageWorldBuilder.lua", "VillageTerrainBuilder.lua")]
+    files += [os.path.join(ROOT, "roblox", n) for n in ("VillageWorldBuilder.lua", "VillageTerrainBuilder.lua", "VillageAutoBuild.lua", "VillageAutoBuild.server.lua")]
     bad = 0
     for path in sorted(files):
         src = open(path, encoding="utf-8").read()

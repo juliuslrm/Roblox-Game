@@ -14,6 +14,14 @@ local VillageAdapter = require(script.Parent.VillageAdapter)
 local WorkshopWorld = require(script.Parent.WorkshopWorld)
 local Config, Locations, Protocol, Items = D.Config, D.Locations, D.Protocol, D.Items
 
+-- wait until the village (or its greybox stand-in) exists, otherwise ground raycasts hit nothing
+if game:GetService("ServerScriptService"):FindFirstChild("VillageAutoBuild") then
+	local waited = 0
+	while not workspace:GetAttribute("VillageReady") and waited < 180 do
+		waited = waited + task.wait(0.25)
+	end
+end
+
 do
 	local errors = D.Validator.run(D)
 	for _, e in ipairs(errors) do warn("[Arcane] data error: " .. e) end
