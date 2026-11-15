@@ -91,6 +91,7 @@ class MeshBuilder:
         self.collision = None  # 'proxy' | 'mesh' | 'mesh_precise' | 'none' (None = category default)
         self.wings = []      # building volumes, used to derive box colliders
         self.winding_fixes = 0
+        self.custom_normals = {}   # vertex index -> normal (only where given explicitly)
 
     # ---- transform stack
     @contextmanager
@@ -113,7 +114,8 @@ class MeshBuilder:
 
     # ---- core
     def add(self, verts, faces, color, smooth=False, grad=(0.42, 0.60), zr=None,
-            tone=0.0, ftone=None, fsmooth=None, closed=False, fcolor=None, drop=()):
+            tone=0.0, ftone=None, fsmooth=None, closed=False, fcolor=None, drop=(), vtone=None,
+            normals=None):
         """Add polygons. verts are local to the current transform.
 
         grad   tone at the lowest / highest point of this part
@@ -142,8 +144,12 @@ class MeshBuilder:
             zr = (min(zs), max(zs))
         span = max(zr[1] - zr[0], 1e-6)
         vshade = [lerp(grad[0], grad[1], clamp((v.z - zr[0]) / span)) + tone for v in wv]
+        if vtone is not None:
+            vshade = [a + b for a, b in zip(vshade, vtone)]
         base = len(self.verts)
         self.verts.extend(wv)
+        if normals is not None:                    # explicit vertex normals (terrain chunks)
+            self.custom_normals.update({base + i: tuple(nv) for i, nv in enumerate(normals)})
         for i, f in enumerate(faces):
             if i in drop:
                 continue
@@ -314,6 +320,26 @@ class MeshBuilder:
             verts.append((x + v.x * k * scale[0], y + v.y * k * scale[1], z + v.z * k * scale[2]))
         return self.add(verts, ufaces, color, smooth=smooth, closed=True, **kw)
 
+    def sheet(self, rows, color, up=(0, 0, 1), close_u=False, **kw):
+        """Open surface from a grid of points (rows of equal length), wound so
+        that it faces `up`. Face order: for each row pair, for each column.
+        close_u connects the last column back to the first."""
+        n = len(rows[0])
+        verts = [p for r in rows for p in r]
+        faces = []
+        cols = n if close_u else n - 1
+        for j in range(len(rows) - 1):
+            for i in range(cols):
+                a, b = j * n + i, j * n + (i + 1) % n
+                faces.append((a, b, b + n, a + n))
+        nrm = Vector((0, 0, 0))
+        for f in faces[:: max(1, len(faces) // 16)]:
+            p = [Vector(verts[k]) for k in f]
+            nrm += (p[1] - p[0]).cross(p[2] - p[1])
+        if nrm.dot(Vector(up)) < 0:
+            faces = [tuple(reversed(f)) for f in faces]
+        return self.add(verts, faces, color, **kw)
+
     def quad(self, p0, p1, p2, p3, color, double=False, facing=None, **kw):
         return self.poly([p0, p1, p2, p3], color, double=double, facing=facing, **kw)
 
@@ -329,10 +355,12 @@ class MeshBuilder:
                 nrm += (p[i] - p[0]).cross(p[i + 1] - p[0])
             if nrm.dot(Vector(facing)) < 0:
                 idx.reverse()
-        faces = [tuple(idx)]
+        base = self.add(pts, [tuple(idx)], color, **kw)
         if double:
-            faces.append(tuple(reversed(idx)))
-        return self.add(pts, faces, color, **kw)
+            # the back side needs its own vertices: two faces on the same
+            # vertices count as duplicates and are removed by mesh.validate()
+            self.add(pts, [tuple(reversed(idx))], color, **kw)
+        return base
 
     def merge(self, other, *mats):
         """Append another builder's geometry, transformed by mats."""
@@ -397,6 +425,10 @@ class MeshBuilder:
         mesh.materials.append(palette.get_material(texture_path))
         mesh.validate(verbose=False)
         mesh.update()
+        if self.custom_normals:
+            fallback = [tuple(v.normal) for v in mesh.vertices]
+            mesh.normals_split_custom_set_from_vertices(
+                [self.custom_normals.get(i, fallback[i]) for i in range(len(mesh.vertices))])
         return mesh
 
     def to_object(self, name, texture_path, collection=None):

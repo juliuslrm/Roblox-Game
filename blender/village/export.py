@@ -3,7 +3,42 @@ import os
 
 import bpy
 
+from . import coords
 from . import scene as sc
+
+
+def _collider_to_roblox(c):
+    out = {"shape": c["shape"], "center": coords.to_roblox(c["center"])}
+    if c["shape"] == "box":
+        out["size"] = coords.size_to_roblox(c["size"])
+        out["yaw_deg"] = round(c["rot_z"], 3)
+    else:
+        out["radius"] = round(c["radius"], 3)
+        out["height"] = round(c["height"], 3)
+    return out
+
+
+def describe(mb, category, blend, glb, collision=None):
+    """Manifest entry of a built asset (bounds in both coordinate systems,
+    collision proxies and light anchors already converted to Roblox space)."""
+    bmin, bmax = mb.bounds()
+    size = [b - a for a, b in zip(bmin, bmax)]
+    small = category == "nature" and max(size) < 6.5
+    return {
+        "category": category,
+        "blend": blend,
+        "glb": glb,
+        "triangles": mb.tri_count(),
+        "vertices": len(mb.verts),
+        "collision": collision or mb.collision,
+        "cast_shadow": not (small or category == "terrain"),
+        "bounds_blender": {"min": [round(v, 4) for v in bmin], "max": [round(v, 4) for v in bmax]},
+        "bounds_roblox": coords.bounds_to_roblox(bmin, bmax),
+        "colliders": [_collider_to_roblox(c) for c in mb.colliders],
+        "lights": [{"position": coords.to_roblox(lt["position"]),
+                    "color": [round(v, 3) for v in lt["color"]],
+                    "brightness": lt["brightness"], "range": lt["range"]} for lt in mb.lights],
+    }
 
 
 def _select_only(objs):

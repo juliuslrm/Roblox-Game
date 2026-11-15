@@ -1,0 +1,16 @@
+{
+  "name": "StylizedVillage",
+  "tree": {
+    "$className": "DataModel",
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "VillageWorld": {
+        "$className": "Folder",
+        "VillageWorldBuilder": { "$path": "roblox/VillageWorldBuilder.lua" },
+        "VillageTerrainBuilder": { "$path": "roblox/VillageTerrainBuilder.lua" },
+        "WorldLayout": { "$path": "roblox/WorldLayout.lua" },
+        "WorldHeightmap": { "$path": "roblox/WorldHeightmap.lua" }
+      }
+    }
+  }
+}

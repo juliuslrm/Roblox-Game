@@ -6,41 +6,42 @@
    "category": "houses",
    "blend": "assets/houses/house_01_timber_cottage.blend",
    "glb": "exports/glb/houses/house_01_timber_cottage.glb",
-   "triangles": 4903,
-   "vertices": 3492,
+   "triangles": 4927,
+   "vertices": 3504,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -14.0132,
-     -12.899,
+     -14.0097,
+     -12.8957,
      -4.0
     ],
     "max": [
-     14.0132,
-     11.5889,
+     14.0097,
+     11.586,
      38.676
     ]
    },
    "bounds_roblox": {
     "min": [
-     -14.0132,
+     -14.0097,
      -4.0,
-     -11.5889
+     -11.586
     ],
     "max": [
-     14.0132,
+     14.0097,
      38.676,
-     12.899
+     12.8957
     ],
     "size": [
-     28.0263,
+     28.0193,
      42.676,
-     24.4879
+     24.4817
     ],
     "center": [
      0.0,
      17.338,
-     0.655
+     0.6549
     ]
    },
    "colliders": [
@@ -80,41 +81,42 @@
    "category": "houses",
    "blend": "assets/houses/house_02_gabled_townhouse.blend",
    "glb": "exports/glb/houses/house_02_gabled_townhouse.glb",
-   "triangles": 4437,
-   "vertices": 3227,
+   "triangles": 4413,
+   "vertices": 3203,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -11.6025,
-     -17.0228,
+     -11.6003,
+     -17.0195,
      -4.0
     ],
     "max": [
-     11.5925,
-     14.8199,
+     11.5902,
+     14.8169,
      48.5585
     ]
    },
    "bounds_roblox": {
     "min": [
-     -11.6025,
+     -11.6003,
      -4.0,
-     -14.8199
+     -14.8169
     ],
     "max": [
-     11.5925,
+     11.5902,
      48.5585,
-     17.0228
+     17.0195
     ],
     "size": [
-     23.195,
+     23.1905,
      52.5585,
-     31.8427
+     31.8364
     ],
     "center": [
      -0.005,
      22.2792,
-     1.1015
+     1.1013
     ]
    },
    "colliders": [
@@ -157,33 +159,34 @@
    "triangles": 2319,
    "vertices": 1649,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -15.6798,
-     -12.2303,
+     -15.67,
+     -12.2227,
      -4.0
     ],
     "max": [
-     15.6798,
-     12.2361,
+     15.67,
+     12.2284,
      23.6999
     ]
    },
    "bounds_roblox": {
     "min": [
-     -15.6798,
+     -15.67,
      -4.0,
-     -12.2361
+     -12.2284
     ],
     "max": [
-     15.6798,
+     15.67,
      23.6999,
-     12.2303
+     12.2227
     ],
     "size": [
-     31.3595,
+     31.34,
      27.6999,
-     24.4664
+     24.4511
     ],
     "center": [
      0.0,
@@ -213,41 +216,42 @@
    "category": "houses",
    "blend": "assets/houses/house_04_farmhouse.blend",
    "glb": "exports/glb/houses/house_04_farmhouse.glb",
-   "triangles": 7521,
-   "vertices": 5356,
+   "triangles": 7553,
+   "vertices": 5372,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -16.0224,
+     -16.0179,
      -23.629,
      -4.0
     ],
     "max": [
-     16.6362,
-     11.0646,
+     16.6315,
+     11.0614,
      34.8999
     ]
    },
    "bounds_roblox": {
     "min": [
-     -16.0224,
+     -16.0179,
      -4.0,
-     -11.0646
+     -11.0614
     ],
     "max": [
-     16.6362,
+     16.6315,
      34.8999,
      23.629
     ],
     "size": [
-     32.6587,
+     32.6495,
      38.8999,
-     34.6936
+     34.6905
     ],
     "center": [
-     0.3069,
+     0.3068,
      15.45,
-     6.2822
+     6.2838
     ]
    },
    "colliders": [
@@ -301,41 +305,42 @@
    "category": "houses",
    "blend": "assets/houses/house_05_bakery.blend",
    "glb": "exports/glb/houses/house_05_bakery.glb",
-   "triangles": 3974,
-   "vertices": 2842,
+   "triangles": 3990,
+   "vertices": 2850,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -15.02,
+     -15.0159,
      -12.7782,
      -4.0
     ],
     "max": [
-     15.02,
-     11.5618,
+     15.0159,
+     11.5586,
      37.4917
     ]
    },
    "bounds_roblox": {
     "min": [
-     -15.02,
+     -15.0159,
      -4.0,
-     -11.5618
+     -11.5586
     ],
     "max": [
-     15.02,
+     15.0159,
      37.4917,
      12.7782
     ],
     "size": [
-     30.04,
+     30.0318,
      41.4917,
-     24.34
+     24.3369
     ],
     "center": [
      0.0,
      16.7458,
-     0.6082
+     0.6098
     ]
    },
    "colliders": [
@@ -375,41 +380,42 @@
    "category": "houses",
    "blend": "assets/houses/house_06_crooked_tower_house.blend",
    "glb": "exports/glb/houses/house_06_crooked_tower_house.glb",
-   "triangles": 4749,
-   "vertices": 3396,
+   "triangles": 4765,
+   "vertices": 3404,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -11.7155,
-     -11.9346,
+     -11.7092,
+     -11.9339,
      -4.0
     ],
     "max": [
-     12.5187,
-     9.5045,
+     12.5204,
+     9.5011,
      49.9298
     ]
    },
    "bounds_roblox": {
     "min": [
-     -11.7155,
+     -11.7092,
      -4.0,
-     -9.5045
+     -9.5011
     ],
     "max": [
-     12.5187,
+     12.5204,
      49.9298,
-     11.9346
+     11.9339
     ],
     "size": [
-     24.2341,
+     24.2296,
      53.9298,
-     21.439
+     21.435
     ],
     "center": [
-     0.4016,
+     0.4056,
      22.9649,
-     1.2151
+     1.2164
     ]
    },
    "colliders": [
@@ -452,38 +458,39 @@
    "triangles": 5198,
    "vertices": 3997,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -16.4072,
+     -16.4041,
      -13.1508,
      -4.0
     ],
     "max": [
-     16.4072,
-     12.3724,
+     16.4041,
+     12.37,
      36.7937
     ]
    },
    "bounds_roblox": {
     "min": [
-     -16.4072,
+     -16.4041,
      -4.0,
-     -12.3724
+     -12.37
     ],
     "max": [
-     16.4072,
+     16.4041,
      36.7937,
      13.1508
     ],
     "size": [
-     32.8145,
+     32.8082,
      40.7937,
-     25.5232
+     25.5208
     ],
     "center": [
      0.0,
      16.3968,
-     0.3892
+     0.3904
     ]
    },
    "colliders": [
@@ -537,41 +544,42 @@
    "category": "houses",
    "blend": "assets/houses/house_08_plank_cabin.blend",
    "glb": "exports/glb/houses/house_08_plank_cabin.glb",
-   "triangles": 3226,
-   "vertices": 2266,
+   "triangles": 3242,
+   "vertices": 2274,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -13.976,
+     -13.9728,
      -16.3506,
      -4.0
     ],
     "max": [
-     13.976,
-     10.1405,
+     13.9728,
+     10.1381,
      25.87
     ]
    },
    "bounds_roblox": {
     "min": [
-     -13.976,
+     -13.9728,
      -4.0,
-     -10.1405
+     -10.1381
     ],
     "max": [
-     13.976,
+     13.9728,
      25.87,
      16.3506
     ],
     "size": [
-     27.9521,
+     27.9457,
      29.87,
-     26.4911
+     26.4887
     ],
     "center": [
      0.0,
      10.935,
-     3.1051
+     3.1062
     ]
    },
    "colliders": [
@@ -596,41 +604,42 @@
    "category": "houses",
    "blend": "assets/houses/house_09_twin_gable.blend",
    "glb": "exports/glb/houses/house_09_twin_gable.glb",
-   "triangles": 7358,
-   "vertices": 5120,
+   "triangles": 7410,
+   "vertices": 5152,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -18.0514,
-     -13.184,
+     -18.0463,
+     -13.1803,
      -4.0
     ],
     "max": [
-     18.0514,
-     11.0632,
+     18.0463,
+     11.0601,
      34.7999
     ]
    },
    "bounds_roblox": {
     "min": [
-     -18.0514,
+     -18.0463,
      -4.0,
-     -11.0632
+     -11.0601
     ],
     "max": [
-     18.0514,
+     18.0463,
      34.7999,
-     13.184
+     13.1803
     ],
     "size": [
-     36.1028,
+     36.0926,
      38.7999,
-     24.2472
+     24.2403
     ],
     "center": [
      0.0,
      15.4,
-     1.0604
+     1.0601
     ]
    },
    "colliders": [
@@ -698,41 +707,42 @@
    "category": "houses",
    "blend": "assets/houses/house_10_saltbox.blend",
    "glb": "exports/glb/houses/house_10_saltbox.glb",
-   "triangles": 3204,
-   "vertices": 2294,
+   "triangles": 3220,
+   "vertices": 2302,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -13.0192,
+     -13.0152,
      -14.1923,
      -4.0
     ],
     "max": [
-     13.0191,
-     13.5602,
+     13.0152,
+     13.5561,
      32.97
     ]
    },
    "bounds_roblox": {
     "min": [
-     -13.0192,
+     -13.0152,
      -4.0,
-     -13.5602
+     -13.5561
     ],
     "max": [
-     13.0191,
+     13.0152,
      32.97,
      14.1923
     ],
     "size": [
-     26.0383,
+     26.0305,
      36.97,
-     27.7525
+     27.7484
     ],
     "center": [
      -0.0,
      14.485,
-     0.316
+     0.3181
     ]
    },
    "colliders": [
@@ -757,9 +767,10 @@
    "category": "houses",
    "blend": "assets/houses/house_11_stair_house.blend",
    "glb": "exports/glb/houses/house_11_stair_house.glb",
-   "triangles": 4288,
-   "vertices": 3070,
+   "triangles": 4304,
+   "vertices": 3078,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -14.6827,
@@ -767,8 +778,8 @@
      -4.0
     ],
     "max": [
-     12.9086,
-     11.5107,
+     12.9065,
+     11.5089,
      35.7841
     ]
    },
@@ -776,22 +787,22 @@
     "min": [
      -14.6827,
      -4.0,
-     -11.5107
+     -11.5089
     ],
     "max": [
-     12.9086,
+     12.9065,
      35.7841,
      12.1556
     ],
     "size": [
-     27.5913,
+     27.5893,
      39.7841,
-     23.6663
+     23.6645
     ],
     "center": [
-     -0.8871,
+     -0.8881,
      15.892,
-     0.3225
+     0.3234
     ]
    },
    "colliders": [
@@ -816,9 +827,10 @@
    "category": "houses",
    "blend": "assets/houses/house_12_turret_house.blend",
    "glb": "exports/glb/houses/house_12_turret_house.glb",
-   "triangles": 4599,
-   "vertices": 3333,
+   "triangles": 4615,
+   "vertices": 3341,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -16.566,
@@ -826,8 +838,8 @@
      -4.0
     ],
     "max": [
-     12.9072,
-     11.5143,
+     12.9053,
+     11.5126,
      39.4382
     ]
    },
@@ -835,22 +847,22 @@
     "min": [
      -16.566,
      -4.0,
-     -11.5143
+     -11.5126
     ],
     "max": [
-     12.9072,
+     12.9053,
      39.4382,
      14.5562
     ],
     "size": [
-     29.4732,
+     29.4713,
      43.4382,
-     26.0705
+     26.0688
     ],
     "center": [
-     -1.8294,
+     -1.8303,
      17.7191,
-     1.5209
+     1.5218
     ]
    },
    "colliders": [
@@ -903,6 +915,7 @@
    "triangles": 2022,
    "vertices": 1458,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -10.2492,
@@ -911,7 +924,7 @@
     ],
     "max": [
      11.18,
-     9.4656,
+     9.4606,
      22.5896
     ]
    },
@@ -919,7 +932,7 @@
     "min": [
      -10.2492,
      -4.0,
-     -9.4656
+     -9.4606
     ],
     "max": [
      11.18,
@@ -929,12 +942,12 @@
     "size": [
      21.4292,
      26.5896,
-     19.1688
+     19.1638
     ],
     "center": [
      0.4654,
      9.2948,
-     0.1188
+     0.1213
     ]
    },
    "colliders": [
@@ -959,41 +972,42 @@
    "category": "houses",
    "blend": "assets/houses/house_14_long_weaver_house.blend",
    "glb": "exports/glb/houses/house_14_long_weaver_house.glb",
-   "triangles": 5058,
-   "vertices": 3476,
+   "triangles": 5098,
+   "vertices": 3496,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -20.2089,
+     -20.2012,
      -10.5767,
      -4.0
     ],
     "max": [
-     20.2089,
-     10.1277,
+     20.2012,
+     10.1239,
      26.6811
     ]
    },
    "bounds_roblox": {
     "min": [
-     -20.2089,
+     -20.2012,
      -4.0,
-     -10.1277
+     -10.1239
     ],
     "max": [
-     20.2089,
+     20.2012,
      26.6811,
      10.5767
     ],
     "size": [
-     40.4178,
+     40.4024,
      30.6811,
-     20.7044
+     20.7005
     ],
     "center": [
      0.0,
      11.3406,
-     0.2245
+     0.2264
     ]
    },
    "colliders": [
@@ -1036,6 +1050,7 @@
    "triangles": 4119,
    "vertices": 3093,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -12.2496,
@@ -1107,41 +1122,42 @@
    "category": "houses",
    "blend": "assets/houses/house_16_porch_tower_house.blend",
    "glb": "exports/glb/houses/house_16_porch_tower_house.glb",
-   "triangles": 6895,
-   "vertices": 4950,
+   "triangles": 6887,
+   "vertices": 4934,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -16.0893,
-     -17.6142,
+     -16.0855,
+     -17.6102,
      -4.0
     ],
     "max": [
-     16.0893,
-     10.596,
+     16.0855,
+     10.5936,
      38.394
     ]
    },
    "bounds_roblox": {
     "min": [
-     -16.0893,
+     -16.0855,
      -4.0,
-     -10.596
+     -10.5936
     ],
     "max": [
-     16.0893,
+     16.0855,
      38.394,
-     17.6142
+     17.6102
     ],
     "size": [
-     32.1785,
+     32.1711,
      42.394,
-     28.2103
+     28.2037
     ],
     "center": [
      0.0,
      17.197,
-     3.5091
+     3.5083
     ]
    },
    "colliders": [
@@ -1195,40 +1211,41 @@
    "category": "houses",
    "blend": "assets/houses/house_17_red_barn.blend",
    "glb": "exports/glb/houses/house_17_red_barn.glb",
-   "triangles": 3112,
-   "vertices": 2218,
+   "triangles": 3128,
+   "vertices": 2226,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -17.1743,
-     -14.8154,
+     -17.1718,
+     -14.8132,
      -4.0
     ],
     "max": [
-     17.1765,
-     14.8154,
-     25.85
+     17.1739,
+     14.8132,
+     25.9435
     ]
    },
    "bounds_roblox": {
     "min": [
-     -17.1743,
+     -17.1718,
      -4.0,
-     -14.8154
+     -14.8132
     ],
     "max": [
-     17.1765,
-     25.85,
-     14.8154
+     17.1739,
+     25.9435,
+     14.8132
     ],
     "size": [
-     34.3508,
-     29.85,
-     29.6308
+     34.3457,
+     29.9435,
+     29.6263
     ],
     "center": [
      0.0011,
-     10.925,
+     10.9717,
      -0.0
     ]
    },
@@ -1254,39 +1271,40 @@
    "category": "houses",
    "blend": "assets/houses/house_18_tiny_cottage.blend",
    "glb": "exports/glb/houses/house_18_tiny_cottage.glb",
-   "triangles": 2427,
-   "vertices": 1648,
+   "triangles": 2443,
+   "vertices": 1656,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -9.5283,
-     -8.6157,
+     -9.5233,
+     -8.6111,
      -4.0
     ],
     "max": [
      9.9931,
-     8.5976,
+     8.593,
      23.5654
     ]
    },
    "bounds_roblox": {
     "min": [
-     -9.5283,
+     -9.5233,
      -4.0,
-     -8.5976
+     -8.593
     ],
     "max": [
      9.9931,
      23.5654,
-     8.6157
+     8.6111
     ],
     "size": [
-     19.5214,
+     19.5164,
      27.5654,
-     17.2133
+     17.2041
     ],
     "center": [
-     0.2324,
+     0.2349,
      9.7827,
      0.0091
     ]
@@ -1328,9 +1346,10 @@
    "category": "landmarks",
    "blend": "assets/landmarks/lm_chapel.blend",
    "glb": "exports/glb/landmarks/lm_chapel.glb",
-   "triangles": 8394,
+   "triangles": 8400,
    "vertices": 6152,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -12.801,
@@ -1339,7 +1358,7 @@
     ],
     "max": [
      12.801,
-     25.7885,
+     25.7864,
      64.0
     ]
    },
@@ -1347,7 +1366,7 @@
     "min": [
      -12.801,
      -4.0,
-     -25.7885
+     -25.7864
     ],
     "max": [
      12.801,
@@ -1357,12 +1376,12 @@
     "size": [
      25.602,
      68.0,
-     49.5851
+     49.583
     ],
     "center": [
      0.0,
      30.0,
-     -0.996
+     -0.9949
     ]
    },
    "colliders": [
@@ -1431,8 +1450,9 @@
    "blend": "assets/landmarks/lm_windmill.blend",
    "glb": "exports/glb/landmarks/lm_windmill.glb",
    "triangles": 2660,
-   "vertices": 1934,
+   "vertices": 1950,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -21.1132,
@@ -1500,41 +1520,42 @@
    "category": "landmarks",
    "blend": "assets/landmarks/lm_town_hall.blend",
    "glb": "exports/glb/landmarks/lm_town_hall.glb",
-   "triangles": 9426,
-   "vertices": 6991,
+   "triangles": 9458,
+   "vertices": 7010,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -21.0516,
+     -21.0498,
      -22.0116,
      -4.0
     ],
     "max": [
-     21.0516,
-     13.5815,
+     21.0498,
+     13.5803,
      63.6712
     ]
    },
    "bounds_roblox": {
     "min": [
-     -21.0516,
+     -21.0498,
      -4.0,
-     -13.5815
+     -13.5803
     ],
     "max": [
-     21.0516,
+     21.0498,
      63.6712,
      22.0116
     ],
     "size": [
-     42.1031,
+     42.0996,
      67.6712,
-     35.5931
+     35.5919
     ],
     "center": [
      0.0,
      29.8356,
-     4.2151
+     4.2156
     ]
    },
    "colliders": [
@@ -1699,41 +1720,42 @@
    "category": "landmarks",
    "blend": "assets/landmarks/lm_tavern.blend",
    "glb": "exports/glb/landmarks/lm_tavern.glb",
-   "triangles": 9655,
-   "vertices": 6888,
+   "triangles": 9687,
+   "vertices": 6904,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -19.6925,
-     -27.6119,
+     -19.6876,
+     -27.6049,
      -4.0
     ],
     "max": [
-     19.0812,
-     12.5798,
+     19.0764,
+     12.5766,
      39.6834
     ]
    },
    "bounds_roblox": {
     "min": [
-     -19.6925,
+     -19.6876,
      -4.0,
-     -12.5798
+     -12.5766
     ],
     "max": [
-     19.0812,
+     19.0764,
      39.6834,
-     27.6119
+     27.6049
     ],
     "size": [
-     38.7738,
+     38.764,
      43.6834,
-     40.1916
+     40.1815
     ],
     "center": [
-     -0.3057,
+     -0.3056,
      17.8417,
-     7.516
+     7.5142
     ]
    },
    "colliders": [
@@ -1829,26 +1851,27 @@
    "category": "landmarks",
    "blend": "assets/landmarks/lm_smithy.blend",
    "glb": "exports/glb/landmarks/lm_smithy.glb",
-   "triangles": 3288,
-   "vertices": 2236,
+   "triangles": 3304,
+   "vertices": 2244,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -13.0091,
+     -13.0042,
      -11.5896,
      -4.0
     ],
     "max": [
      22.0477,
-     11.067,
+     11.0628,
      26.67
     ]
    },
    "bounds_roblox": {
     "min": [
-     -13.0091,
+     -13.0042,
      -4.0,
-     -11.067
+     -11.0628
     ],
     "max": [
      22.0477,
@@ -1856,14 +1879,14 @@
      11.5896
     ],
     "size": [
-     35.0567,
+     35.0519,
      30.67,
-     22.6565
+     22.6524
     ],
     "center": [
-     4.5193,
+     4.5217,
      11.335,
-     0.2613
+     0.2634
     ]
    },
    "colliders": [
@@ -2002,8 +2025,9 @@
    "blend": "assets/landmarks/lm_watchtower.blend",
    "glb": "exports/glb/landmarks/lm_watchtower.glb",
    "triangles": 2149,
-   "vertices": 1476,
+   "vertices": 1479,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -10.2844,
@@ -2088,6 +2112,7 @@
    "triangles": 1024,
    "vertices": 640,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -17.8638,
@@ -2097,7 +2122,7 @@
     "max": [
      17.8638,
      11.8638,
-     26.2132
+     26.4632
     ]
    },
    "bounds_roblox": {
@@ -2108,17 +2133,17 @@
     ],
     "max": [
      17.8638,
-     26.2132,
+     26.4632,
      11.8638
     ],
     "size": [
      35.7276,
-     30.2132,
+     30.4632,
      23.7276
     ],
     "center": [
      0.0,
-     11.1066,
+     11.2316,
      0.0
     ]
    },
@@ -2316,6 +2341,7 @@
    "triangles": 584,
    "vertices": 316,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -9.569,
@@ -2371,6 +2397,7 @@
    "triangles": 652,
    "vertices": 350,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -10.8806,
@@ -2426,6 +2453,7 @@
    "triangles": 364,
    "vertices": 192,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.9938,
@@ -2481,6 +2509,7 @@
    "triangles": 444,
    "vertices": 234,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.7731,
@@ -2536,6 +2565,7 @@
    "triangles": 236,
    "vertices": 130,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -5.6806,
@@ -2591,6 +2621,7 @@
    "triangles": 198,
    "vertices": 109,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.373,
@@ -2646,6 +2677,7 @@
    "triangles": 274,
    "vertices": 151,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -6.394,
@@ -2701,6 +2733,7 @@
    "triangles": 424,
    "vertices": 232,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.0279,
@@ -2756,6 +2789,7 @@
    "triangles": 724,
    "vertices": 406,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -7.4653,
@@ -2811,6 +2845,7 @@
    "triangles": 492,
    "vertices": 266,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -7.2119,
@@ -2866,6 +2901,7 @@
    "triangles": 492,
    "vertices": 266,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -8.8922,
@@ -2921,6 +2957,7 @@
    "triangles": 158,
    "vertices": 95,
    "collision": "mesh",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -1.8664,
@@ -2965,6 +3002,7 @@
    "triangles": 104,
    "vertices": 62,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.6722,
@@ -3009,6 +3047,7 @@
    "triangles": 240,
    "vertices": 126,
    "collision": "none",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.3883,
@@ -3053,6 +3092,7 @@
    "triangles": 312,
    "vertices": 180,
    "collision": "none",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.9461,
@@ -3097,6 +3137,7 @@
    "triangles": 224,
    "vertices": 132,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -1.9685,
@@ -3141,6 +3182,7 @@
    "triangles": 240,
    "vertices": 126,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.4429,
@@ -3200,6 +3242,7 @@
    "triangles": 80,
    "vertices": 42,
    "collision": "mesh",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -2.2604,
@@ -3244,6 +3287,7 @@
    "triangles": 120,
    "vertices": 66,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.2616,
@@ -3288,6 +3332,7 @@
    "triangles": 100,
    "vertices": 54,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.7045,
@@ -3332,6 +3377,7 @@
    "triangles": 220,
    "vertices": 120,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -5.913,
@@ -3376,6 +3422,7 @@
    "triangles": 280,
    "vertices": 150,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -10.3436,
@@ -3420,6 +3467,7 @@
    "triangles": 188,
    "vertices": 132,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -2.2802,
@@ -3464,6 +3512,7 @@
    "triangles": 188,
    "vertices": 132,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -2.2802,
@@ -3508,6 +3557,7 @@
    "triangles": 188,
    "vertices": 132,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -2.2802,
@@ -3552,6 +3602,7 @@
    "triangles": 204,
    "vertices": 144,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -2.4489,
@@ -3596,6 +3647,7 @@
    "triangles": 70,
    "vertices": 49,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -1.2955,
@@ -3640,6 +3692,7 @@
    "triangles": 174,
    "vertices": 105,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -1.1125,
@@ -3684,6 +3737,7 @@
    "triangles": 144,
    "vertices": 104,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -1.6493,
@@ -3728,6 +3782,7 @@
    "triangles": 112,
    "vertices": 68,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -2.1989,
@@ -3772,6 +3827,7 @@
    "triangles": 288,
    "vertices": 176,
    "collision": "none",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.3486,
@@ -3816,6 +3872,7 @@
    "triangles": 448,
    "vertices": 248,
    "collision": "none",
+   "cast_shadow": false,
    "bounds_blender": {
     "min": [
      -2.7839,
@@ -3860,6 +3917,7 @@
    "triangles": 480,
    "vertices": 316,
    "collision": "none",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.75,
@@ -3904,6 +3962,7 @@
    "triangles": 706,
    "vertices": 401,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.6,
@@ -3959,6 +4018,7 @@
    "triangles": 794,
    "vertices": 441,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -11.0,
@@ -4049,6 +4109,7 @@
    "triangles": 72,
    "vertices": 48,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.456,
@@ -4093,6 +4154,7 @@
    "triangles": 174,
    "vertices": 113,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -0.8,
@@ -4163,6 +4225,7 @@
    "triangles": 292,
    "vertices": 190,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.0705,
@@ -4247,6 +4310,7 @@
    "triangles": 12,
    "vertices": 8,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -0.375,
@@ -4291,6 +4355,7 @@
    "triangles": 36,
    "vertices": 24,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.375,
@@ -4350,6 +4415,7 @@
    "triangles": 156,
    "vertices": 100,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.5,
@@ -4409,6 +4475,7 @@
    "triangles": 192,
    "vertices": 128,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.0,
@@ -4468,6 +4535,7 @@
    "triangles": 1130,
    "vertices": 691,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -13.55,
@@ -4584,6 +4652,7 @@
    "triangles": 108,
    "vertices": 72,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.2,
@@ -4628,6 +4697,7 @@
    "triangles": 104,
    "vertices": 68,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.6741,
@@ -4683,6 +4753,7 @@
    "triangles": 180,
    "vertices": 120,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.6,
@@ -4742,6 +4813,7 @@
    "triangles": 968,
    "vertices": 608,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -7.08,
@@ -4801,6 +4873,7 @@
    "triangles": 612,
    "vertices": 388,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -5.2,
@@ -4860,6 +4933,7 @@
    "triangles": 612,
    "vertices": 400,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -7.1633,
@@ -4919,6 +4993,7 @@
    "triangles": 128,
    "vertices": 72,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -1.2,
@@ -4963,6 +5038,7 @@
    "triangles": 512,
    "vertices": 288,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -2.45,
@@ -5007,6 +5083,7 @@
    "triangles": 156,
    "vertices": 104,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -1.13,
@@ -5051,6 +5128,7 @@
    "triangles": 496,
    "vertices": 330,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -2.5128,
@@ -5095,6 +5173,7 @@
    "triangles": 84,
    "vertices": 54,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -1.8678,
@@ -5139,6 +5218,7 @@
    "triangles": 928,
    "vertices": 560,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.1,
@@ -5198,6 +5278,7 @@
    "triangles": 108,
    "vertices": 60,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -1.5,
@@ -5242,6 +5323,7 @@
    "triangles": 134,
    "vertices": 79,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.6648,
@@ -5286,6 +5368,7 @@
    "triangles": 484,
    "vertices": 298,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.55,
@@ -5330,6 +5413,7 @@
    "triangles": 192,
    "vertices": 120,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -1.75,
@@ -5374,6 +5458,7 @@
    "triangles": 248,
    "vertices": 138,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.0,
@@ -5433,6 +5518,7 @@
    "triangles": 248,
    "vertices": 146,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.8101,
@@ -5488,6 +5574,7 @@
    "triangles": 108,
    "vertices": 72,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -6.9,
@@ -5551,8 +5638,9 @@
    "blend": "assets/props/banner_pole.blend",
    "glb": "exports/glb/props/banner_pole.glb",
    "triangles": 74,
-   "vertices": 49,
+   "vertices": 52,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -0.65,
@@ -5608,6 +5696,7 @@
    "triangles": 840,
    "vertices": 536,
    "collision": "mesh_precise",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -14.35,
@@ -5652,6 +5741,7 @@
    "triangles": 514,
    "vertices": 321,
    "collision": "proxy",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -3.55,
@@ -5726,6 +5816,7 @@
    "triangles": 126,
    "vertices": 83,
    "collision": "mesh",
+   "cast_shadow": true,
    "bounds_blender": {
     "min": [
      -4.6,

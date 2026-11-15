@@ -1,3 +1,7 @@
-# Blender as a Python module (headless). Requires Python 3.13.
+# Blender as a Python module (headless, CPU rendering with Cycles). Needs Python 3.13.
 bpy==5.3.0
 numpy
+# level plan drawing (world/level_plan.png)
+matplotlib
+# runs the Luau scripts against a Roblox API mock (tests/)
+lupa

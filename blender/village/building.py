@@ -526,8 +526,11 @@ class _RoofSide:
         self.tw = halfw / self.total
         self.gw = self.g(self.tw)
 
+    LIFT = 0.25   # keeps the roof skin clear of corner posts and wall plates
+
     def p(self, t):
-        return (self.ridge_x + self.sgn * self.total * t, self.H * (1 - self.g(t) / self.gw) + self.th)
+        return (self.ridge_x + self.sgn * self.total * t,
+                self.H * (1 - self.g(t) / self.gw) + self.th + self.LIFT)
 
     def frame(self, t0, t1):
         """Unit slope direction and upward normal of the chord t0 -> t1."""
@@ -716,8 +719,8 @@ def hip_roof(mb, W, L, H, color, o=1.8, th=0.55, courses=6, shape=0.85, lip=0.26
     zr = (-th * 3, H + th)
 
     def rect(x, z, nx, nz, k):
-        hx = x + nx * k
-        hy = extra + x + nx * k
+        hx = max(x + nx * k, 0.03)          # never let a ring fold through the ridge line
+        hy = extra + hx
         zz = z + nz * k
         return [(hx, -hy, zz), (hx, hy, zz), (-hx, hy, zz), (-hx, -hy, zz)]
 

@@ -5,47 +5,22 @@
 """
 import argparse
 import json
-import math
 import os
 import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from village import coords, export, palette, registry  # noqa: E402
+from village import export, palette, registry  # noqa: E402
 from village import scene as sc  # noqa: E402
 
 MANIFEST = sc.path("world", "asset_manifest.json")
 
 
-def collider_to_roblox(c):
-    out = {"shape": c["shape"], "center": coords.to_roblox(c["center"])}
-    if c["shape"] == "box":
-        out["size"] = coords.size_to_roblox(c["size"])
-        out["yaw_deg"] = round(c["rot_z"], 3)
-    else:
-        out["radius"] = round(c["radius"], 3)
-        out["height"] = round(c["height"], 3)
-    return out
-
-
 def describe(name, mb):
     info = registry.ASSETS[name]
-    bmin, bmax = mb.bounds()
-    return {
-        "category": info["category"],
-        "blend": f"{info['dir']}/{name}.blend",
-        "glb": f"exports/glb/{info['category']}/{name}.glb",
-        "triangles": mb.tri_count(),
-        "vertices": len(mb.verts),
-        "collision": mb.collision,
-        "bounds_blender": {"min": [round(v, 4) for v in bmin], "max": [round(v, 4) for v in bmax]},
-        "bounds_roblox": coords.bounds_to_roblox(bmin, bmax),
-        "colliders": [collider_to_roblox(c) for c in mb.colliders],
-        "lights": [{"position": coords.to_roblox(lt["position"]),
-                    "color": [round(v, 3) for v in lt["color"]],
-                    "brightness": lt["brightness"], "range": lt["range"]} for lt in mb.lights],
-    }
+    return export.describe(mb, info["category"], f"{info['dir']}/{name}.blend",
+                           f"exports/glb/{info['category']}/{name}.glb")
 
 
 def main():

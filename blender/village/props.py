@@ -102,8 +102,8 @@ def fountain(mb):
     for k in range(4):                                         # falling water
         a = math.pi / 2 * k + math.pi / 4
         c, s = math.cos(a), math.sin(a)
-        mb.beam((4.2 * c, 4.2 * s, 9.1), (5.4 * c, 5.4 * s, 2.7), 0.7, 0.25, "glass_light", tone=0.12)
-        mb.beam((2.3 * c, 2.3 * s, 12.5), (3.1 * c, 3.1 * s, 9.1), 0.5, 0.2, "glass_light", tone=0.12)
+        mb.beam((4.35 * c, 4.35 * s, 9.1), (4.9 * c, 4.9 * s, 2.7), 0.45, 0.16, "glass_light", tone=0.2)
+        mb.beam((2.4 * c, 2.4 * s, 12.5), (2.8 * c, 2.8 * s, 9.1), 0.32, 0.14, "glass_light", tone=0.2)
     for k in range(seg):
         a = 2 * math.pi * (k + 0.5) / seg
         if k % 3 == 0:
