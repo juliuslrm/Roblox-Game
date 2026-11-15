@@ -662,9 +662,11 @@ def _gable_detail(mb, W, gh, cx, style, frame, gwin, wall_col):
         else:
             w_beam(mb, cx - 2.4, BW, cx - 2.4, gh(cx - 2.4) - 0.3, frame)
             w_beam(mb, cx + 2.4, BW, cx + 2.4, gh(cx + 2.4) - 0.3, frame)
-            if top > 8.5:
-                w_beam(mb, cx - 2.4, 7.0, cx + 2.4, 7.0, frame, w=BW * 0.8)
-                w_beam(mb, cx, 7.0, cx, top - 0.4, frame, w=BW * 0.8)
+            # collar beam: only where the gable is still wide enough to contain it
+            zc = min(7.0, gh(cx - 2.4) - 0.7, gh(cx + 2.4) - 0.7)
+            if zc > 5.6 and top - zc > 1.6:
+                w_beam(mb, cx - 2.4, zc, cx + 2.4, zc, frame, w=BW * 0.8)
+                w_beam(mb, cx, zc, cx, top - 0.4, frame, w=BW * 0.8)
         for s in (-1, 1):
             x = cx + s * W * 0.3
             if abs(x - cx) > 3.2 and gh(x) > 2.2:

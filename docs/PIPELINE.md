@@ -101,6 +101,12 @@ Geometriefehler.
   Straße oder im Wasser, alle Objekte auf dem Gelände, 15–25 Häuser
 - Luau: Größenlimit der Skripte, Ausführung gegen den Roblox-Mock
 
+`blender/audit_backfaces.py` (Ergebnis: `world/backface_audit.json`) schließt eine Lücke, die
+weder Vorschauen noch Formatprüfungen abdecken: Roblox zeichnet nur Vorderseiten, Cycles beide.
+Der Audit rendert jedes Asset aus zehn Richtungen mit einem Diagnosematerial (Vorderseiten weiß,
+Rückseiten magenta) und zählt magentafarbene Pixel. Bodenmeshes werden nur von oben betrachtet.
+Einzelne Pixel an Kanten gelten als Abtastrauschen (Grenze: 8 Pixel bzw. 0,01 % der Fläche).
+
 `tests/test_roblox_builder.py` führt `VillageWorldBuilder` mit simulierten Importen aus
 (verschiedene Maßstäbe 0,01 … 100, verschobene Positionen, in Models verpackt) und vergleicht die
 Bounding-Box jeder platzierten Instanz mit dem Sollwert, der unabhängig aus den

@@ -1,0 +1,881 @@
+{
+ "resolution": 256,
+ "results": {
+  "house_01_timber_cottage": {
+   "backface_pixels": 2,
+   "front_pixels": 189570,
+   "views": 10,
+   "worst_view": [
+    180,
+    18
+   ]
+  },
+  "house_02_gabled_townhouse": {
+   "backface_pixels": 0,
+   "front_pixels": 170578,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_03_thatched_cottage": {
+   "backface_pixels": 0,
+   "front_pixels": 196842,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_04_farmhouse": {
+   "backface_pixels": 1,
+   "front_pixels": 197507,
+   "views": 10,
+   "worst_view": [
+    300,
+    18
+   ]
+  },
+  "house_05_bakery": {
+   "backface_pixels": 0,
+   "front_pixels": 190180,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_06_crooked_tower_house": {
+   "backface_pixels": 0,
+   "front_pixels": 141225,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_07_stone_manor": {
+   "backface_pixels": 0,
+   "front_pixels": 190070,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_08_plank_cabin": {
+   "backface_pixels": 0,
+   "front_pixels": 190677,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_09_twin_gable": {
+   "backface_pixels": 0,
+   "front_pixels": 204692,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_10_saltbox": {
+   "backface_pixels": 0,
+   "front_pixels": 200587,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_11_stair_house": {
+   "backface_pixels": 1,
+   "front_pixels": 185020,
+   "views": 10,
+   "worst_view": [
+    60,
+    18
+   ]
+  },
+  "house_12_turret_house": {
+   "backface_pixels": 0,
+   "front_pixels": 174717,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_13_fisher_hut": {
+   "backface_pixels": 0,
+   "front_pixels": 180666,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_14_long_weaver_house": {
+   "backface_pixels": 0,
+   "front_pixels": 186435,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_15_tower_house": {
+   "backface_pixels": 0,
+   "front_pixels": 150735,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_16_porch_tower_house": {
+   "backface_pixels": 0,
+   "front_pixels": 185609,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_17_red_barn": {
+   "backface_pixels": 0,
+   "front_pixels": 220408,
+   "views": 10,
+   "worst_view": null
+  },
+  "house_18_tiny_cottage": {
+   "backface_pixels": 0,
+   "front_pixels": 173459,
+   "views": 10,
+   "worst_view": null
+  },
+  "lm_chapel": {
+   "backface_pixels": 0,
+   "front_pixels": 127337,
+   "views": 10,
+   "worst_view": null
+  },
+  "lm_windmill": {
+   "backface_pixels": 0,
+   "front_pixels": 75313,
+   "views": 10,
+   "worst_view": null
+  },
+  "lm_town_hall": {
+   "backface_pixels": 0,
+   "front_pixels": 142115,
+   "views": 10,
+   "worst_view": null
+  },
+  "lm_tavern": {
+   "backface_pixels": 0,
+   "front_pixels": 200021,
+   "views": 10,
+   "worst_view": null
+  },
+  "lm_smithy": {
+   "backface_pixels": 0,
+   "front_pixels": 168872,
+   "views": 10,
+   "worst_view": null
+  },
+  "lm_watchtower": {
+   "backface_pixels": 4,
+   "front_pixels": 76951,
+   "views": 10,
+   "worst_view": [
+    300,
+    18
+   ]
+  },
+  "lm_market_hall": {
+   "backface_pixels": 0,
+   "front_pixels": 178870,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_oak_a": {
+   "backface_pixels": 0,
+   "front_pixels": 91158,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_oak_b": {
+   "backface_pixels": 0,
+   "front_pixels": 92420,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_round": {
+   "backface_pixels": 0,
+   "front_pixels": 96607,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_poplar": {
+   "backface_pixels": 0,
+   "front_pixels": 62999,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_pine_a": {
+   "backface_pixels": 0,
+   "front_pixels": 76048,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_pine_b": {
+   "backface_pixels": 0,
+   "front_pixels": 77652,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_pine_c": {
+   "backface_pixels": 0,
+   "front_pixels": 68262,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_birch": {
+   "backface_pixels": 0,
+   "front_pixels": 64427,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_apple": {
+   "backface_pixels": 0,
+   "front_pixels": 102358,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_blossom": {
+   "backface_pixels": 0,
+   "front_pixels": 89999,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_autumn": {
+   "backface_pixels": 0,
+   "front_pixels": 85665,
+   "views": 10,
+   "worst_view": null
+  },
+  "tree_stump": {
+   "backface_pixels": 0,
+   "front_pixels": 125877,
+   "views": 10,
+   "worst_view": null
+  },
+  "log_pile": {
+   "backface_pixels": 0,
+   "front_pixels": 97487,
+   "views": 10,
+   "worst_view": null
+  },
+  "bush_a": {
+   "backface_pixels": 0,
+   "front_pixels": 129021,
+   "views": 10,
+   "worst_view": null
+  },
+  "bush_b": {
+   "backface_pixels": 0,
+   "front_pixels": 135100,
+   "views": 10,
+   "worst_view": null
+  },
+  "bush_berry": {
+   "backface_pixels": 0,
+   "front_pixels": 139062,
+   "views": 10,
+   "worst_view": null
+  },
+  "hedge": {
+   "backface_pixels": 0,
+   "front_pixels": 122808,
+   "views": 10,
+   "worst_view": null
+  },
+  "rock_a": {
+   "backface_pixels": 0,
+   "front_pixels": 142747,
+   "views": 10,
+   "worst_view": null
+  },
+  "rock_b": {
+   "backface_pixels": 0,
+   "front_pixels": 124218,
+   "views": 10,
+   "worst_view": null
+  },
+  "rock_c": {
+   "backface_pixels": 0,
+   "front_pixels": 136206,
+   "views": 10,
+   "worst_view": null
+  },
+  "rock_large": {
+   "backface_pixels": 0,
+   "front_pixels": 125834,
+   "views": 10,
+   "worst_view": null
+  },
+  "rock_cliff": {
+   "backface_pixels": 0,
+   "front_pixels": 124290,
+   "views": 10,
+   "worst_view": null
+  },
+  "flowers_red": {
+   "backface_pixels": 1,
+   "front_pixels": 78644,
+   "views": 10,
+   "worst_view": [
+    150,
+    55
+   ]
+  },
+  "flowers_yellow": {
+   "backface_pixels": 0,
+   "front_pixels": 71276,
+   "views": 10,
+   "worst_view": null
+  },
+  "flowers_blue": {
+   "backface_pixels": 0,
+   "front_pixels": 72674,
+   "views": 10,
+   "worst_view": null
+  },
+  "flowers_white": {
+   "backface_pixels": 0,
+   "front_pixels": 61808,
+   "views": 10,
+   "worst_view": null
+  },
+  "grass_tuft": {
+   "backface_pixels": 1,
+   "front_pixels": 57618,
+   "views": 10,
+   "worst_view": [
+    60,
+    18
+   ]
+  },
+  "mushrooms": {
+   "backface_pixels": 0,
+   "front_pixels": 88434,
+   "views": 10,
+   "worst_view": null
+  },
+  "reeds": {
+   "backface_pixels": 1,
+   "front_pixels": 53879,
+   "views": 10,
+   "worst_view": [
+    180,
+    18
+   ]
+  },
+  "lily_pads": {
+   "backface_pixels": 0,
+   "front_pixels": 58791,
+   "views": 10,
+   "worst_view": null
+  },
+  "wheat_patch": {
+   "backface_pixels": 0,
+   "front_pixels": 166270,
+   "views": 10,
+   "worst_view": null
+  },
+  "pumpkin_patch": {
+   "backface_pixels": 0,
+   "front_pixels": 95656,
+   "views": 10,
+   "worst_view": null
+  },
+  "garden_bed": {
+   "backface_pixels": 1,
+   "front_pixels": 165005,
+   "views": 10,
+   "worst_view": [
+    240,
+    18
+   ]
+  },
+  "well": {
+   "backface_pixels": 0,
+   "front_pixels": 152048,
+   "views": 10,
+   "worst_view": null
+  },
+  "fountain": {
+   "backface_pixels": 0,
+   "front_pixels": 133453,
+   "views": 10,
+   "worst_view": null
+  },
+  "trough": {
+   "backface_pixels": 0,
+   "front_pixels": 182973,
+   "views": 10,
+   "worst_view": null
+  },
+  "lantern_post": {
+   "backface_pixels": 0,
+   "front_pixels": 34477,
+   "views": 10,
+   "worst_view": null
+  },
+  "lantern_post_double": {
+   "backface_pixels": 0,
+   "front_pixels": 38055,
+   "views": 10,
+   "worst_view": null
+  },
+  "fence_post": {
+   "backface_pixels": 0,
+   "front_pixels": 86266,
+   "views": 10,
+   "worst_view": null
+  },
+  "fence_wood": {
+   "backface_pixels": 0,
+   "front_pixels": 57347,
+   "views": 10,
+   "worst_view": null
+  },
+  "fence_picket": {
+   "backface_pixels": 0,
+   "front_pixels": 69439,
+   "views": 10,
+   "worst_view": null
+  },
+  "stone_wall": {
+   "backface_pixels": 0,
+   "front_pixels": 175847,
+   "views": 10,
+   "worst_view": null
+  },
+  "gate_arch": {
+   "backface_pixels": 0,
+   "front_pixels": 114244,
+   "views": 10,
+   "worst_view": null
+  },
+  "bench": {
+   "backface_pixels": 0,
+   "front_pixels": 127468,
+   "views": 10,
+   "worst_view": null
+  },
+  "signpost": {
+   "backface_pixels": 0,
+   "front_pixels": 30907,
+   "views": 10,
+   "worst_view": null
+  },
+  "notice_board": {
+   "backface_pixels": 0,
+   "front_pixels": 120145,
+   "views": 10,
+   "worst_view": null
+  },
+  "market_stall_fruit": {
+   "backface_pixels": 0,
+   "front_pixels": 135781,
+   "views": 10,
+   "worst_view": null
+  },
+  "market_stall_bread": {
+   "backface_pixels": 0,
+   "front_pixels": 148332,
+   "views": 10,
+   "worst_view": null
+  },
+  "market_stall_cloth": {
+   "backface_pixels": 0,
+   "front_pixels": 157017,
+   "views": 10,
+   "worst_view": null
+  },
+  "barrel": {
+   "backface_pixels": 1,
+   "front_pixels": 181202,
+   "views": 10,
+   "worst_view": [
+    300,
+    18
+   ]
+  },
+  "barrel_stack": {
+   "backface_pixels": 0,
+   "front_pixels": 137447,
+   "views": 10,
+   "worst_view": null
+  },
+  "crate": {
+   "backface_pixels": 0,
+   "front_pixels": 284281,
+   "views": 10,
+   "worst_view": null
+  },
+  "crate_stack": {
+   "backface_pixels": 1,
+   "front_pixels": 166823,
+   "views": 10,
+   "worst_view": [
+    30,
+    55
+   ]
+  },
+  "sack_pile": {
+   "backface_pixels": 0,
+   "front_pixels": 103978,
+   "views": 10,
+   "worst_view": null
+  },
+  "woodpile": {
+   "backface_pixels": 0,
+   "front_pixels": 160966,
+   "views": 10,
+   "worst_view": null
+  },
+  "hay_bale": {
+   "backface_pixels": 0,
+   "front_pixels": 221348,
+   "views": 10,
+   "worst_view": null
+  },
+  "haystack": {
+   "backface_pixels": 0,
+   "front_pixels": 140076,
+   "views": 10,
+   "worst_view": null
+  },
+  "cart": {
+   "backface_pixels": 0,
+   "front_pixels": 113742,
+   "views": 10,
+   "worst_view": null
+  },
+  "planter": {
+   "backface_pixels": 0,
+   "front_pixels": 152509,
+   "views": 10,
+   "worst_view": null
+  },
+  "beehives": {
+   "backface_pixels": 0,
+   "front_pixels": 144579,
+   "views": 10,
+   "worst_view": null
+  },
+  "scarecrow": {
+   "backface_pixels": 0,
+   "front_pixels": 54584,
+   "views": 10,
+   "worst_view": null
+  },
+  "clothesline": {
+   "backface_pixels": 0,
+   "front_pixels": 37013,
+   "views": 10,
+   "worst_view": null
+  },
+  "banner_pole": {
+   "backface_pixels": 0,
+   "front_pixels": 26356,
+   "views": 10,
+   "worst_view": null
+  },
+  "bridge_stone": {
+   "backface_pixels": 0,
+   "front_pixels": 191618,
+   "views": 10,
+   "worst_view": null
+  },
+  "dock": {
+   "backface_pixels": 0,
+   "front_pixels": 91369,
+   "views": 10,
+   "worst_view": null
+  },
+  "rowboat": {
+   "backface_pixels": 0,
+   "front_pixels": 71598,
+   "views": 10,
+   "worst_view": null
+  },
+  "terrain_r0_c0": {
+   "backface_pixels": 0,
+   "front_pixels": 26406,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r0_c1": {
+   "backface_pixels": 0,
+   "front_pixels": 26244,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r0_c2": {
+   "backface_pixels": 0,
+   "front_pixels": 26896,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r0_c3": {
+   "backface_pixels": 0,
+   "front_pixels": 26928,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r0_c4": {
+   "backface_pixels": 0,
+   "front_pixels": 27390,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r0_c5": {
+   "backface_pixels": 0,
+   "front_pixels": 26441,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r1_c0": {
+   "backface_pixels": 0,
+   "front_pixels": 27390,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r1_c1": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r1_c2": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r1_c3": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r1_c4": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r1_c5": {
+   "backface_pixels": 0,
+   "front_pixels": 26244,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r2_c0": {
+   "backface_pixels": 0,
+   "front_pixels": 27018,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r2_c1": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r2_c2": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r2_c3": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r2_c4": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r2_c5": {
+   "backface_pixels": 0,
+   "front_pixels": 26568,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r3_c0": {
+   "backface_pixels": 0,
+   "front_pixels": 26406,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r3_c1": {
+   "backface_pixels": 0,
+   "front_pixels": 28900,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r3_c2": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r3_c3": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r3_c4": {
+   "backface_pixels": 0,
+   "front_pixels": 28673,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r3_c5": {
+   "backface_pixels": 0,
+   "front_pixels": 26244,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r4_c0": {
+   "backface_pixels": 0,
+   "front_pixels": 25600,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r4_c1": {
+   "backface_pixels": 0,
+   "front_pixels": 28900,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r4_c2": {
+   "backface_pixels": 0,
+   "front_pixels": 29584,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r4_c3": {
+   "backface_pixels": 0,
+   "front_pixels": 28900,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r4_c4": {
+   "backface_pixels": 0,
+   "front_pixels": 28900,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r4_c5": {
+   "backface_pixels": 0,
+   "front_pixels": 26244,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r5_c0": {
+   "backface_pixels": 0,
+   "front_pixels": 26836,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r5_c1": {
+   "backface_pixels": 0,
+   "front_pixels": 26865,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r5_c2": {
+   "backface_pixels": 0,
+   "front_pixels": 26244,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r5_c3": {
+   "backface_pixels": 0,
+   "front_pixels": 26352,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r5_c4": {
+   "backface_pixels": 0,
+   "front_pixels": 26896,
+   "views": 1,
+   "worst_view": null
+  },
+  "terrain_r5_c5": {
+   "backface_pixels": 0,
+   "front_pixels": 27060,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_south_road": {
+   "backface_pixels": 0,
+   "front_pixels": 2547,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_north_road": {
+   "backface_pixels": 0,
+   "front_pixels": 3615,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_west_road": {
+   "backface_pixels": 0,
+   "front_pixels": 3052,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_east_road": {
+   "backface_pixels": 0,
+   "front_pixels": 2382,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_ring_lane": {
+   "backface_pixels": 0,
+   "front_pixels": 3137,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_mill_lane": {
+   "backface_pixels": 0,
+   "front_pixels": 2323,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_pond_lane": {
+   "backface_pixels": 0,
+   "front_pixels": 4439,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_chapel_lane": {
+   "backface_pixels": 0,
+   "front_pixels": 3655,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_tower_path": {
+   "backface_pixels": 0,
+   "front_pixels": 2601,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_farm_path": {
+   "backface_pixels": 0,
+   "front_pixels": 2065,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_pond_path": {
+   "backface_pixels": 0,
+   "front_pixels": 8254,
+   "views": 1,
+   "worst_view": null
+  },
+  "plaza_paving": {
+   "backface_pixels": 0,
+   "front_pixels": 22195,
+   "views": 1,
+   "worst_view": null
+  },
+  "stream_banks": {
+   "backface_pixels": 0,
+   "front_pixels": 674,
+   "views": 1,
+   "worst_view": null
+  },
+  "water_surface": {
+   "backface_pixels": 0,
+   "front_pixels": 1536,
+   "views": 1,
+   "worst_view": null
+  }
+ }
+}

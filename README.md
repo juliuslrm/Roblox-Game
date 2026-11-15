@@ -46,7 +46,7 @@ Gebäudeliste: [world/level_summary.md](world/level_summary.md).
 
 ```bash
 ./scripts/setup_env.sh     # .venv mit bpy 5.3 (Python 3.13 nötig)
-./build.sh                 # Assets + Welt bauen und prüfen (ca. 1 Minute)
+./build.sh                 # Assets + Welt bauen und prüfen (ca. 6 Minuten)
 ./build.sh --render        # zusätzlich alle Vorschauen rendern (ca. 15 Minuten, CPU)
 ```
 
@@ -56,6 +56,7 @@ Einzelschritte:
 .venv/bin/python blender/build_assets.py          # Modelle, .blend, .glb, Sammeldateien, Manifest
 .venv/bin/python blender/build_world.py           # Gelände, Levelplan, Weltszene, Luau-Daten
 .venv/bin/python blender/render_previews.py world # Vorschauen
+.venv/bin/python blender/audit_backfaces.py       # Rückseiten-Audit (ca. 5 Minuten)
 .venv/bin/python blender/validate.py              # automatische Prüfungen
 .venv/bin/python tests/test_roblox_builder.py     # Luau-Skripte gegen Roblox-Mock
 ```
@@ -72,9 +73,9 @@ Kurzfassung – Details in [docs/ROBLOX_IMPORT.md](docs/ROBLOX_IMPORT.md):
 
 ## Stand und Grenzen
 
-- **Tatsächlich geprüft**: Build läuft durch, 32 automatische Prüfungen bestehen, alle Vorschauen
-  wurden gerendert und gesichtet, die Platzierungslogik der Luau-Skripte wurde gegen einen
-  Roblox-API-Mock ausgeführt.
+- **Tatsächlich geprüft**: Build läuft durch, 34 automatische Prüfungen bestehen (darunter ein
+  Rückseiten-Audit aller 141 Meshes), alle Vorschauen wurden gerendert und gesichtet, die
+  Platzierungslogik der Luau-Skripte wurde gegen einen Roblox-API-Mock ausgeführt.
 - **Nicht geprüft**: der Import in Roblox Studio selbst – dafür gab es in der Entwicklungsumgebung
   keinen Zugang. Was dabei zu kontrollieren ist, steht in `docs/ROBLOX_IMPORT.md`.
 

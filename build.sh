@@ -12,4 +12,5 @@ if [ "${1:-}" = "--render" ]; then
   "$PY" blender/render_previews.py hero
   "$PY" blender/render_previews.py world
 fi
+"$PY" blender/audit_backfaces.py      # about 5 minutes
 "$PY" blender/validate.py

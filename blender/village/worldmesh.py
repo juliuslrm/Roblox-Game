@@ -130,10 +130,11 @@ def road_mesh(mb, plan, rd):
                 row.append((float(x), float(y), float(z)))
             rows.append(row)
         # close both ends with a short drop so the ribbon has no open edge
-        for end, src in ((0, rows[0]), (len(rows), rows[-1])):
-            i = section[0] if end == 0 else section[-1]
-            t = poly.tangent(i) * (-0.5 if end == 0 else 0.5)
-            rows.insert(end, [(x + float(t[0]), y + float(t[1]), z - 1.3) for x, y, z in src])
+        t0 = poly.tangent(section[0]) * -0.5
+        t1 = poly.tangent(section[-1]) * 0.5
+        first = [(x + float(t0[0]), y + float(t0[1]), z - 1.3) for x, y, z in rows[0]]
+        last = [(x + float(t1[0]), y + float(t1[1]), z - 1.3) for x, y, z in rows[-1]]
+        rows = [first] + rows + [last]
         fcolor, ftone = [], []
         for _j in range(len(rows) - 1):
             for k in range(len(offs) - 1):

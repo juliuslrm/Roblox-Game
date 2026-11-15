@@ -156,8 +156,8 @@
    "category": "houses",
    "blend": "assets/houses/house_03_thatched_cottage.blend",
    "glb": "exports/glb/houses/house_03_thatched_cottage.glb",
-   "triangles": 2319,
-   "vertices": 1649,
+   "triangles": 2279,
+   "vertices": 1617,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -216,8 +216,8 @@
    "category": "houses",
    "blend": "assets/houses/house_04_farmhouse.blend",
    "glb": "exports/glb/houses/house_04_farmhouse.glb",
-   "triangles": 7553,
-   "vertices": 5372,
+   "triangles": 7533,
+   "vertices": 5356,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -604,8 +604,8 @@
    "category": "houses",
    "blend": "assets/houses/house_09_twin_gable.blend",
    "glb": "exports/glb/houses/house_09_twin_gable.glb",
-   "triangles": 7410,
-   "vertices": 5152,
+   "triangles": 7390,
+   "vertices": 5136,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -1122,8 +1122,8 @@
    "category": "houses",
    "blend": "assets/houses/house_16_porch_tower_house.blend",
    "glb": "exports/glb/houses/house_16_porch_tower_house.glb",
-   "triangles": 6887,
-   "vertices": 4934,
+   "triangles": 6807,
+   "vertices": 4870,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -1271,8 +1271,8 @@
    "category": "houses",
    "blend": "assets/houses/house_18_tiny_cottage.blend",
    "glb": "exports/glb/houses/house_18_tiny_cottage.glb",
-   "triangles": 2443,
-   "vertices": 1656,
+   "triangles": 2403,
+   "vertices": 1624,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -1449,7 +1449,7 @@
    "category": "landmarks",
    "blend": "assets/landmarks/lm_windmill.blend",
    "glb": "exports/glb/landmarks/lm_windmill.glb",
-   "triangles": 2660,
+   "triangles": 2692,
    "vertices": 1950,
    "collision": "proxy",
    "cast_shadow": true,
@@ -1520,7 +1520,7 @@
    "category": "landmarks",
    "blend": "assets/landmarks/lm_town_hall.blend",
    "glb": "exports/glb/landmarks/lm_town_hall.glb",
-   "triangles": 9458,
+   "triangles": 9464,
    "vertices": 7010,
    "collision": "proxy",
    "cast_shadow": true,
@@ -2024,7 +2024,7 @@
    "category": "landmarks",
    "blend": "assets/landmarks/lm_watchtower.blend",
    "glb": "exports/glb/landmarks/lm_watchtower.glb",
-   "triangles": 2149,
+   "triangles": 2155,
    "vertices": 1479,
    "collision": "proxy",
    "cast_shadow": true,
@@ -5637,7 +5637,7 @@
    "category": "props",
    "blend": "assets/props/banner_pole.blend",
    "glb": "exports/glb/props/banner_pole.glb",
-   "triangles": 74,
+   "triangles": 80,
    "vertices": 52,
    "collision": "proxy",
    "cast_shadow": true,
@@ -5648,7 +5648,7 @@
      -0.5
     ],
     "max": [
-     5.6,
+     5.601,
      2.9,
      15.8712
     ]
@@ -5660,17 +5660,17 @@
      -2.9
     ],
     "max": [
-     5.6,
+     5.601,
      15.8712,
      0.65
     ],
     "size": [
-     6.25,
+     6.251,
      16.3712,
      3.55
     ],
     "center": [
-     2.475,
+     2.4755,
      7.6856,
      -1.125
     ]

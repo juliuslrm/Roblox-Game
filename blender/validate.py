@@ -424,6 +424,24 @@ def main():
     except ImportError:
         rep.info("roblox", "lupa not installed - Luau script test skipped")
 
+    # back-face audit (written by blender/audit_backfaces.py)
+    audit_path = path("world", "backface_audit.json")
+    if os.path.exists(audit_path):
+        audit = json.load(open(audit_path))["results"]
+        missing = sorted(set(all_assets) - set(audit))
+        rep.check(not missing, "backfaces", f"back-face audit covers all {len(audit)} meshes",
+                  f"meshes without audit: {missing[:6]}")
+        # single pixels are ray-tracing noise at shared edges; an inverted part covers far more
+        bad = {k: v["backface_pixels"] for k, v in audit.items()
+               if v["backface_pixels"] > max(8, v["front_pixels"] * 1e-4)}
+        noise = sum(1 for v in audit.values() if 0 < v["backface_pixels"] <= 8)
+        rep.check(not bad, "backfaces",
+                  f"no mesh shows inside-out faces from outside ({noise} meshes with 1-8 stray pixels out of "
+                  f"{audit[next(iter(audit))]['views']}+ views each, treated as sampling noise)",
+                  f"visible back faces: {bad}")
+    else:
+        rep.fail("backfaces", "world/backface_audit.json missing - run blender/audit_backfaces.py")
+
     previews = [f for f in os.listdir(path("previews", "world"))] if os.path.isdir(path("previews", "world")) else []
     rep.check(len(previews) >= 5, "previews", f"{len(previews)} world preview renders present")
 

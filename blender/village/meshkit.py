@@ -348,19 +348,25 @@ class MeshBuilder:
         side; double=True emits both sides."""
         n = len(pts)
         idx = list(range(n))
-        if facing is not None:
-            p = [Vector(q) for q in pts]
-            nrm = Vector((0, 0, 0))
-            for i in range(1, n - 1):
-                nrm += (p[i] - p[0]).cross(p[i + 1] - p[0])
-            if nrm.dot(Vector(facing)) < 0:
-                idx.reverse()
-        base = self.add(pts, [tuple(idx)], color, **kw)
-        if double:
-            # the back side needs its own vertices: two faces on the same
-            # vertices count as duplicates and are removed by mesh.validate()
-            self.add(pts, [tuple(reversed(idx))], color, **kw)
-        return base
+        p = [Vector(q) for q in pts]
+        nrm = Vector((0, 0, 0))
+        for i in range(1, n - 1):
+            nrm += (p[i] - p[0]).cross(p[i + 1] - p[0])
+        if facing is not None and nrm.dot(Vector(facing)) < 0:
+            idx.reverse()
+            nrm = -nrm
+        if not double:
+            return self.add(pts, [tuple(idx)], color, **kw)
+        # Double sided = a very thin closed solid.  (Two faces on the same
+        # vertices would be removed as duplicates by mesh.validate(), and
+        # coincident faces would z-fight in engines that do not cull.)
+        off = nrm.normalized() * 0.015
+        verts = [q + off for q in p] + [q - off for q in p]
+        faces = [tuple(idx), tuple(n + i for i in reversed(idx))]
+        for k in range(n):
+            a, b = idx[k], idx[(k + 1) % n]
+            faces.append((a, n + a, n + b, b))
+        return self.add(verts, faces, color, closed=True, **kw)
 
     def merge(self, other, *mats):
         """Append another builder's geometry, transformed by mats."""

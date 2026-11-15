@@ -35,14 +35,17 @@ eingesetzt wird. Kein Zugriff auf Roblox Studio während der Entwicklung.
 
 ## Tatsächlich geprüft
 
-- `blender/validate.py`: 32 Prüfungen bestanden, 0 fehlgeschlagen (`docs/validation_report.md`)
+- `blender/validate.py`: 34 Prüfungen bestanden, 0 fehlgeschlagen (`docs/validation_report.md`)
+- `blender/audit_backfaces.py`: alle 141 Meshes aus je zehn Richtungen auf sichtbare Rückseiten
+  geprüft; übrig sind 1–4 Einzelpixel bei 10 Meshes (Abtastrauschen an Kanten)
 - `tests/test_roblox_builder.py`: Builder dreimal vollständig ausgeführt (Ursprung, verschoben und
   um 90° bzw. 33° gedreht), größte Abweichung einer Bounding-Box 0,0002 Studs; Gruppenfilter,
   fehlende und verzerrte Vorlagen, Schalter, Höhenkarten-Dekodierung
 - Sichtprüfung aller Kontaktbögen und Weltansichten; dabei gefundene und behobene Fehler:
   durchstoßende Eckpfosten an steilen Dächern, gezackte Geländefarben, zu dichte Vegetation
-- Die Prüfskripte fanden zwei Fehler, die in den Vorschauen unsichtbar waren: fehlende Rückseiten
-  an Fahnen und Mühlenflügeln sowie verdrehte Dreiecke an Walmdach-Firsten (beide behoben)
+- Die Prüfskripte fanden vier Fehler, die in den Vorschauen unsichtbar waren (alle behoben):
+  fehlende Rückseiten an Fahnen und Mühlenflügeln, verdrehte Dreiecke an Walmdach-Firsten,
+  aus schmalen Giebeln herausragende Kehlbalken mit offener Rückseite und gefaltete Straßenenden
 
 ## Nicht geprüft / offen
 
