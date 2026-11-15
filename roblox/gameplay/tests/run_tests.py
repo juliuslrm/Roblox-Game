@@ -8,6 +8,11 @@ SUITES = ["spec_core", "spec_progression", "spec_adapter"]
 
 def run(name):
     lua = new_runtime()
+    if name == "spec_adapter":      # the real generated layout of the village
+        import os
+        from harness import ROOT
+        with open(os.path.join(ROOT, "roblox", "WorldLayout.lua"), encoding="utf-8") as fh:
+            lua.globals().WORLD_LAYOUT = lua.execute(fh.read())
     res = lua.eval(f'loadModule("tests/{name}")')
     failed = lua_list(res.failed)
     for line in lua_list(res.names):

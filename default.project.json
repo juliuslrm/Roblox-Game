@@ -11,6 +11,21 @@
         "WorldLayout": { "$path": "roblox/WorldLayout.lua" },
         "WorldHeightmap": { "$path": "roblox/WorldHeightmap.lua" }
       }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "ArcaneShared": { "$path": "roblox/gameplay/shared" }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "ArcaneServer": { "$path": "roblox/gameplay/server" }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "ArcaneClient": { "$path": "roblox/gameplay/client" }
+      }
     }
   }
 }
