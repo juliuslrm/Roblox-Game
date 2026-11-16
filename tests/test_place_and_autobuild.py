@@ -173,7 +173,7 @@ def check_autobuild():
         local storage = Instance.new("Folder")
         local insert = {}
         function insert:LoadAsset(id)
-            if id == 115718062572873 then error("HTTP 403") end
+            if id == 136001329353977 then error("HTTP 403") end
             local model = Instance.new("Model")
             if id == Ids.paletteDecal then
                 local decal = Instance.new("Decal", model)
@@ -299,10 +299,60 @@ def check_market_world():
     print("  ok  market: five shops, scaled imported NPC, fallback, prompt and targeted stall replacement")
 
 
+def check_workshop_plots():
+    """Level, empty plots in the plan and the open workshop geometry that stands on them."""
+    layout = json.loads(read("world", "world_layout.json"))
+    hm = json.loads(read("world", "heightmap.json"))
+    plots, half = layout["workshop_plots"]["plots"], layout["workshop_plots"]["half"]
+    assert len(plots) == 4 and half >= 42          # Config.maxPlayers, largest tier 80 studs + yard
+    cell, org = hm["cell"], hm["origin_blender"]
+    worst = 0.0
+    for a in plots:
+        x, y, z = a["blender"]
+        hs = [hm["heights"][round((y + dy - org[1]) / cell)][round((x + dx - org[0]) / cell)]
+              for dx in range(-40, 41, 4) for dy in range(-40, 41, 4)]
+        worst = max(worst, max(hs) - min(hs))
+        assert max(hs) - min(hs) < 1.0, (a, min(hs), max(hs))
+        assert abs(z - sum(hs) / len(hs)) < 0.6
+        for inst in layout["instances"]:
+            if inst["group"] in ("terrain", "water", "roads"):
+                continue
+            ix, iy, _ = inst["blender"]["location"]
+            assert not (abs(ix - x) < half and abs(iy - y) < half), (inst["id"], a)
+        for b in plots:
+            assert a is b or max(abs(a["blender"][0] - b["blender"][0]), abs(a["blender"][1] - b["blender"][1])) >= 2 * half + 20
+    lua_layout = read("roblox", "WorldLayout.lua")
+    for a in plots:
+        r = a["roblox"]
+        assert "{%g, %g, %g}" % tuple(r) in lua_layout, r
+
+    lua = LuaRuntime(unpack_returned_tuples=True)
+    arch = lua.execute(read("roblox", "gameplay", "shared", "WorkshopArchitecture.lua"))
+    for size in (32, 48, 64, 80):
+        for floors in (1, 2, 3):
+            parts = list(arch.build(size, floors, 12, True)[0].values())
+            names = {q.name for q in parts}
+            assert "ExitDoor" not in names and "AmberWindow" not in names
+            h = size / 2
+            for q in parts:
+                if not q.collides or q.position[2] > 3:
+                    continue
+                px, pz, sx, sz = q.position[1], q.position[3], q.size[1], q.size[3]
+                if q.name.endswith("Wall"):
+                    # ground floor walls are low and leave the middle 12 studs of every side open
+                    assert q.size[2] <= 2.4
+                    on_x_side = abs(abs(px) - h - 0.5) < 0.01 and sx == 1
+                    lo, hi = (pz - sz / 2, pz + sz / 2) if on_x_side else (px - sx / 2, px + sx / 2)
+                    assert hi <= -6 + 1e-6 or lo >= 6 - 1e-6, (size, q.name, lo, hi)
+    print(f"  ok  workshop plots: 4 level plots (ground varies {worst:.2f} studs), empty, apart; "
+          "open workshop has low walls with an opening on every side for all 12 sizes")
+
+
 if __name__ == "__main__":
     try:
         check_place()
         check_autobuild()
+        check_workshop_plots()
         check_market_world()
     except AssertionError as exc:
         print("FAILED:", exc)

@@ -2,7 +2,12 @@
 -- Positions are part centres in room-local Roblox coordinates.
 local Architecture = {}
 
-function Architecture.build(size, floors, height)
+-- open = true builds the walkable outdoor variant that stands on a plot in the village: low stone
+-- walls instead of closed ones, a 12 stud opening in the middle of every ground floor wall, no
+-- door, no wall decoration and no roof, so the room can be entered and looked into from all sides.
+Architecture.OPENING = 12
+
+function Architecture.build(size, floors, height, open)
 	local parts, lights = {}, {}
 	local h = size / 2
 	local function box(name, color, x, y, z, w, t, d, collides, floor, roll)
@@ -25,15 +30,40 @@ function Architecture.build(size, floors, height)
 			box("FloorLanding", "wood_pale", 3, y - 0.5, h - 4, size - 6, 1, 8, true, floor)
 		end
 		local function wall(name, x, z, w, d)
-			box(name, "plaster_cream", x, y + height / 2, z, w, height, d, true)
-			panel(name .. "StoneSkirt", "stone_warm", x, y + 1.2, z, w + 0.12, 2.4, d + 0.12)
+			if open then
+				box(name, "stone_warm", x, y + 1.2, z, w, 2.4, d, true)
+			else
+				box(name, "plaster_cream", x, y + height / 2, z, w, height, d, true)
+				panel(name .. "StoneSkirt", "stone_warm", x, y + 1.2, z, w + 0.12, 2.4, d + 0.12)
+			end
 			panel(name .. "SillBeam", "wood_dark", x, y + 2.65, z, w + 0.16, 0.48, d + 0.16)
 			panel(name .. "EavesBeam", "wood_dark", x, y + height - 0.46, z, w + 0.2, 0.9, d + 0.2)
 		end
-		wall("WestWall", -h - 0.5, 0, 1, size)
-		wall("EastWall", h + 0.5, 0, 1, size)
-		wall("RearWall", 0, h + 0.5, size + 2, 1)
-		if floor == 1 then
+		if open and floor == 1 then
+			-- every side: two wall pieces with an opening between them, a beam above the opening
+			local gap = Architecture.OPENING
+			local piece = (size - gap) / 2
+			local offset = gap / 2 + piece / 2
+			for s = -1, 1, 2 do
+				wall("WestWall", -h - 0.5, s * offset, 1, piece)
+				wall("EastWall", h + 0.5, s * offset, 1, piece)
+				wall("RearWall", s * (offset + 0.5), h + 0.5, piece + 1, 1)
+				wall("FrontWall", s * (offset + 0.5), -h - 0.5, piece + 1, 1)
+				for _, side in ipairs({ -1, 1 }) do
+					panel("GatePost", "wood_dark", s * (h + 0.5), y + height / 2, side * gap / 2, 0.9, height, 0.9)
+					panel("GatePost", "wood_dark", side * gap / 2, y + height / 2, s * (h + 0.5), 0.9, height, 0.9)
+				end
+				panel("GateBeam", "wood_dark", s * (h + 0.5), y + height - 0.46, 0, 1.2, 0.9, gap)
+				panel("GateBeam", "wood_dark", 0, y + height - 0.46, s * (h + 0.5), gap, 0.9, 1.2)
+			end
+		else
+			wall("WestWall", -h - 0.5, 0, 1, size)
+			wall("EastWall", h + 0.5, 0, 1, size)
+			wall("RearWall", 0, h + 0.5, size + 2, 1)
+		end
+		if open and floor == 1 then
+			-- walls and openings are complete
+		elseif floor == 1 then
 			local width = h - 3
 			wall("FrontWallLeft", -(3 + width / 2), -h - 0.5, width, 1)
 			wall("FrontWallRight", 3 + width / 2, -h - 0.5, width, 1)
@@ -48,8 +78,10 @@ function Architecture.build(size, floors, height)
 		end
 		for s = -1, 1, 2 do
 			for p = -h + 7, h - 5, 8 do
-				panel("WallPost", "wood_dark", s * (h + 0.18), y + height / 2, p, 0.54, height, 0.62)
-				if floor == 1 and s == 1 and p < -2 then
+				if not (open and floor == 1 and math.abs(p) < Architecture.OPENING / 2 + 0.5) then
+					panel("WallPost", "wood_dark", s * (h + 0.18), y + height / 2, p, 0.54, height, 0.62)
+				end
+				if floor == 1 and s == 1 and p < -2 and not open then
 					panel("WindowFrame", "wood_dark", h - 0.12, y + 6.6, p + 3.3, 0.22, 4.6, 5.3)
 					panel("AmberWindow", "glass_lit", h - 0.27, y + 6.6, p + 3.3, 0.12, 3.8, 4.5)
 					panel("WindowMullion", "wood_dark", h - 0.4, y + 6.6, p + 3.3, 0.2, 4, 0.24)
@@ -63,7 +95,7 @@ function Architecture.build(size, floors, height)
 		-- The braces sit against the plaster so the room stays clear below them.
 		local bays = math.floor(size / 8)
 		local bayWidth = size / bays
-		for i = 1, bays do
+		for i = 1, open and 0 or bays do
 			local x = -h + (i - 0.5) * bayWidth
 			local rise = 3.75
 			local span = bayWidth - 0.65
@@ -74,8 +106,10 @@ function Architecture.build(size, floors, height)
 			panel("RearBeam", "wood_mid", x, y + 7.25, h - 0.2, beamLength, 0.25, 0.24, -angle)
 			panel("RearPost", "wood_dark", x - bayWidth / 2, y + height / 2, h - 0.13, 0.57, height, 0.6)
 		end
-		panel("RearBeam", "wood_dark", 0, y + 5.03, h - 0.14, size, 0.35, 0.44)
-		panel("RearBeam", "wood_dark", 0, y + 9.45, h - 0.14, size, 0.35, 0.44)
+		if not open then
+			panel("RearBeam", "wood_dark", 0, y + 5.03, h - 0.14, size, 0.35, 0.44)
+			panel("RearBeam", "wood_dark", 0, y + 9.45, h - 0.14, size, 0.35, 0.44)
+		end
 		for z = -h + 4, h - 2, 8 do
 			panel("Rafter", "wood_dark", 0, y + height - 0.5, z, size, 0.7, 0.65)
 		end
@@ -99,6 +133,8 @@ function Architecture.build(size, floors, height)
 			box("StairLanding", "wood_mid", -h + 5, y + height - 0.5, h - 0.55, 2, 1, 1.1, true)
 		end
 	end
+
+	if open then return parts, lights end
 
 	-- Plaster recess and shelf anchored to the outer wall, outside the machine grid.
 	panel("HearthStone", "stone_dark", -h + 0.02, 4.9, -1, 0.16, 5.1, 7.4)

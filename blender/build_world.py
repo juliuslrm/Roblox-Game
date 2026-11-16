@@ -180,6 +180,11 @@ def main():
             "counts": {"instances": len(instances), "assets": len(layout_assets),
                        "triangles": sum(layout_assets[i["asset"]]["triangles"] for i in instances)},
         },
+        # level building plots of the walkable player workshops (see plan.WORKSHOP_PLOTS)
+        "workshop_plots": {"half": pl.PLOT_HALF, "plots": [
+            {"blender": [p["x"], p["y"], round(float(plan.grid.at(p["x"], p["y"])), 3)],
+             "roblox": coords.to_roblox((p["x"], p["y"], round(float(plan.grid.at(p["x"], p["y"])), 3)))}
+            for p in plan.plots]},
         "spawn": {"blender": list(spawn_b), "roblox": coords.to_roblox((spawn_b[0], spawn_b[1], spawn_b[2] + 3.0)),
                   "look_at_roblox": coords.to_roblox((0.0, 0.0, 6.0))},
         "lighting": {"clock_time": 15.2, "geographic_latitude": 38.0, "brightness": 2.0,
@@ -241,6 +246,7 @@ def main():
            f"\tworldSize = {luadata.to_lua(tr.WORLD)},",
            f"\tspawn = {luadata.to_lua(layout['spawn']['roblox'])},",
            f"\tspawnLookAt = {luadata.to_lua(layout['spawn']['look_at_roblox'])},",
+           f"\tworkshopPlots = {luadata.to_lua({'half': layout['workshop_plots']['half'], 'plots': [q['roblox'] for q in layout['workshop_plots']['plots']]}, 1, 0)},",
            f"\tlighting = {luadata.to_lua(layout['lighting'], 1, 0)},",
            f"\tassetNames = {luadata.to_lua(names)},",
            f"\tgroupNames = {luadata.to_lua(groups)},",

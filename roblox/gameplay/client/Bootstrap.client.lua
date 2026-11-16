@@ -331,8 +331,6 @@ local function renderWorkshop(s)
 	if nextFloor then
 		row("Etage " .. (w.floors + 1) .. " – " .. nextFloor.cost .. " Münzen", "Kaufen", function() send("BuyUpgrade", { kind = "floor" }) end)
 	end
-	heading("Sitzung")
-	row("Zurück ins Dorf", "Verlassen", function() send("LeaveWorkshop") closePanel() end)
 end
 
 -- ---------------------------------------------------------------- action bar

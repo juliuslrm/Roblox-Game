@@ -1,4 +1,4 @@
--- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): builds the walkable workshop interiors and the visible
+-- ROBLOX ADAPTER: builds the walkable workshops (open buildings on plots in the village) and the visible
 -- representation of every placed entity.  All game rules live in the pure services; this module only
 -- mirrors server state into Instances.
 local D = require(script.Parent.Data)
@@ -27,8 +27,12 @@ local function part(props, parent)
 end
 
 -- templates: optional Folder with imported machine meshes named after Machines[id].modelAssetId
-function WW.new(parent, templates)
-	local self = setmetatable({ rooms = {}, slots = {}, templates = templates }, WW)
+-- plots: optional list of world positions (Vector3, ground level) of the building plots in the
+--   village.  With plots the workshops are open buildings that players simply walk into; without
+--   them (no level plan) they are closed interiors far away, entered by teleport as before.
+function WW.new(parent, templates, plots, plotHalf)
+	local self = setmetatable({ rooms = {}, slots = {}, templates = templates, plots = plots, plotHalf = plotHalf or 42 }, WW)
+	if plots and #plots == 0 then self.plots = nil end
 	self.root = Instance.new("Folder")
 	self.root.Name = "ArcaneWorkshops"
 	self.root.Parent = parent
@@ -37,12 +41,32 @@ end
 
 -- Interiors live far away from the village so they are never visible from it.
 function WW:slotOrigin(slot)
+	if self.plots then
+		-- floor surface a little above the levelled ground (it varies by up to 0.7 studs)
+		return self.plots[slot + 1] + Vector3.new(0, WW.FLOOR_LIFT, 0)
+	end
 	return Vector3.new(6000 + (slot % 4) * 600, 800, 6000 + math.floor(slot / 4) * 600)
 end
 
 function WW:cellCenter(room, floor, x, z)
 	local half = room.cells * Config.cellSize / 2
 	return room.origin + Vector3.new(x * Config.cellSize - half + 1, (floor - 1) * Config.floorHeight, z * Config.cellSize - half + 1)
+end
+
+WW.FLOOR_LIFT = 0.6
+
+-- Is a world position on the plot of a room (inside the building or on its yard)?  Used by the
+-- server to decide in whose workshop a character stands.
+function WW:ownerAt(position)
+	if not self.plots then return nil end
+	for ownerId, room in pairs(self.rooms) do
+		local half = room.cells * Config.cellSize / 2 + 1.5
+		local d = position - room.origin
+		if math.abs(d.X) <= half and math.abs(d.Z) <= half and d.Y > -4 and d.Y < room.floors * Config.floorHeight + 8 then
+			return ownerId
+		end
+	end
+	return nil
 end
 
 local ARCHITECTURE_COLORS = {
@@ -52,12 +76,51 @@ local ARCHITECTURE_COLORS = {
 	leaf_dark = "3F7D3A", leaf_teal = "3F8A6A", roof_purple = "6F4E7C",
 }
 
-local function buildShell(room)
+-- Yard of an open workshop: marks the whole plot the building may grow into.
+local function buildYard(room, shell, plotHalf, label)
+	local stone, wood = Color3.fromHex(ARCHITECTURE_COLORS.stone_light), Color3.fromHex(ARCHITECTURE_COLORS.wood_dark)
+	local ground = room.origin - Vector3.new(0, WW.FLOOR_LIFT, 0)
+	local edge = plotHalf - 1
+	for s = -1, 1, 2 do
+		-- flat kerb stones along the plot boundary; low enough to walk over
+		part({ Name = "PlotKerb", Size = Vector3.new(edge * 2 + 1, 0.5, 1), Position = ground + Vector3.new(0, 0.05, s * edge),
+			Color = stone, Material = Enum.Material.Slate, CanCollide = false, CanQuery = false }, shell)
+		part({ Name = "PlotKerb", Size = Vector3.new(1, 0.5, edge * 2 + 1), Position = ground + Vector3.new(s * edge, 0.05, 0),
+			Color = stone, Material = Enum.Material.Slate, CanCollide = false, CanQuery = false }, shell)
+		for t = -1, 1, 2 do
+			part({ Name = "PlotPost", Size = Vector3.new(0.9, 4, 0.9), Position = ground + Vector3.new(s * edge, 2, t * edge),
+				Color = wood, Material = Enum.Material.Wood, CanCollide = true }, shell)
+		end
+	end
+	-- name board at every opening of the plot
+	local half = room.cells * Config.cellSize / 2
+	for _, dir in ipairs({ Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) }) do
+		local side = Vector3.new(-dir.Z, 0, dir.X)
+		local at = room.origin + dir * (half + 1.5) + side * (Architecture.OPENING / 2 + 1.6)
+		part({ Name = "SignPost", Size = Vector3.new(0.5, 6, 0.5), Position = at + Vector3.new(0, 3 - WW.FLOOR_LIFT, 0),
+			Color = wood, Material = Enum.Material.Wood, CanCollide = false, CanQuery = false }, shell)
+		local board = part({ Name = "SignBoard", Size = Vector3.new(5, 2, 0.3),
+			CFrame = CFrame.lookAt(at + Vector3.new(0, 6.2 - WW.FLOOR_LIFT, 0), at + Vector3.new(0, 6.2 - WW.FLOOR_LIFT, 0) + dir),
+			Color = Color3.fromHex(ARCHITECTURE_COLORS.wood_pale), Material = Enum.Material.Wood, CanCollide = false, CanQuery = false }, shell)
+		for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
+			local gui = Instance.new("SurfaceGui")
+			gui.Face, gui.PixelsPerStud = face, 40
+			local text = Instance.new("TextLabel")
+			text.Size, text.BackgroundTransparency, text.TextScaled = UDim2.new(1, 0, 1, 0), 1, true
+			text.Font, text.TextColor3, text.Text = Enum.Font.GothamBold, Color3.fromRGB(60, 40, 28), label
+			text.Parent = gui
+			gui.Parent = board
+		end
+	end
+end
+
+local function buildShell(self, room)
 	if room.shell then room.shell:Destroy() end
 	local shell = Instance.new("Folder")
 	shell.Name = "Shell"
 	local size = room.cells * Config.cellSize
-	local boxes, lights = Architecture.build(size, room.floors, Config.floorHeight)
+	local boxes, lights = Architecture.build(size, room.floors, Config.floorHeight, self.plots ~= nil)
+	if self.plots then buildYard(room, shell, self.plotHalf, room.label or "Werkstatt") end
 	for _, spec in ipairs(boxes) do
 		local item = part({
 			Name = spec.name, Size = Vector3.new(table.unpack(spec.size)),
@@ -89,13 +152,14 @@ local function buildShell(room)
 	room.shell = shell
 end
 
-function WW:ensureRoom(ownerId, cells, floors)
+function WW:ensureRoom(ownerId, cells, floors, label)
 	local room = self.rooms[ownerId]
 	if not room then
 		local slot = 0
 		while self.slots[slot] do slot = slot + 1 end
+		if self.plots and slot >= #self.plots then return nil end -- every plot is taken
 		self.slots[slot] = ownerId
-		room = { owner = ownerId, slot = slot, origin = self:slotOrigin(slot), entities = {}, cells = 0, floors = 0 }
+		room = { owner = ownerId, slot = slot, origin = self:slotOrigin(slot), entities = {}, cells = 0, floors = 0, label = label }
 		room.folder = Instance.new("Folder")
 		room.folder.Name = "Workshop_" .. ownerId
 		room.folder.Parent = self.root
@@ -106,7 +170,7 @@ function WW:ensureRoom(ownerId, cells, floors)
 	end
 	if room.cells ~= cells or room.floors ~= floors then
 		room.cells, room.floors = cells, floors
-		buildShell(room)
+		buildShell(self, room)
 		room.version = nil
 	end
 	return room
@@ -194,8 +258,9 @@ local function entityModel(self, room, e)
 end
 
 -- Mirrors a workshop view (Game.workshopView) into Instances. Cheap when nothing changed.
-function WW:sync(view, displayNames)
-	local room = self:ensureRoom(view.owner, view.cells, view.floors)
+function WW:sync(view, label)
+	local room = self:ensureRoom(view.owner, view.cells, view.floors, label)
+	if not room then return nil end
 	if room.version ~= view.version then
 		local seen = {}
 		for _, e in ipairs(view.entities) do

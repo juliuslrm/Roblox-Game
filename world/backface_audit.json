@@ -825,7 +825,7 @@
   },
   "road_mill_lane": {
    "backface_pixels": 0,
-   "front_pixels": 2323,
+   "front_pixels": 2324,
    "views": 1,
    "worst_view": null
   },
@@ -856,6 +856,30 @@
   "road_pond_path": {
    "backface_pixels": 0,
    "front_pixels": 8254,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_plot_path_1": {
+   "backface_pixels": 0,
+   "front_pixels": 12119,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_plot_path_2": {
+   "backface_pixels": 0,
+   "front_pixels": 10527,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_plot_path_3": {
+   "backface_pixels": 0,
+   "front_pixels": 10138,
+   "views": 1,
+   "worst_view": null
+  },
+  "road_plot_path_4": {
+   "backface_pixels": 0,
+   "front_pixels": 15290,
    "views": 1,
    "worst_view": null
   },

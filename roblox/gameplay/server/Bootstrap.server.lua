@@ -61,7 +61,18 @@ local function toLocal(position)
 end
 
 local world = Game.newWorld(anchors, nodeAnchors, os.time(), D.Market.anchors(layout))
-local workshops = WorkshopWorld.new(workspace, ServerStorage:FindFirstChild("ArcaneAssets"))
+-- Walkable workshops: one open building per player on a levelled plot of the village.  Without a
+-- level plan (plain test place) the old closed interiors with teleport stay in use.
+local plotPositions = {}
+if layout and layout.workshopPlots then
+	for _, p in ipairs(layout.workshopPlots.plots) do
+		plotPositions[#plotPositions + 1] = origin * Vector3.new(p[1], p[2], p[3])
+	end
+end
+local walkable = #plotPositions > 0
+local workshops = WorkshopWorld.new(workspace, ServerStorage:FindFirstChild("ArcaneAssets"), plotPositions,
+	layout and layout.workshopPlots and layout.workshopPlots.half)
+if walkable then world.plotPresence = {} end
 
 -- ---- persistence ----
 local persistent, store = true, nil
@@ -113,6 +124,7 @@ local function teleport(player, cframe)
 	if root then character:PivotTo(cframe) end
 end
 local function sendHome(player)
+	if walkable then return end -- nobody is locked in: leaving a plot is just walking away
 	local a = anchors.workshop_door or anchors.plaza
 	if a then
 		teleport(player, CFrame.new(groundPosition(a) + Vector3.new(0, 4, 0)))
@@ -127,12 +139,12 @@ local function perform(player, action, payload)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	if action == "BuyMarketOffer" and not root then return { ok = false, code = "NOT_READY" } end
-	if root and not session.rt.inWorkshop then
+	if root and (walkable or not session.rt.inWorkshop) then
 		local x, z = toLocal(root.Position)
 		Game.updatePosition(world, session, x, z)
 	end
 	local result = Actions.handle(world, session, action, payload, { now = workspace:GetServerTimeNow() })
-	if result.ok and action == "EnterWorkshop" then
+	if result.ok and action == "EnterWorkshop" and not walkable then
 		local view = Game.workshopView(world, session.rt.inWorkshop)
 		local room = workshops:sync(view)
 		teleport(player, workshops:spawnCFrame(room))
@@ -175,7 +187,7 @@ local function marker(name, position, color, actionText, objectText, onTrigger)
 end
 for id, a in pairs(anchors) do
 	local loc = Locations.locations[id]
-	if id == "workshop_door" then
+	if id == "workshop_door" and not walkable then
 		marker("Door", groundPosition(a), Color3.fromRGB(201, 154, 60), "Betreten", loc.name, function(player)
 			perform(player, "EnterWorkshop", {})
 			push(player)
@@ -245,6 +257,7 @@ local function saveAndRemove(player, release)
 			if guest then sendHome(guest) end
 		end
 		workshops:removeRoom(player.UserId)
+		if world.plotPresence then world.plotPresence[player.UserId] = nil end
 	end
 end
 Players.PlayerAdded:Connect(onPlayer)
@@ -255,7 +268,7 @@ game:BindToClose(function()
 end)
 
 -- ---- main loop: fixed simulation tick, 1 s position / snapshot / visuals, periodic autosave ----
-local simAcc, slowAcc, saveAcc = 0, 0, 0
+local simAcc, slowAcc, saveAcc, presenceAcc = 0, 0, 0, 0
 RunService.Heartbeat:Connect(function(dt)
 	simAcc = simAcc + math.min(dt, 1)
 	local guard = 0
@@ -271,7 +284,10 @@ RunService.Heartbeat:Connect(function(dt)
 			local session = world.sessions[player.UserId]
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 			if session and root then
-				if session.rt.inWorkshop then
+				if walkable then
+					local x, z = toLocal(root.Position)
+					Game.updatePosition(world, session, x, z)
+				elseif session.rt.inWorkshop then
 					-- fell out of the interior? bring the player back instead of leaving him in the void
 					local room = workshops.rooms[session.rt.inWorkshop]
 					if room and (root.Position - room.origin).Magnitude > 400 then teleport(player, workshops:spawnCFrame(room)) end
@@ -281,9 +297,34 @@ RunService.Heartbeat:Connect(function(dt)
 				end
 			end
 			if session and not session.safeMode then
-				workshops:sync(Game.workshopView(world, player.UserId))
+				workshops:sync(Game.workshopView(world, player.UserId), "Werkstatt von " .. player.DisplayName)
 			end
 			push(player)
+		end
+	end
+	-- walkable workshops: whoever stands on a plot is "in" that workshop, nobody is teleported
+	presenceAcc = presenceAcc + dt
+	if walkable and presenceAcc >= 0.25 then
+		presenceAcc = 0
+		local now = workspace:GetServerTimeNow()
+		for _, player in ipairs(Players:GetPlayers()) do
+			local session = world.sessions[player.UserId]
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			if session and not session.safeMode then
+				local owner = root and workshops:ownerAt(root.Position) or nil
+				world.plotPresence[player.UserId] = owner
+				local changed = false
+				if session.rt.inWorkshop and session.rt.inWorkshop ~= owner then
+					Actions.handle(world, session, "LeaveWorkshop", {}, { now = now })
+					changed = true
+				end
+				-- a refused entry (no permission from the owner) is retried only every 3 seconds
+				if owner and not session.rt.inWorkshop and (session.rt.enterRetry or 0) <= now then
+					local result = Actions.handle(world, session, "EnterWorkshop", { owner = owner }, { now = now })
+					if result.ok then changed = true else session.rt.enterRetry = now + 3 end
+				end
+				if changed then push(player) end
+			end
 		end
 	end
 	saveAcc = saveAcc + dt

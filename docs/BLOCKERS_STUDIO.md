@@ -54,7 +54,7 @@ Offen: Ursache der 39 Abweichungen über 1,5 Studs (Rand, Bachufer) ist nicht ge
 
 ## Nachtrag 2026-11-16 (2): Markt, Werkstatt und Serverstart im echten Place
 
-Place-Version 9, geprüft mit `scripts/roblox_verify_server.lua` (führt beide Server-Startskripte
+Place-Version 9, geprüft mit `scripts/roblox_verify_server.py` (führt beide Server-Startskripte
 im Place aus):
 
 - `VillageAutoBuild` und `Bootstrap.server.lua` laufen ohne Fehler durch; `[Arcane] server ready -
@@ -70,3 +70,22 @@ Offen:
   still. Ansatz: die fünf `merchant_*.glb` einzeln hochladen und das ganze Rig-Modell platzieren.
 - Nicht nachgemessen: ob die Werkstattfassade das Fachwerkhaus ersetzt hat, Blickrichtung der
   Figuren, Aussehen allgemein, gesamte Client-UI (Handeln-Dialog auf Touch).
+
+## Nachtrag 2026-11-16 (3): begehbare Werkstätten
+
+Place-Version 10, gemessen mit `scripts/roblox_verify_server.py`:
+
+- Serverstart fehlerfrei; neue Geländebibliothek (mit Grundstücken und Zugangswegen) lädt,
+  144 von 144 Vorlagen, 1 879 Objekte.
+- Auf jedem der vier Grundstücke baut `WorkshopWorld` eine offene Werkstatt (getestet 32–80 Studs,
+  1–3 Etagen). Boden 0,6 Studs über Plan-Niveau, Kessel steht auf dem Boden, alle vier Öffnungen
+  frei (Strahl in Brusthöhe trifft nichts), neben der Öffnung steht Mauer.
+- `ownerAt` erkennt innen und in der Öffnung den Besitzer, 6 Studs außerhalb niemanden.
+
+Offen:
+- Automatisches Betreten/Verlassen mit einer echten Spielfigur (Heartbeat-Schleife in
+  `Bootstrap.server.lua`) ist nur über die Kernlogik und `ownerAt` geprüft, nicht mit einem Spieler.
+- Grundstück 4: Bodenstrahlen melden vor der Kollisionsverfeinerung bis 3,8 statt 0,8 Studs
+  (vermutlich grobe Standardkollision am steilen Hang daneben) – nach der Verfeinerung nicht
+  nachgemessen.
+- Aussehen, Kamera im Gebäude, Bauen per Touch: nur am Gerät prüfbar.

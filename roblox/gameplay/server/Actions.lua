@@ -83,7 +83,12 @@ end
 function H.EnterWorkshop(world, session, p)
 	local ownerId = p.owner or session.userId
 	if session.rt.inWorkshop then return fail("BUSY") end
-	if not Game.near(world, session, "workshop_door") then return fail("TOO_FAR") end
+	if world.plotPresence then
+		-- walkable workshops: the server adapter records on whose plot each character stands
+		if world.plotPresence[session.userId] ~= ownerId then return fail("TOO_FAR") end
+	elseif not Game.near(world, session, "workshop_door") then
+		return fail("TOO_FAR")
+	end
 	if not world.sessions[ownerId] then return fail("NOT_FOUND") end
 	if not Co.atLeast(world, ownerId, session.userId, "visitor") then return fail("FORBIDDEN") end
 	session.rt.inWorkshop = ownerId

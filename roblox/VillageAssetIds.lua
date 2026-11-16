@@ -8,7 +8,7 @@ return {
 		VillageAssets = {
 			72420451763699,  -- workshop_facade.glb
 			121417351385239, -- village_assets.fbx
-			115718062572873, -- village_terrain.fbx
+			136001329353977, -- village_terrain.fbx (with workshop plots, 2026-11-16)
 		},
 		ArcaneAssets = {
 			137911422416588, -- mach_kettle.glb (replaces the kettle of the machine library)

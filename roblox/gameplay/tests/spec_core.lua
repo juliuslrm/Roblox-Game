@@ -549,6 +549,25 @@ test("network", "gathering needs proximity, unlocks and respects node stock", fu
 	bot:tick(25)
 	eq(bot:try("GatherNode", { node = "n_mint_plaza" }).ok, true)
 end)
+test("network", "walkable workshops: entry follows the plot the server saw the character on", function()
+	local owner = Bot.new()
+	local guest = Bot.new(owner.world, 2003)
+	owner.world.plotPresence = {}
+	-- standing at the old door no longer grants entry
+	owner:goTo("workshop_door")
+	eq(owner:try("EnterWorkshop").code, "TOO_FAR")
+	owner.world.plotPresence[owner.userId] = owner.userId
+	eq(owner:try("EnterWorkshop").ok, true)
+	eq(owner.session.rt.inWorkshop, owner.userId)
+	-- a guest on the owner's plot still needs permission; a guest elsewhere cannot enter at all
+	eq(guest:try("EnterWorkshop", { owner = owner.userId }).code, "TOO_FAR")
+	owner.world.plotPresence[guest.userId] = owner.userId
+	eq(guest:try("EnterWorkshop", { owner = owner.userId }).code, "FORBIDDEN")
+	owner:act("InviteCoOp", { user = guest.userId, role = "visitor" })
+	eq(guest:try("EnterWorkshop", { owner = owner.userId }).ok, true)
+	eq(guest:try("LeaveWorkshop").ok, true)
+	eq(guest.session.rt.inWorkshop, nil)
+end)
 test("network", "co-op: rights are checked on the server, the owner's wallet is safe", function()
 	local owner = Bot.new()
 	local guest = Bot.new(owner.world, 2002)

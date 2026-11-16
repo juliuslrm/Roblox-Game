@@ -48,7 +48,29 @@ ROADS = [
          pts=[(-96, -130), (-150, -160), (-205, -178), (-246, -210)]),
     dict(id="pond_path", kind="path", hw=2.4, layer=2, name="Stegpfad",
          pts=[(112, -84), (124, -92), (134, -100)]),
+    # short access paths to the workshop plots (see WORKSHOP_PLOTS)
+    dict(id="plot_path_1", kind="path", hw=2.6, layer=2, name="Werkstattweg 1",
+         pts=[(-134, -48), (-141, -44), (-148, -40)]),
+    dict(id="plot_path_2", kind="path", hw=2.6, layer=2, name="Werkstattweg 2",
+         pts=[(-47, 145), (-54, 152), (-60, 160)]),
+    dict(id="plot_path_3", kind="path", hw=2.6, layer=2, name="Werkstattweg 3",
+         pts=[(-143, -157), (-136, -163), (-128, -172)]),
+    dict(id="plot_path_4", kind="path", hw=2.6, layer=2, name="Werkstattweg 4",
+         pts=[(266, -40), (265, -48), (264, -58)]),
 ]
+
+# Level building plots for the walkable player workshops, one per player (Config.maxPlayers = 4).
+# The largest workshop tier is 80 x 80 studs; a plot keeps an 84 stud square level and free of
+# scenery.  The village itself has no free square of that size, so the plots lie at its edge,
+# each next to a road and at least 110 studs apart, so the levelled ground of one plot does not
+# reach the next (chosen with a search over the previous level plan, 2026-11-16).
+WORKSHOP_PLOTS = [(-188.0, -40.0), (-80.0, 200.0), (-116.0, -212.0), (262.0, -98.0)]
+PLOT_HALF = 42.0
+PLOT_BLEND = 24.0           # studs over which the levelled ground runs out into the landscape
+
+
+def in_plot(x, y, margin=0.0):
+    return any(abs(x - px) < PLOT_HALF + margin and abs(y - py) < PLOT_HALF + margin for px, py in WORKSHOP_PLOTS)
 
 STREAM_PTS = [(215, 384), (196, 310), (212, 240), (182, 170), (160, 95), (150, -8), (152, -55),
               (172, -105), (178, -165), (158, -240), (176, -310), (190, -384)]
@@ -152,6 +174,7 @@ class Plan:
         self.water_clear = None  # grid: distance to the water edge
         self.material = None     # grid (cells): terrain material class
         self.bridge = None
+        self.plots = []          # dicts x, y, z: levelled workshop plots
 
     def road(self, rid):
         return next(r for r in self.roads if r["id"] == rid)
@@ -258,6 +281,17 @@ def build_terrain(plan, manifest):
     wp = 1 - smoothstep((R - RP - 5.0) / 24.0)
     H1 = H0 + (PLAZA_Z - H0) * wp
 
+    # level the workshop plots before the roads are laid, so the access paths meet them
+    plan.plots = []
+    base = HeightGrid(H1.copy())
+    for k, (px, py) in enumerate(WORKSHOP_PLOTS):
+        cheb = np.maximum(np.abs(X - px), np.abs(Y - py))
+        # plot level = ground where its access path leaves the village road, so the path stays flat
+        jx, jy = next(r for r in ROADS if r["id"] == f"plot_path_{k + 1}")["pts"][0]
+        pad = float(base.at(jx, jy))
+        H1 = H1 + (pad - H1) * (1 - smoothstep((cheb - PLOT_HALF - 2.0) / PLOT_BLEND))
+        plan.plots.append(dict(x=px, y=py, z=pad))
+
     _build_roads(plan, H1)
     W, Zr, clear = _road_fields(plan, X, Y)
     plan.road_clear = clear
@@ -294,6 +328,13 @@ def build_terrain(plan, manifest):
     target = (Zw - 0.5) + (H3 - (Zw - 0.5)) * smoothstep(t)
     H4 = np.where(zone, np.minimum(H4, target), H4)
     plan.water_clear = np.where(np.isfinite(D), D - HWw, 1e6)
+
+    # Roads and building pads near a plot pull its ground out of level again.  Level it once more
+    # at the end, except where a road lies (the access path ends inside the plot at pad height).
+    for plot in plan.plots:
+        cheb = np.maximum(np.abs(X - plot["x"]), np.abs(Y - plot["y"]))
+        w = (1 - smoothstep((cheb - PLOT_HALF) / 10.0)) * (1 - W)
+        H4 = H4 + (plot["z"] - H4) * w
 
     plan.grid = HeightGrid(H4)
     for inst in buildings:
@@ -361,6 +402,8 @@ class Placer:
         """True if a disc at (x, y) collides with nothing important."""
         if abs(x) > HALF - 6 or abs(y) > HALF - 6:
             return False
+        if in_plot(x, y, radius + 2.0):
+            return False
         if _sample(self.plan.road_clear, x, y) < radius * 0.6 + road:
             return False
         if _sample(self.plan.water_clear, x, y) < radius * 0.5 + water:
@@ -394,6 +437,8 @@ class Placer:
                 d = start + seg * (i + 0.5)
                 x, y = a[0] + ux * d, a[1] + uy * d
                 if _sample(self.plan.road_clear, x, y) < 1.5 or _sample(self.plan.water_clear, x, y) < 1.0:
+                    continue
+                if in_plot(x, y, 3.0):
                     continue
                 self.add(asset, x, y, rot=rot, group=group, radius=1.0)
                 last = (a[0] + ux * (d + seg / 2), a[1] + uy * (d + seg / 2)) if not flip else \
