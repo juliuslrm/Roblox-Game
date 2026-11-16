@@ -16,6 +16,8 @@ local Market = require(Shared.MarketCatalog)
 local Config = require(Shared.Config)
 local Grid = require(Shared.GridMath)
 local Net = require(script.Parent:WaitForChild("NetworkClient"))
+local MachineWindow = require(script.Parent:WaitForChild("MachineWindow"))
+local Ports = require(Shared.MachinePorts)
 local player = Players.LocalPlayer
 
 local C = { cream = Color3.fromRGB(241, 235, 221), ink = Color3.fromRGB(35, 32, 31), brass = Color3.fromRGB(201, 154, 60),
@@ -146,7 +148,9 @@ local function signature(s)
 	for i = 1, #parts do parts[i] = tostring(parts[i]) end
 	return table.concat(parts, "|")
 end
+local machineWindow                -- created further down; only one window is open at a time
 local function open(name, title, render)
+	if machineWindow and machineWindow.isOpen() then machineWindow.close() end
 	current = { name = name, title = title, render = render, version = Net.snapshot and signature(Net.snapshot), at = os.clock() }
 	panelTitle.Text = title
 	panel.Visible = true
@@ -188,62 +192,37 @@ local function renderInventory(s)
 	if #ids == 0 then row("Dein Beutel ist leer. Sammle Kräuter am Marktplatz.") end
 end
 
-local STATE = { Running = { "läuft", C.ok }, WaitingForInputs = { "wartet auf", C.warn }, OutputBlocked = { "Ausgang voll – bitte leeren", C.bad },
-	NoFuel = { "braucht Holzkohle", C.bad }, Paused = { "pausiert", C.dim }, InvalidRecipe = { "kein Rezept gewählt", C.warn } }
+-- Storage and transport parts (crates, shelves, tanks, belts ...) keep the simple list panel;
+-- production machines have their own window (MachineWindow.lua).
 local selectedUid = nil
-local function renderMachine(s)
+local function renderStorage(s)
 	local e
 	for _, x in ipairs(s.workshop and s.workshop.entities or {}) do if x.uid == selectedUid then e = x end end
-	if not e then row("Diese Maschine gibt es nicht mehr.") return end
+	if not e then row("Dieses Bauteil gibt es nicht mehr, oder du stehst nicht in der Werkstatt.") return end
 	local def = Machines[e.machine]
-	if def.kind == "machine" then
-		local st = STATE[e.state] or { "bereit", C.ok }
-		local text = "Status: " .. st[1]
-		if e.state == "WaitingForInputs" and e.waiting then text = text .. " " .. Items[e.waiting].name end
-		if e.job then text = text .. string.format("  (%d s übrig)", math.ceil(e.job.remaining)) end
-		row(text, e.paused and "Fortsetzen" or "Pause", function() send("ToggleMachine", { uid = e.uid }) end, st[2])
-		heading("Rezepte")
-		for id, r in pairs(Recipes) do
-			if r.machineId == e.machine then
-				local known = s.research[r.requiredResearch]
-				local line = itemList(r.inputs) .. "  →  " .. itemList(r.outputs) .. "  (" .. r.durationSec .. " s)"
-				if not known then
-					row("🔒 " .. line .. "\nForschung: " .. Research[r.requiredResearch].name, nil, nil, C.dim)
-				else
-					row(((e.recipe == id) and "● " or "") .. line, "Herstellen", function() send("StartManualCraft", { uid = e.uid, recipe = id }) end)
-				end
-			end
-		end
-		if def.usesFuel then
-			row("Brennstoff: " .. e.fuel .. " Holzkohle", "Nachlegen", function()
-				send("TransferStack", { from = "inv", to = e.uid, item = "fuel_charcoal", amount = 4 })
-			end)
-		end
-	end
 	heading("Inhalt")
+	local any = false
 	local function contents(store, slot, title)
 		for id, n in pairs(store or {}) do
+			any = true
 			row(title .. ": " .. amount(id, n), "Entnehmen", function()
 				send("TransferStack", { from = e.uid, to = "inv", item = id, amount = n, slot = slot })
 			end)
 		end
 	end
-	contents(e.out, "out", "Fertig") contents(e.outFluid, "out", "Fertig")
-	contents(e.inv, "in", (def.kind == "machine") and "Zutat" or "Lager") contents(e.fluids, "in", "Flüssigkeit")
-	if e.item then contents({ [e.item] = 1 }, nil, "Auf dem Band") end
-	if def.kind == "crate" or def.kind == "shelf" or def.kind == "tank" or (def.kind == "machine" and e.recipe) then
+	contents(e.inv, "in", "Lager") contents(e.fluids, "in", "Flüssigkeit") contents(e.out, "out", "Fertig")
+	if e.item then any = true row("Auf dem Band: " .. amount(e.item, 1)) end
+	if not any then row("Leer.") end
+	if def.kind == "crate" or def.kind == "shelf" or def.kind == "tank" then
 		heading("Aus dem Beutel einfüllen")
 		for id, n in pairs(s.items) do
-			local fits = def.kind == "crate" and Items[id].unit ~= "ml"
+			local fits = (def.kind == "crate" and Items[id].unit ~= "ml")
 				or (def.kind == "shelf" and Items[id].type == "product")
 				or (def.kind == "tank" and Items[id].unit == "ml")
-				or (def.kind == "machine" and Recipes[e.recipe].inputs[id] ~= nil)
 			if fits then
 				row(amount(id, n), "Einfüllen", function()
-					local action = (def.kind == "shelf") and "StockShelf" or "TransferStack"
-					local payload = (def.kind == "shelf") and { uid = e.uid, item = id, amount = n }
-						or { from = "inv", to = e.uid, item = id, amount = n }
-					send(action, payload)
+					if def.kind == "shelf" then send("StockShelf", { uid = e.uid, item = id, amount = n })
+					else send("TransferStack", { from = "inv", to = e.uid, item = id, amount = n }) end
 				end)
 			end
 		end
@@ -253,12 +232,10 @@ local function renderMachine(s)
 	row("Abbauen – Inhalt kommt in den Beutel, 60 % der Kosten zurück", "Abbauen", function()
 		if send("RemoveMachine", { uid = e.uid }).ok then closePanel() end
 	end, C.bad)
-	if e.machine == "kettle" then
-		row("Experiment: 1 Kraut + 1000 ml Wasser → +3 Wissen (max. 5 pro Tag)", "Forschen", function() send("Experiment", { uid = e.uid }) end)
-	end
 end
 
 local Build = { machine = nil, rot = 0, ghost = nil, cell = nil }
+local startBuild                   -- defined with the build mode further down
 local function renderBuild(s)
 	if not s.workshop then row("Bauen kannst du nur in deiner Werkstatt. Folge dem Wegweiser „Deine Werkstatt“ und geh hinein.") return end
 	for _, cat in ipairs({ { "machine", "Maschinen" }, { "transport", "Transport" }, { "storage", "Lager" } }) do
@@ -270,7 +247,7 @@ local function renderBuild(s)
 			local def = Machines[id]
 			if s.research[def.research] then
 				row(def.name .. "  –  " .. def.cost .. " Münzen  (" .. def.w * 2 .. "×" .. def.d * 2 .. " Studs)", "Platzieren", function()
-					Build.machine, Build.rot, Build.pointer, Build.cell = id, 0, nil, nil
+					startBuild(id)
 					closePanel()
 					toast("Tippe auf den Werkstattboden, um den Platz zu wählen. ⟳ dreht, ✓ baut, X bricht ab.", C.wood)
 				end)
@@ -373,10 +350,39 @@ button("Werkstatt", bar, function() open("workshop", "Werkstatt", renderWorkshop
 -- ---------------------------------------------------------------- build mode (ghost on the grid)
 local confirm = make("Frame", { Size = UDim2.new(0, 220, 0, 56), Position = UDim2.new(0.5, -110, 1, -130), BackgroundTransparency = 1, Visible = false }, gui)
 make("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, confirm)
+-- Marks at the connections of the machines (made invisible by the server): shown while building
+-- and while a machine window is open.
+local marksShown = false
+local function showPortMarks(on)
+	if on == marksShown then return end
+	marksShown = on
+	local root = workspace:FindFirstChild("ArcaneWorkshops")
+	if not root then return end
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("BasePart") and d:GetAttribute("ArcanePortMark") then
+			d.Transparency = on and 0.1 or 1
+			local label = d:FindFirstChild("PortLabel")
+			if label then label.Enabled = on end
+		end
+	end
+end
+workspace.DescendantAdded:Connect(function(d)
+	if marksShown and d:IsA("BasePart") then
+		task.defer(function()
+			if marksShown and d:GetAttribute("ArcanePortMark") then
+				d.Transparency = 0.1
+				local label = d:FindFirstChild("PortLabel")
+				if label then label.Enabled = true end
+			end
+		end)
+	end
+end)
+
 local function stopBuild()
 	Build.machine, Build.pointer, Build.cell = nil, nil, nil
 	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
 	confirm.Visible = false
+	showPortMarks(machineWindow ~= nil and machineWindow.isOpen())
 end
 local function placeGhost()
 	if not (Build.machine and Build.cell) then return end
@@ -387,6 +393,29 @@ end
 button("⟳", confirm, function() Build.rot = (Build.rot + 1) % 4 end).Size = UDim2.new(0, 64, 0, 52)
 button("✓", confirm, placeGhost, C.ok).Size = UDim2.new(0, 64, 0, 52)
 button("X", confirm, stopBuild, C.bad).Size = UDim2.new(0, 64, 0, 52)
+
+-- Grid direction (0 = +z, 1 = +x, 2 = -z, 3 = -x) that lies to the right of the current view.
+-- The workshop grid is aligned with the world axes.
+local function rightOfView()
+	local cam = workspace.CurrentCamera
+	local right = cam and cam.CFrame.RightVector or Vector3.new(1, 0, 0)
+	local best, bestDot = 1, -math.huge
+	for dir = 0, 3 do
+		local dot = right.X * Grid.DX[dir] + right.Z * Grid.DZ[dir]
+		if dot > bestDot then best, bestDot = dir, dot end
+	end
+	return best
+end
+-- Starts placing a part.  Conveyors start pointing to the right as the player sees it at this
+-- moment; the direction is then kept until the player turns it, whatever the camera does.
+startBuild = function(id)
+	local def = Machines[id]
+	local conveyor = def.category == "transport" and def.layer ~= "pipe"
+	Build.machine, Build.pointer, Build.cell = id, nil, nil
+	Build.rot = conveyor and rightOfView() or 0
+	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	showPortMarks(true)
+end
 
 local function pointerPosition()
 	if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
@@ -418,10 +447,35 @@ local function floorUnder(pos)
 	end
 	return nil
 end
+
+-- ghost: footprint box plus arrows that show exactly what the placed part will do
+local GHOST_IN, GHOST_OUT = Color3.fromRGB(63, 138, 106), Color3.fromRGB(201, 154, 60)
+local function ghostArrow(name, color, text)
+	local folder = make("Folder", { Name = name }, Build.ghost)
+	local pieces = {}
+	for i = 1, 3 do
+		pieces[i] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+			Material = Enum.Material.SmoothPlastic, Color = color, Size = (i == 1) and Vector3.new(0.3, 0.14, 1.3) or Vector3.new(0.3, 0.14, 0.75) }, folder)
+	end
+	if text then
+		local gui = make("BillboardGui", { Size = UDim2.new(0, 96, 0, 22), StudsOffset = Vector3.new(0, 1.2, 0), AlwaysOnTop = true }, pieces[1])
+		local label = make("TextLabel", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = color, BackgroundTransparency = 0.1, Text = text,
+			TextColor3 = C.cream, Font = Enum.Font.GothamBold, TextScaled = true }, gui)
+		corner(label, 6)
+	end
+	return pieces
+end
+local function aimArrow(pieces, tip, dir)
+	local look = CFrame.lookAt(tip, tip + dir)
+	pieces[1].CFrame = look * CFrame.new(0, 0, 0.85)
+	pieces[2].CFrame = look * CFrame.Angles(0, math.rad(140), 0) * CFrame.new(0, 0, -0.3)
+	pieces[3].CFrame = look * CFrame.Angles(0, math.rad(-140), 0) * CFrame.new(0, 0, -0.3)
+end
+
 RunService.RenderStepped:Connect(function()
 	local s = Net.snapshot
 	if not (Build.machine and s and s.workshop and s.room) then
-		if Build.ghost then stopBuild() end
+		if Build.machine or Build.ghost then stopBuild() end
 		return
 	end
 	confirm.Visible = true
@@ -429,24 +483,49 @@ RunService.RenderStepped:Connect(function()
 	if not hit then return end
 	local def = Machines[Build.machine]
 	local w, d = Grid.size(def, Build.rot)
-	local half = s.workshop.cells * Config.cellSize / 2
-	local gx = math.floor((hit.Position.X - s.room.x + half) / Config.cellSize)
-	local gz = math.floor((hit.Position.Z - s.room.z + half) / Config.cellSize)
+	local cs = Config.cellSize
+	local half = s.workshop.cells * cs / 2
+	local gx = math.floor((hit.Position.X - s.room.x + half) / cs)
+	local gz = math.floor((hit.Position.Z - s.room.z + half) / cs)
 	local floor = hit.Instance:GetAttribute("ArcaneFloor")
 	Build.cell = { gx = gx, gz = gz, floor = floor }
-	if not Build.ghost then
-		Build.ghost = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, Transparency = 0.5, Material = Enum.Material.Neon,
+	if not Build.ghost or Build.ghostFor ~= Build.machine then
+		if Build.ghost then Build.ghost:Destroy() end
+		Build.ghost = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, Transparency = 0.55, Material = Enum.Material.SmoothPlastic,
 			Color = C.ok, Name = "ArcaneGhost" }, workspace)
-		make("Part", { Name = "Front", Anchored = true, CanCollide = false, CanQuery = false, Color = C.brass, Material = Enum.Material.Neon,
-			Size = Vector3.new(0.6, 0.6, 1.6) }, Build.ghost)
+		Build.ghostFor, Build.arrows = Build.machine, {}
+		if Ports.isMachine(def) then
+			Build.arrows.inlet = ghostArrow("In", GHOST_IN, "Einlauf")
+			Build.arrows.outlet = ghostArrow("Out", GHOST_OUT, "Auslauf")
+		elseif def.category == "transport" and def.layer ~= "pipe" then
+			Build.arrows.flow = ghostArrow("Flow", GHOST_OUT, nil)
+		end
 	end
-	local cs = Config.cellSize
-	local centre = Vector3.new(s.room.x - half + gx * cs + w * cs / 2, s.room.y + (floor - 1) * Config.floorHeight + 1.5, s.room.z - half + gz * cs + d * cs / 2)
+	local floorY = s.room.y + (floor - 1) * Config.floorHeight
+	local function cellCentre(x, z)
+		return Vector3.new(s.room.x - half + (x + 0.5) * cs, floorY, s.room.z - half + (z + 0.5) * cs)
+	end
 	Build.ghost.Size = Vector3.new(w * cs, 3, d * cs)
-	Build.ghost.Position = centre
-	local front = (Build.rot % 4)
-	Build.ghost.Front.CFrame = CFrame.new(centre + Vector3.new(Grid.DX[front] * w * cs / 2, 1.8, Grid.DZ[front] * d * cs / 2))
-		* CFrame.Angles(0, math.rad(-90 * Build.rot), 0)
+	Build.ghost.Position = Vector3.new(s.room.x - half + gx * cs + w * cs / 2, floorY + 1.5, s.room.z - half + gz * cs + d * cs / 2)
+	local ghostEntity = { gx = gx, gz = gz, rot = Build.rot, floor = floor }
+	if Build.arrows.inlet then
+		-- a new machine starts with the definition's sides: inlet at the back, outlet at the front
+		for key, side in pairs({ inlet = Ports.DEFAULT_IN, outlet = Ports.DEFAULT_OUT }) do
+			local x, z, dir = Ports.cell(def, ghostEntity, side)
+			local out = Vector3.new(Grid.DX[dir], 0, Grid.DZ[dir])
+			local at = cellCentre(x, z) + out * cs + Vector3.new(0, 0.2, 0)
+			if key == "inlet" then aimArrow(Build.arrows.inlet, at - out * 0.75, -out)
+			else aimArrow(Build.arrows.outlet, at + out * 0.75, out) end
+		end
+	elseif Build.arrows.flow then
+		-- the arrow points where goods will actually leave this part
+		local outDir = Build.rot % 4
+		for _, p in ipairs(def.ports or {}) do
+			if p.mode == "out" then outDir = (p.dir + Build.rot) % 4 break end
+		end
+		local flow = Vector3.new(Grid.DX[outDir], 0, Grid.DZ[outDir])
+		aimArrow(Build.arrows.flow, cellCentre(gx, gz) + Vector3.new(0, 3.1, 0) + flow * 0.7, flow)
+	end
 	-- red when the cells are taken or outside (the server decides in the end)
 	local blocked = gx < 0 or gz < 0 or gx + w > s.workshop.cells or gz + d > s.workshop.cells
 	for _, e in ipairs(s.workshop.entities) do
@@ -465,11 +544,19 @@ UserInputService.InputBegan:Connect(function(input, processed)
 end)
 
 -- ---------------------------------------------------------------- prompts, snapshots, notifications
+machineWindow = MachineWindow.create({ gui = gui, make = make, corner = corner, send = send, toast = toast, Net = Net,
+	onClose = function() showPortMarks(Build.machine ~= nil) end })
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
 	local uid = prompt.Parent and prompt.Parent:GetAttribute("ArcaneUid")
-	if uid then
+	if not uid then return end
+	local def = Machines[prompt.Parent:GetAttribute("ArcaneMachine")]
+	if Ports.isMachine(def) then
+		closePanel()
+		machineWindow.open(uid)
+		showPortMarks(true)
+	else
 		selectedUid = uid
-		open("machine", Machines[prompt.Parent:GetAttribute("ArcaneMachine")].name, renderMachine)
+		open("machine", def.name, renderStorage)
 	end
 end)
 Net.on("OpenMarket", function(id)
@@ -589,5 +676,6 @@ Net.onSnapshot(function(s)
 		if f then toast(f(n), C.ok) end
 	end
 	refresh()
+	machineWindow.update(s)
 end)
 Net.send("RequestSnapshot")

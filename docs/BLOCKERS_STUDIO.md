@@ -175,3 +175,25 @@ deshalb als `BAD_REQUEST` zurück, niemand galt je als „in der Werkstatt": Mas
 Maschine, kein Bauen, Auftrag q01 nicht erfüllbar. Die Tests nutzten nur kleine Testnummern.
 Behoben in Version 19: eigener Feldtyp `"user"` für `EnterWorkshop`, `InviteCoOp`,
 `SetCoOpPermission`; Regressionstest mit realistischen IDs.
+
+## Nachtrag 2026-11-16 (10): Werkstatt-Produktion überarbeitet
+
+Place-Version 20. Kernlogik lokal getestet (`spec_ports`, 9 Szenarien), Darstellung im Place gemessen,
+Client nur syntaktisch geprüft.
+
+- Server: wählbare Ein-/Auslaufseiten, automatischer Auslauf, Aktion `SetMachinePorts`,
+  Speicherstand-Reparatur, Baupläne (`MachinePorts.lua`, `PlacementService`, `LogisticsService`).
+- Behobener Altfehler: Maschinen und Bänder mit Drehung 90°/270° wurden gespiegelt dargestellt
+  (`CFrame.Angles(0, -90°·rot, 0)` statt `+90°·rot`; im Place nachgerechnet).
+- Welt: Bänder tragen einen Pfeil in echter Förderrichtung; Maschinen haben Ein-/Auslauf- und
+  Rohrmarken an der Anschlusszelle (serverseitig unsichtbar, der Client blendet sie beim Bauen und
+  bei offenem Maschinenfenster ein).
+- Im Place gemessen: Band mit Drehung 1 → Pfeil (+1, 0); Bandkurve Drehung 0 → Pfeil (−1, 0);
+  Auslaufmarke zeigt von der Maschine weg (0,95), Einlaufmarke hinein (−0,95); Marken unsichtbar.
+- Client: `MachineWindow.lua` (Zutaten links, Fortschritt Mitte, Ergebnis rechts, Draufsicht der
+  Anschlüsse, darunter Rezepte), Bandvorschau startet „rechts aus Spielersicht" und bleibt fest,
+  Vorschaupfeile an der Anschlusszelle.
+
+Am Gerät zu prüfen: Aussehen und Bedienung des Maschinenfensters (passt es ohne Scrollen, treffen
+die Finger die Seitenknöpfe), Emoji-Symbole, flüssiger Fortschrittsbalken, Bandvorschau aus
+mehreren Blickrichtungen, Sichtbarkeit der Marken, Zustand nach Wiederbeitritt.

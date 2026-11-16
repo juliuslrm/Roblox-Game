@@ -6,6 +6,7 @@ local Config, Machines, Grid = D.Config, D.Machines, D.GridMath
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 local Architecture = require(Shared.WorkshopArchitecture)
 local Models = require(Shared.WorkshopModels)
+local Ports = require(Shared.MachinePorts)
 local WW = {}
 WW.__index = WW
 
@@ -181,6 +182,66 @@ function WW:spawnCFrame(room)
 	return CFrame.new(room.origin + Vector3.new(0, 4, -size / 2 + 5)) * CFrame.Angles(0, math.rad(180), 0)
 end
 
+-- Flat arrow lying on a surface, its tip at `tip`, pointing along the unit vector `dir`.
+local function flatArrow(parent, name, tip, dir, color, length, hidden)
+	local props = { Name = name, Color = color, Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false,
+		CanTouch = false, CastShadow = false, Transparency = hidden and 1 or 0 }
+	local function piece(size, cframe)
+		local q = part(props, parent)
+		q.Size, q.CFrame = size, cframe
+		if hidden then q:SetAttribute("ArcanePortMark", true) end
+		return q
+	end
+	local look = CFrame.lookAt(tip, tip + dir)
+	local shaft = piece(Vector3.new(0.28, 0.12, length - 0.25), look * CFrame.new(0, 0, (length - 0.25) / 2 + 0.2))
+	for _, sign in ipairs({ -1, 1 }) do
+		piece(Vector3.new(0.28, 0.12, 0.72), look * CFrame.Angles(0, sign * math.rad(140), 0) * CFrame.new(0, 0, -0.3))
+	end
+	return shaft
+end
+
+-- Marks at the connections of a production machine: inlet, outlet and pipe connections.  They are
+-- invisible on the server; the client shows them while building or while the machine window is
+-- open (attribute ArcanePortMark).
+local function portMarks(self, room, e, def, body)
+	local cs = Config.cellSize
+	local IN, OUT, FLUID = Color3.fromRGB(63, 138, 106), Color3.fromRGB(201, 154, 60), Color3.fromRGB(96, 150, 190)
+	local function tag(anchor, text, color)
+		local gui = Instance.new("BillboardGui")
+		gui.Name, gui.Size, gui.StudsOffset, gui.MaxDistance, gui.Enabled = "PortLabel", UDim2.new(0, 110, 0, 24), Vector3.new(0, 1.3, 0), 60, false
+		local label = Instance.new("TextLabel")
+		label.Size, label.BackgroundColor3, label.BackgroundTransparency = UDim2.new(1, 0, 1, 0), color, 0.1
+		label.TextColor3, label.Font, label.TextScaled, label.Text = Color3.fromRGB(247, 244, 236), Enum.Font.GothamBold, true, text
+		local round = Instance.new("UICorner")
+		round.CornerRadius = UDim.new(0, 6)
+		round.Parent = label
+		label.Parent = gui
+		gui.Parent = anchor
+	end
+	local function edge(side)
+		local x, z, dir = Ports.cell(def, e, side)
+		local out = Vector3.new(Grid.DX[dir], 0, Grid.DZ[dir])
+		-- middle of the neighbouring cell, just above the floor
+		return WW.cellCenter(self, room, e.floor, x, z) + out * cs + Vector3.new(0, 0.12, 0), out
+	end
+	local inSide, outSide = Ports.sides(def, e)
+	local at, out = edge(inSide)
+	tag(flatArrow(body, "PortIn", at - out * 0.75, -out, IN, 1.5, true), "Einlauf", IN)
+	at, out = edge(outSide)
+	tag(flatArrow(body, "PortOut", at + out * 0.75, out, OUT, 1.5, true), Ports.isAuto(e) and "Auslauf · auto" or "Auslauf · fest", OUT)
+	for _, p in ipairs(def.ports) do
+		if p.type == "fluid" then
+			local x, z, dir = Grid.port(def, p, e.gx, e.gz, e.rot)
+			local o = Vector3.new(Grid.DX[dir], 0, Grid.DZ[dir])
+			local drop = part({ Name = "PortFluid", Shape = Enum.PartType.Ball, Size = Vector3.new(0.8, 0.8, 0.8), Color = FLUID,
+				Material = Enum.Material.Glass, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false, Transparency = 1,
+				Position = WW.cellCenter(self, room, e.floor, x, z) + o * cs + Vector3.new(0, 0.45, 0) }, body)
+			drop:SetAttribute("ArcanePortMark", true)
+			tag(drop, (p.mode == "in") and "Rohr · Zulauf" or "Rohr · Ablauf", FLUID)
+		end
+	end
+end
+
 local function entityModel(self, room, e)
 	local def = Machines[e.machine]
 	local w, d = Grid.size(def, e.rot)
@@ -200,11 +261,11 @@ local function entityModel(self, room, e)
 			-- keep the template's own rotation (the asset loader corrects the import orientation there)
 			-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
 			local floorY = base.Y - height / 2
-			body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+			body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(90 * e.rot), 0)
 				* (template.CFrame - template.CFrame.Position)
 		else
 			local pivot = CFrame.new(base - Vector3.new(0, height / 2, 0))
-				* CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+				* CFrame.Angles(0, math.rad(90 * e.rot), 0)
 			local mesh = Models[def.modelAssetId]
 			if mesh then
 				-- Imported MeshParts are centred on the geometry bounds. Recover the
@@ -244,11 +305,17 @@ local function entityModel(self, room, e)
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText, prompt.ObjectText, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = "Öffnen", def.name, 9, false
 		prompt.Parent = body
+		if Ports.isMachine(def) then portMarks(self, room, e, def, body) end
 	else
-		-- direction marker and item token for belts
-		local arrow = part({ Name = "Arrow", Size = Vector3.new(0.5, 0.2, 1.2), Color = Color3.fromRGB(201, 154, 60), CanCollide = false,
-			CFrame = CFrame.new(base + Vector3.new(0, height / 2 + 0.1, 0)) * CFrame.Angles(0, math.rad(-90 * e.rot), 0) }, body)
-		arrow.Name = "Arrow"
+		-- arrow in the real conveying direction (towards the first outlet of the part) and item token
+		local outDir = e.rot % 4
+		for _, p in ipairs(def.ports or {}) do
+			if p.mode == "out" then outDir = (p.dir + e.rot) % 4 break end
+		end
+		local flow = Vector3.new(Grid.DX[outDir], 0, Grid.DZ[outDir])
+		if def.layer ~= "pipe" then
+			flatArrow(body, "Arrow", base + Vector3.new(0, height / 2 + 0.08, 0) + flow * 0.7, flow, Color3.fromRGB(201, 154, 60), 1.4, false)
+		end
 		local token = part({ Name = "Token", Size = Vector3.new(0.9, 0.9, 0.9), Position = base + Vector3.new(0, height / 2 + 0.6, 0),
 			Color = Color3.fromRGB(95, 163, 67), Transparency = 1, CanCollide = false, Shape = Enum.PartType.Ball }, body)
 		token.Name = "Token"
@@ -267,6 +334,7 @@ function WW:sync(view, label)
 			seen[e.uid] = true
 			local cur = room.entities[e.uid]
 			local sig = e.machine .. ":" .. e.gx .. ":" .. e.gz .. ":" .. e.floor .. ":" .. e.rot
+				.. ":" .. tostring(e.inSide) .. ":" .. tostring(e.outSide) .. ":" .. tostring(e.outAuto)
 			if not cur or cur.sig ~= sig then
 				if cur then cur.body:Destroy() end
 				room.entities[e.uid] = { sig = sig, body = entityModel(self, room, e) }

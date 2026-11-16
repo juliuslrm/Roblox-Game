@@ -3,7 +3,7 @@
 <External>nil</External>
 <Item class="Workspace" referent="RBX000009"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item>
 <Item class="Lighting" referent="RBX000010"><Properties><string name="Name">Lighting</string><float name="ClockTime">15.2</float><float name="Brightness">2</float></Properties></Item>
-<Item class="ReplicatedStorage" referent="RBX000027"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000026"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Global tuning values. Pure data (Lua 5.1 compatible).
+<Item class="ReplicatedStorage" referent="RBX000029"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000028"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Global tuning values. Pure data (Lua 5.1 compatible).
 return {
 	schemaVersion = 1,
 	cellSize = 2,                 -- studs per workshop grid cell
@@ -81,7 +81,72 @@ function GridMath.opposite(dir)
 end
 return GridMath
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000013"><Properties><string name="Name">Items</string><ProtectedString name="Source"><![CDATA[-- Item database. Liquids are counted in integer millilitres (unit = "ml").
+<Item class="ModuleScript" referent="RBX000013"><Properties><string name="Name">ItemIcons</string><ProtectedString name="Source"><![CDATA[-- Symbol and tile colour of every item and a motif for every production machine.
+-- There are no painted item images in the project yet (Items[id].icon only holds placeholder
+-- names); until there are, the UI draws a coloured tile with a symbol.  Pure data.
+local I = { items = {}, machines = {} }
+local function item(id, symbol, r, g, b) I.items[id] = { symbol = symbol, color = { r, g, b } } end
+-- raw materials
+item("herb_mint", "🌿", 111, 176, 96)
+item("herb_sunleaf", "🌻", 226, 186, 72)
+item("herb_moonleaf", "🍃", 108, 168, 176)
+item("mushroom_gloom", "🍄", 134, 96, 160)
+item("berry_red", "🍒", 196, 72, 80)
+item("wood_log", "🪵", 150, 104, 68)
+item("stone", "🪨", 142, 140, 136)
+item("sand", "⏳", 222, 200, 150)
+item("ore_copper", "🟠", 196, 122, 70)
+item("ore_iron", "⚫", 110, 116, 128)
+item("crystal_raw", "💎", 128, 178, 214)
+item("water", "💧", 92, 156, 208)
+item("seed_mint", "🌱", 132, 186, 110)
+item("seed_sunleaf", "🌱", 214, 190, 96)
+item("fuel_charcoal", "🔥", 74, 70, 70)
+-- intermediates
+item("mint_powder", "🧂", 150, 196, 140)
+item("sunleaf_powder", "🧂", 230, 204, 120)
+item("moon_powder", "🧂", 150, 190, 200)
+item("stone_dust", "🧂", 170, 168, 164)
+item("plank", "🪵", 196, 158, 110)
+item("glass", "🔷", 160, 206, 226)
+item("vial", "🧪", 176, 214, 230)
+item("herbal_extract", "💧", 112, 176, 110)
+item("solar_extract", "💧", 226, 186, 72)
+item("lunar_extract", "💧", 120, 160, 200)
+item("shadow_essence", "💧", 104, 84, 134)
+item("berry_mash", "🍯", 190, 90, 110)
+item("copper_ingot", "🧱", 204, 134, 82)
+item("iron_ingot", "🧱", 138, 144, 156)
+item("rune_blank", "🔶", 180, 164, 140)
+item("crystal_core", "🔮", 140, 150, 220)
+-- products
+item("tonic_minor", "🧪", 122, 190, 130)
+item("vitality_draught", "🧪", 232, 190, 84)
+item("night_ink", "🧪", 96, 86, 140)
+item("tonic_bottled", "🍾", 122, 190, 130)
+item("berry_tonic", "🧪", 206, 96, 112)
+item("potion_vigor", "🧪", 214, 132, 70)
+item("dream_draught", "🧪", 150, 130, 204)
+item("twin_elixir", "⚗️", 120, 180, 200)
+item("elixir_master", "⚗️", 214, 170, 70)
+item("charm_focus", "📿", 110, 160, 200)
+item("charm_luck", "🍀", 110, 180, 110)
+item("ring_warding", "💍", 200, 180, 120)
+item("twilight_relic", "🏺", 130, 110, 170)
+item("void_seed", "🌑", 90, 80, 120)
+
+local function machine(id, motif) I.machines[id] = motif end
+machine("kettle", "🍲") machine("grinder", "⚙️") machine("saw", "🪚") machine("crusher", "🔨")
+machine("furnace", "🔥") machine("glassbench", "🔮") machine("extractor", "💧") machine("bottler", "🧪")
+machine("mixer", "🌀") machine("runetable", "✨") machine("forge", "⚒️") machine("enchanter", "📖")
+machine("infuser", "🧿") machine("crystal_refiner", "💎") machine("advanced_cauldron", "⚗️")
+machine("herb_grower", "🌱") machine("quarry_drill", "⛏️")
+
+function I.item(id) return I.items[id] or { symbol = "❔", color = { 150, 140, 130 } } end
+function I.machine(id) return I.machines[id] or "⚙️" end
+return I
+]]></ProtectedString></Properties></Item>
+<Item class="ModuleScript" referent="RBX000014"><Properties><string name="Name">Items</string><ProtectedString name="Source"><![CDATA[-- Item database. Liquids are counted in integer millilitres (unit = "ml").
 local Items = {}
 local function add(id, type_, name, sell, tier, extra)
 	local it = { id = id, type = type_, name = name, sellBase = sell or 0, unlockTier = tier or 0,
@@ -140,7 +205,7 @@ add("void_seed", "product", "Leerensaat", 450, 5, { rarity = "epic" })
 add("elixir_master", "product", "Meisterelixier", 850, 5, { rarity = "epic" })
 return Items
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000014"><Properties><string name="Name">Locations</string><ProtectedString name="Source"><![CDATA[-- Village locations and resource nodes. Positions are NOT stored here: VillageAdapter derives
+<Item class="ModuleScript" referent="RBX000015"><Properties><string name="Name">Locations</string><ProtectedString name="Source"><![CDATA[-- Village locations and resource nodes. Positions are NOT stored here: VillageAdapter derives
 -- every anchor from the generated WorldLayout (asset id of the unique building instance).
 -- unlock: nil (always) | { research = id } | { quest = id } | { rep = level }
 local L = { locations = {}, nodes = {} }
@@ -197,7 +262,99 @@ node("n_seed_mint_farm", "seed_mint", "farm", -12, 8, 1, 3, 60, { research = "fa
 node("n_seed_sun_farm", "seed_sunleaf", "farm", -16, 12, 1, 3, 60, { research = "farming" })
 return L
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000015"><Properties><string name="Name">Machines</string><ProtectedString name="Source"><![CDATA[-- Placeable workshop entities: machines, storage and logistics.
+<Item class="ModuleScript" referent="RBX000016"><Properties><string name="Name">MachinePorts</string><ProtectedString name="Source"><![CDATA[-- Inlet and outlet sides of production machines.  Pure data logic, shared by server and client.
+--
+-- A side is a direction in the machine's own frame (0 = front +z, 1 = right +x, 2 = back -z,
+-- 3 = left -x); it turns with the machine.  The connection cell of a side is the middle cell of
+-- that edge of the footprint.  Solid goods may use every side that carries no fluid connection.
+--   entity.inSide   chosen inlet side   (nil = definition default: back)
+--   entity.outSide  current outlet side (nil = definition default: front)
+--   entity.outAuto  false = the player fixed the outlet; anything else = automatic
+-- Automatic outlet: the outlet moves to a side where a conveyor leads away from the connection.
+local Grid = require(script.Parent.GridMath)
+local MP = {}
+
+MP.DEFAULT_IN, MP.DEFAULT_OUT = 2, 0
+MP.SIDE_NAME = { [0] = "vorn", [1] = "rechts", [2] = "hinten", [3] = "links" }
+-- things that carry solid goods onwards and take them in at their back
+MP.CARRIER = { belt = true, splitter = true, merger = true, sorter = true, lift = true, gate = true }
+
+function MP.isMachine(def) return def ~= nil and def.kind == "machine" end
+
+-- local port (x, z, dir) of a side: middle cell of that edge
+function MP.sidePort(def, side)
+	local cx, cz = math.floor((def.w - 1) / 2), math.floor((def.d - 1) / 2)
+	if side == 0 then return { x = cx, z = def.d - 1, dir = 0 }
+	elseif side == 1 then return { x = def.w - 1, z = cz, dir = 1 }
+	elseif side == 2 then return { x = cx, z = 0, dir = 2 }
+	end
+	return { x = 0, z = cz, dir = 3 }
+end
+
+-- side -> "fluidIn" | "fluidOut" for sides taken by a pipe connection
+function MP.fluidSides(def)
+	local taken = {}
+	for _, p in ipairs(def.ports or {}) do
+		if p.type == "fluid" then taken[p.dir] = (p.mode == "in") and "fluidIn" or "fluidOut" end
+	end
+	return taken
+end
+
+-- sides solid goods may use, in the fixed search order: definition default first, then clockwise
+function MP.solidSides(def)
+	local taken, out = MP.fluidSides(def), {}
+	for _, side in ipairs({ 0, 1, 2, 3 }) do
+		if not taken[side] then out[#out + 1] = side end
+	end
+	return out
+end
+
+local function allowed(def, side)
+	if type(side) ~= "number" or side % 1 ~= 0 or side < 0 or side > 3 then return false end
+	return MP.fluidSides(def)[side] == nil
+end
+MP.allowed = allowed
+
+-- Resolved sides of an entity; repairs impossible stored values instead of failing.
+function MP.sides(def, e)
+	local inSide = allowed(def, e.inSide) and e.inSide or MP.DEFAULT_IN
+	local outSide = allowed(def, e.outSide) and e.outSide or MP.DEFAULT_OUT
+	if inSide == outSide then
+		inSide, outSide = MP.DEFAULT_IN, MP.DEFAULT_OUT
+	end
+	return inSide, outSide
+end
+
+function MP.isAuto(e) return e.outAuto ~= false end
+
+-- World cell of the connection of `side` and the direction pointing out of the machine.
+function MP.cell(def, e, side)
+	return Grid.port(def, MP.sidePort(def, side), e.gx, e.gz, e.rot)
+end
+
+-- Does a conveyor lead away from the connection of `side`?  entAt(floor, x, z) -> entity, def.
+-- It must stand in the cell straight in front of the connection and take goods in at its back;
+-- one that runs towards the machine, passes sideways or stands diagonally does not count.
+function MP.leadsAway(def, e, side, entAt)
+	local x, z, dir = MP.cell(def, e, side)
+	local n, ndef = entAt(e.floor, x + Grid.DX[dir], z + Grid.DZ[dir])
+	return n ~= nil and MP.CARRIER[ndef.kind] == true and n.rot % 4 == dir
+end
+
+-- Side an automatic outlet should use: the current one while it still has a conveyor, otherwise
+-- the first suitable side in the fixed order, otherwise unchanged.
+function MP.autoSide(def, e, entAt)
+	local inSide, outSide = MP.sides(def, e)
+	if MP.leadsAway(def, e, outSide, entAt) then return outSide end
+	for _, side in ipairs(MP.solidSides(def)) do
+		if side ~= inSide and side ~= outSide and MP.leadsAway(def, e, side, entAt) then return side end
+	end
+	return outSide
+end
+
+return MP
+]]></ProtectedString></Properties></Item>
+<Item class="ModuleScript" referent="RBX000017"><Properties><string name="Name">Machines</string><ProtectedString name="Source"><![CDATA[-- Placeable workshop entities: machines, storage and logistics.
 -- Footprints are in grid cells (1 cell = 2 studs). Local frame: +z = front, +x = right.
 -- Directions: 0 = +z (front), 1 = +x (right), 2 = -z (back), 3 = -x (left).
 -- kind: machine | pump | crate | shelf | belt | turn | hopper | splitter | merger | sorter | pipe | tank | lift | gate
@@ -272,7 +429,7 @@ M.shop_shelf = { id = "shop_shelf", name = "Verkaufsregal", kind = "shelf", tier
 	modelAssetId = "logi_shop_shelf", category = "storage" }
 return M
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000016"><Properties><string name="Name">MarketCatalog</string><ProtectedString name="Source"><![CDATA[-- Market NPCs run the five existing stalls. Prices and bundle sizes are server-owned.
+<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">MarketCatalog</string><ProtectedString name="Source"><![CDATA[-- Market NPCs run the five existing stalls. Prices and bundle sizes are server-owned.
 local Market = { order = { "selma", "nyra", "lio", "aron", "esme" }, radius = 12 }
 Market.merchants = {
 	selma = {
@@ -358,7 +515,7 @@ end
 
 return Market
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000017"><Properties><string name="Name">MarketMotion</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000019"><Properties><string name="Name">MarketMotion</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
 -- Idle loops of the traders: per part one joint frame per sample, { x, y, z, qx, qy, qz, qw }
 -- in Roblox axes relative to the figure's ground point; joints = rest position of each joint.
 -- A part moves with  frame(t) * CFrame.new(-joint).
@@ -463,7 +620,7 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
+<Item class="ModuleScript" referent="RBX000020"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
 -- "id" (short string), "ids" (array of ids).
 -- A field name ending in "?" is optional.
 local P = {}
@@ -477,6 +634,7 @@ P.actions = {
 	PlaceMachine = { machine = "id", gx = "int", gz = "int", floor = "int", rot = "int" },
 	RemoveMachine = { uid = "id" },
 	RotateMachine = { uid = "id" },
+	SetMachinePorts = { uid = "id", ["inSide?"] = "int", ["outSide?"] = "int", ["auto?"] = "bool" },
 	SetRecipe = { uid = "id", ["recipe?"] = "id" },
 	StartManualCraft = { uid = "id", recipe = "id" },
 	TransferStack = { from = "id", to = "id", item = "id", amount = "int", ["slot?"] = "id" },
@@ -508,7 +666,7 @@ P.messages = {
 }
 return P
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000019"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
+<Item class="ModuleScript" referent="RBX000021"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
 --   enter_workshop | craft{item,count,auto?} | sell{count} | deliver{items,at} | visit{at}
 --   research{id} | place{machine} | piped{ml} | floors{count} | lines{count,windowSec} | rate{perMin,windowSec}
 -- rewards: coins, knowledge, rep, flag
@@ -607,7 +765,7 @@ Q.projects = {
 }
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000020"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
+<Item class="ModuleScript" referent="RBX000022"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
 local W = 1000
 local R = {}
 local function add(id, tier, machine, inputs, outputs, t, research, extra)
@@ -655,7 +813,7 @@ add("d02", 3, "quarry_drill", {}, { ore_copper = 1 }, 30, "licensed_mining", { k
 add("d03", 3, "quarry_drill", {}, { ore_iron = 1 }, 30, "licensed_mining", { knowledgeRewardFirstCraft = 0, supply = true, fuelUnits = 1, source = true })
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000021"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
+<Item class="ModuleScript" referent="RBX000023"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
 local T = {}
 local function node(id, tier, cost, prereqs, unlocks, name)
 	T[id] = { id = id, tier = tier, cost = cost, prereqs = prereqs, unlocks = unlocks, name = name }
@@ -690,7 +848,7 @@ node("portal_logistics", 5, 200, { "arcane_depths", "smart_sorting" }, { "magica
 node("master_blueprints", 5, 130, { "multi_floor", "flow_control" }, { "blueprint_slots_20" }, "Meisterbaupläne")
 return T
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000022"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
+<Item class="ModuleScript" referent="RBX000024"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
 local Util = {}
 function Util.isInt(v)
 	return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge and math.floor(v) == v
@@ -726,7 +884,7 @@ function Util.nextRandom(state)
 end
 return Util
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000023"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
+<Item class="ModuleScript" referent="RBX000025"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
 local Validator = {}
 function Validator.run(D)
 	local errs = {}
@@ -863,7 +1021,7 @@ function Validator.run(D)
 end
 return Validator
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000024"><Properties><string name="Name">WorkshopArchitecture</string><ProtectedString name="Source"><![CDATA[-- Shared room geometry for Roblox and the Blender workshop generator.
+<Item class="ModuleScript" referent="RBX000026"><Properties><string name="Name">WorkshopArchitecture</string><ProtectedString name="Source"><![CDATA[-- Shared room geometry for Roblox and the Blender workshop generator.
 -- Positions are part centres in room-local Roblox coordinates.
 local Architecture = {}
 
@@ -1027,7 +1185,7 @@ end
 
 return Architecture
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000025"><Properties><string name="Name">WorkshopModels</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_workshop.py.
+<Item class="ModuleScript" referent="RBX000027"><Properties><string name="Name">WorkshopModels</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_workshop.py.
 return {
 	mach_kettle = {
 		size = {3.77, 5.4712, 3.71},
@@ -1158,7 +1316,7 @@ return {
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="ServerStorage" referent="RBX000030"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000028"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
+<Item class="ServerStorage" referent="RBX000032"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000030"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
 	VillageWorldBuilder  (ModuleScript)
 
 	Assembles the village from imported meshes and the generated WorldLayout
@@ -4211,14 +4369,14 @@ return {
 }
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ModuleScript" referent="RBX000029"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
+<Item class="ModuleScript" referent="RBX000031"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
 -- Without imported meshes the village appears as placeholder blocks on voxel terrain.
 -- To get the real models import exports/library/village_assets.glb and village_terrain.glb into
 -- ServerStorage.VillageAssets and exports/library/arcane_machines.glb into ServerStorage.ArcaneAssets.
 return {}
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ServerScriptService" referent="RBX000058"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000031"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
+<Item class="ServerScriptService" referent="RBX000060"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000033"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
 -- Characters are held back until the ground exists, so nobody falls into the void.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
@@ -4331,7 +4489,7 @@ Players.PlayerAdded:Connect(function(player)
 	if not player.Character then player:LoadCharacter() end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="Folder" referent="RBX000057"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000032"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
+<Item class="Folder" referent="RBX000059"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000034"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
 -- handle(world, session, action, payload, ctx) -> { ok, code, version, payload }
 -- ctx = { now = seconds (server clock) }.  The client never supplies positions, prices or amounts of money.
 local D = require(script.Parent.Data)
@@ -4461,6 +4619,16 @@ function H.RotateMachine(world, session, p)
 	if not e then return fail(why) end
 	touched(owner, true)
 	return ok({ rot = e.rot })
+end
+
+-- Inlet / outlet sides of a production machine, chosen in the machine window.
+function H.SetMachinePorts(world, session, p)
+	local P, owner, code = workshop(world, session, "builder")
+	if not P then return fail(code) end
+	local res, why = Place.setPorts(P, p.uid, p.inSide, p.outSide, p.auto)
+	if not res then return fail(why) end
+	touched(owner, true)
+	return ok(res)
 end
 
 local function recipeAllowed(P, e, recipeId)
@@ -4843,7 +5011,7 @@ end
 Actions.handlers = H
 return Actions
 ]]></ProtectedString></Properties></Item>
-<Item class="Script" referent="RBX000033"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
+<Item class="Script" referent="RBX000035"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
 -- and the DataStore.  Place under ServerScriptService.ArcaneServer (see default.project.json).
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -5289,7 +5457,7 @@ workspace.DescendantAdded:Connect(function(inst)
 end)
 print("[Arcane] server ready - persistent saves: " .. tostring(persistent))
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000034"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
+<Item class="ModuleScript" referent="RBX000036"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
 local Co = {}
 Co.RANK = { visitor = 1, operator = 2, builder = 3, owner = 4 }
 function Co.role(world, ownerId, userId)
@@ -5316,16 +5484,16 @@ end
 function Co.clearOwner(world, ownerId) world.coop[ownerId] = nil end
 return Co
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000035"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
+<Item class="ModuleScript" referent="RBX000037"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 return {
 	Market = require(Shared.MarketCatalog), Config = require(Shared.Config), Items = require(Shared.Items), Recipes = require(Shared.Recipes),
 	Machines = require(Shared.Machines), Research = require(Shared.Research), Quests = require(Shared.Quests),
 	Locations = require(Shared.Locations), Protocol = require(Shared.Protocol), GridMath = require(Shared.GridMath),
-	Util = require(Shared.Util), Validator = require(Shared.Validator),
+	Util = require(Shared.Util), Validator = require(Shared.Validator), MachinePorts = require(Shared.MachinePorts),
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000036"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
+<Item class="ModuleScript" referent="RBX000038"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
 local D = require(script.Parent.Data)
 local Config, Util = D.Config, D.Util
 local Eco = {}
@@ -5366,7 +5534,7 @@ function Eco.priceFor(P, itemId, baseSell)
 end
 return Eco
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000037"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
+<Item class="ModuleScript" referent="RBX000039"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
 -- Pure Lua; the Roblox adapters (Bootstrap) feed positions, time and network into it.
 local D = require(script.Parent.Data)
 local Profile = require(script.Parent.ProfileService)
@@ -5466,6 +5634,11 @@ local function entityView(P, e)
 	if b.job then
 		v.job = { recipe = b.job.recipe, remaining = b.job.remaining, total = Recipes[b.job.recipe].durationSec }
 	end
+	local def = Machines[e.machine]
+	if D.MachinePorts.isMachine(def) then
+		v.inSide, v.outSide = D.MachinePorts.sides(def, e)
+		v.outAuto = D.MachinePorts.isAuto(e)
+	end
 	return v
 end
 
@@ -5535,7 +5708,7 @@ function Game.snapshot(world, session)
 end
 return Game
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000038"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
+<Item class="ModuleScript" referent="RBX000040"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
 -- Player inventory: limited slots for solids, capacity per liquid. Containers: slot limited.
 local D = require(script.Parent.Data)
 local Items, Config, Util = D.Items, D.Config, D.Util
@@ -5612,12 +5785,13 @@ function Inv.total(store)
 end
 return Inv
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000039"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
+<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
 -- Tokens are data only; nothing here creates Roblox instances.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
 local Inv = require(script.Parent.InventoryService)
 local Config, Machines, Recipes, Items, Grid, Util = D.Config, D.Machines, D.Recipes, D.Items, D.GridMath, D.Util
+local Ports = D.MachinePorts
 local L = {}
 local CARRIER = { belt = true, splitter = true, merger = true, sorter = true, lift = true, gate = true }
 L.CARRIER = CARRIER
@@ -5639,6 +5813,12 @@ function L.build(P)
 		if not t then return false end
 		local def = Machines[t.machine]
 		if def.kind == "crate" or def.kind == "shelf" then return t.uid end
+		if def.kind == "machine" then
+			-- production machines take solid goods only at their chosen inlet side
+			local inSide = Ports.sides(def, t)
+			local px, pz, pd = Ports.cell(def, t, inSide)
+			return (px == x and pz == z and pd == Grid.opposite(dir)) and t.uid or false
+		end
 		for _, p in ipairs(def.ports) do
 			if p.type == "solid" and p.mode == "in" then
 				local px, pz, pd = Grid.port(def, p, t.gx, t.gz, t.rot)
@@ -5686,10 +5866,18 @@ function L.build(P)
 			c.tanks[#c.tanks + 1] = e.uid
 		end
 		local outs = {}
+		if def.kind == "machine" then
+			-- production machines hand solid goods over at their current outlet side
+			local _, outSide = Ports.sides(def, e)
+			local px, pz, dir = Ports.cell(def, e, outSide)
+			outs[1] = solidTarget(e.floor, px + Grid.DX[dir], pz + Grid.DZ[dir], dir)
+		end
 		for _, p in ipairs(def.ports) do
 			local px, pz, dir = Grid.port(def, p, e.gx, e.gz, e.rot)
 			local nx, nz = px + Grid.DX[dir], pz + Grid.DZ[dir]
-			if p.type == "solid" and p.mode == "out" then
+			if p.type == "solid" and def.kind == "machine" then
+				-- handled above through the chosen sides
+			elseif p.type == "solid" and p.mode == "out" then
 				local floor = e.floor
 				if def.kind == "lift" then floor = floor + 1 end
 				if def.kind == "gate" then
@@ -5927,7 +6115,7 @@ function L.stepFluids(P, G, dt, emit)
 end
 return L
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000040"><Properties><string name="Name">MarketArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">MarketArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
 -- Bounds (Roblox axes, relative to the ground point) of the stalls and of every figure part;
 -- joint = the point a part turns around.
 return {
@@ -6015,7 +6203,7 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">MarketWorld</string><ProtectedString name="Source"><![CDATA[-- Places the five merchants at the planned stalls. Art is optional in the base place.
+<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">MarketWorld</string><ProtectedString name="Source"><![CDATA[-- Places the five merchants at the planned stalls. Art is optional in the base place.
 local Market = require(script.Parent.Data).Market
 local Art = require(script.Parent.MarketArt)
 local World = {}
@@ -6155,7 +6343,7 @@ end
 
 return World
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
+<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
 local D = require(script.Parent.Data)
 local Config, Items = D.Config, D.Items
 local Metrics = {}
@@ -6217,11 +6405,12 @@ function Metrics.perItem(stats, clock, windowSec)
 end
 return Metrics
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
+<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Eco = require(script.Parent.EconomyService)
 local Config, Machines, Grid, Util, Recipes = D.Config, D.Machines, D.GridMath, D.Util, D.Recipes
+local Ports = D.MachinePorts
 local Place = {}
 
 function Place.cells(P) return Config.plotTiers[P.workshop.sizeTier].cells end
@@ -6314,6 +6503,60 @@ function Place.limitCode(P, machineId)
 	return nil
 end
 
+-- Re-evaluates every automatic outlet.  Called after anything was placed, turned or removed, so
+-- the result does not depend on the building order.  Returns the uids whose outlet moved.
+function Place.refreshOutlets(P)
+	local ground = Place.occupancy(P)
+	local byUid = {}
+	for _, e in ipairs(P.workshop.layout) do byUid[e.uid] = e end
+	local function entAt(floor, x, z)
+		local e = byUid[ground[Grid.key(floor, x, z)]]
+		if e then return e, Machines[e.machine] end
+		return nil
+	end
+	local moved = {}
+	for _, e in ipairs(P.workshop.layout) do
+		local def = Machines[e.machine]
+		if Ports.isMachine(def) and Ports.isAuto(e) then
+			local _, current = Ports.sides(def, e)
+			local side = Ports.autoSide(def, e, entAt)
+			if side ~= current then
+				e.outSide = side
+				moved[#moved + 1] = e.uid
+			end
+		end
+	end
+	return moved
+end
+
+-- Player choice of inlet / outlet in the machine window.
+--   inSide / outSide: side 0..3 or nil (unchanged); auto: true switches the outlet back to automatic.
+-- Choosing an outlet fixes it ("manual").  Choosing the side the other connection uses swaps the two.
+function Place.setPorts(P, uid, inSide, outSide, auto)
+	local e = Place.find(P, uid)
+	local def = e and Machines[e.machine]
+	if not e or not Ports.isMachine(def) then return nil, "NOT_FOUND" end
+	if (inSide ~= nil and not Ports.allowed(def, inSide)) or (outSide ~= nil and not Ports.allowed(def, outSide)) then
+		return nil, "BLOCKED"
+	end
+	if inSide ~= nil and inSide == outSide then return nil, "BAD_REQUEST" end
+	local curIn, curOut = Ports.sides(def, e)
+	if inSide ~= nil and inSide ~= curIn then
+		if inSide == curOut then curOut = curIn end
+		curIn = inSide
+	end
+	if outSide ~= nil then
+		if outSide == curIn then curIn = curOut end
+		curOut = outSide
+		e.outAuto = false
+	end
+	e.inSide, e.outSide = curIn, curOut
+	if auto == true then e.outAuto = nil end
+	Place.refreshOutlets(P)
+	local finalIn, finalOut = Ports.sides(def, e)
+	return { inSide = finalIn, outSide = finalOut, auto = Ports.isAuto(e) }
+end
+
 local function newBuffer() return { inv = {}, out = {}, fluids = {}, outFluid = {}, fuel = 0 } end
 Place.newBuffer = newBuffer
 
@@ -6335,6 +6578,7 @@ function Place.place(P, machineId, gx, gz, floor, rot, free)
 	if not Eco.pay(P, cost) then return nil, "NO_FUNDS" end
 	local e = addEntity(P, machineId, gx, gz, floor, rot)
 	e.paid = cost
+	Place.refreshOutlets(P)
 	return e
 end
 
@@ -6365,6 +6609,7 @@ function Place.remove(P, uid)
 	for _, other in ipairs(P.workshop.layout) do
 		if other.link == uid then other.link = nil end
 	end
+	Place.refreshOutlets(P)
 	return { refund = refund, returned = contents }
 end
 
@@ -6375,6 +6620,7 @@ function Place.rotate(P, uid)
 	local code = Place.check(P, e.machine, e.gx, e.gz, e.floor, rot, uid)
 	if code then return nil, code end
 	e.rot = rot
+	Place.refreshOutlets(P)
 	return e
 end
 
@@ -6405,7 +6651,8 @@ function Place.saveBlueprint(P, slot, name, uids)
 	for _, uid in ipairs(uids) do
 		local e = Place.find(P, uid)
 		parts[#parts + 1] = { machine = e.machine, dx = e.gx - minX, dz = e.gz - minZ, rot = e.rot, recipe = e.recipe,
-			filter = e.filter and Util.deepCopy(e.filter) or nil }
+			filter = e.filter and Util.deepCopy(e.filter) or nil,
+			inSide = e.inSide, outSide = e.outSide, outAuto = e.outAuto }
 		cost = cost + Machines[e.machine].cost
 	end
 	P.blueprints[tostring(slot)] = { name = string.sub(name, 1, 24), parts = parts, estimateCost = cost }
@@ -6430,13 +6677,19 @@ function Place.placeBlueprint(P, slot, gx, gz, floor)
 			e.recipe = part.recipe
 		end
 		e.filter = part.filter and Util.deepCopy(part.filter) or nil
+		if Ports.isMachine(Machines[part.machine]) then
+			if Ports.allowed(Machines[part.machine], part.inSide) then e.inSide = part.inSide end
+			if Ports.allowed(Machines[part.machine], part.outSide) then e.outSide = part.outSide end
+			if part.outAuto == false then e.outAuto = false end
+		end
 		placed[#placed + 1] = e.uid
 	end
+	Place.refreshOutlets(P)
 	return placed
 end
 return Place
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
+<Item class="ModuleScript" referent="RBX000046"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
 local D = require(script.Parent.Data)
 local Config, Machines, Recipes, Items, Util = D.Config, D.Machines, D.Recipes, D.Items, D.Util
 local Prod = {}
@@ -6519,7 +6772,7 @@ function Prod.step(P, G, dt, emit)
 end
 return Prod
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
+<Item class="ModuleScript" referent="RBX000047"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
 local Inv = require(script.Parent.InventoryService)
@@ -6611,6 +6864,20 @@ function Profile.load(data, userId)
 		local b = type(e) == "table" and oldBuffers[e.uid] or nil
 		if ok then
 			if e.recipe and not (Recipes[e.recipe] and Recipes[e.recipe].machineId == e.machine) then e.recipe = nil end
+			-- inlet / outlet sides: older saves have none (definition defaults apply); impossible
+			-- values are dropped, never the machine
+			local def = Machines[e.machine]
+			if D.MachinePorts.isMachine(def) then
+				if e.inSide ~= nil and not D.MachinePorts.allowed(def, e.inSide) then e.inSide = nil note("inSide " .. e.uid) end
+				if e.outSide ~= nil and not D.MachinePorts.allowed(def, e.outSide) then e.outSide = nil note("outSide " .. e.uid) end
+				if e.inSide ~= nil and e.inSide == (e.outSide or D.MachinePorts.DEFAULT_OUT) then
+					e.inSide, e.outSide = nil, nil
+					note("ports " .. e.uid)
+				end
+				if e.outAuto ~= nil and e.outAuto ~= false then e.outAuto = nil end
+			else
+				e.inSide, e.outSide, e.outAuto = nil, nil, nil
+			end
 			w.layout[#w.layout + 1] = e
 			local nb = Place.newBuffer()
 			if type(b) == "table" then
@@ -6647,7 +6914,7 @@ function Profile.load(data, userId)
 end
 return Profile
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000046"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
+<Item class="ModuleScript" referent="RBX000048"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
 -- GlobalDataStore; tests inject a mock.  Rules (spec §13):
 --   * a failed load never yields a fresh default profile that could overwrite the real one
 --   * saves go through UpdateAsync, refuse to overwrite a newer revision and keep a session lock
@@ -6743,7 +7010,7 @@ function Store:save(userId, P, release)
 end
 return Store
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000047"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
+<Item class="ModuleScript" referent="RBX000049"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Inv = require(script.Parent.InventoryService)
@@ -6935,7 +7202,7 @@ end
 Q.templateById = templateById
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000048"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
+<Item class="ModuleScript" referent="RBX000050"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Research = D.Research
@@ -6959,7 +7226,7 @@ function R.unlock(P, id)
 end
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000049"><Properties><string name="Name">ResourceArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_resource_assets.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000051"><Properties><string name="Name">ResourceArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_resource_assets.py. Do not edit.
 -- Bounds of the resource models in Roblox axes, relative to the ground point of the node.
 return {
 	res_herb_mint = { center = {0.1508, 0.6968, 0}, size = {4.4362, 1.8936, 4.3332} },
@@ -6979,7 +7246,7 @@ return {
 	res_fuel_charcoal = { center = {0.1291, 1.14, -0.3817}, size = {5.046, 2.68, 3.6634} },
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000050"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
+<Item class="ModuleScript" referent="RBX000052"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Locations = D.Locations
@@ -7016,7 +7283,7 @@ function Res.gather(nodes, P, nodeId)
 end
 return Res
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000051"><Properties><string name="Name">ResourceWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: puts a model of the resource at every resource node and lets players harvest it
+<Item class="ModuleScript" referent="RBX000053"><Properties><string name="Name">ResourceWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: puts a model of the resource at every resource node and lets players harvest it
 -- by interacting with that model.  Game rules stay in ResourceService; this module only mirrors
 -- the node state (available / used up) into the world.
 local D = require(script.Parent.Data)
@@ -7114,7 +7381,7 @@ end
 
 return World
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000052"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
+<Item class="ModuleScript" referent="RBX000054"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
 local D = require(script.Parent.Data)
 local Config, Protocol, Util = D.Config, D.Protocol, D.Util
 local Sec = {}
@@ -7198,7 +7465,7 @@ function Sec.remember(session, actionId, result)
 end
 return Sec
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000053"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
+<Item class="ModuleScript" referent="RBX000055"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Config, Machines, Items, Util = D.Config, D.Machines, D.Items, D.Util
@@ -7289,7 +7556,7 @@ function Shop.step(P, dt, emit)
 end
 return Shop
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000054"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
+<Item class="ModuleScript" referent="RBX000056"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
 -- computeAnchors() is pure: it derives every interaction point from WorldLayout (asset id of the
 -- unique building instance), so anchors follow the buildings when the world is regenerated.
 local D = require(script.Parent.Data)
@@ -7332,7 +7599,7 @@ function Adapter.computeAnchors(layout)
 end
 return Adapter
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000055"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
+<Item class="ModuleScript" referent="RBX000057"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
 local D = require(script.Parent.Data)
 local Logistics = require(script.Parent.LogisticsService)
 local Production = require(script.Parent.ProductionService)
@@ -7374,7 +7641,7 @@ function Sim.step(P, rt, dt)
 end
 return Sim
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000056"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: builds the walkable workshops (open buildings on plots in the village) and the visible
+<Item class="ModuleScript" referent="RBX000058"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: builds the walkable workshops (open buildings on plots in the village) and the visible
 -- representation of every placed entity.  All game rules live in the pure services; this module only
 -- mirrors server state into Instances.
 local D = require(script.Parent.Data)
@@ -7382,6 +7649,7 @@ local Config, Machines, Grid = D.Config, D.Machines, D.GridMath
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 local Architecture = require(Shared.WorkshopArchitecture)
 local Models = require(Shared.WorkshopModels)
+local Ports = require(Shared.MachinePorts)
 local WW = {}
 WW.__index = WW
 
@@ -7557,6 +7825,66 @@ function WW:spawnCFrame(room)
 	return CFrame.new(room.origin + Vector3.new(0, 4, -size / 2 + 5)) * CFrame.Angles(0, math.rad(180), 0)
 end
 
+-- Flat arrow lying on a surface, its tip at `tip`, pointing along the unit vector `dir`.
+local function flatArrow(parent, name, tip, dir, color, length, hidden)
+	local props = { Name = name, Color = color, Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false,
+		CanTouch = false, CastShadow = false, Transparency = hidden and 1 or 0 }
+	local function piece(size, cframe)
+		local q = part(props, parent)
+		q.Size, q.CFrame = size, cframe
+		if hidden then q:SetAttribute("ArcanePortMark", true) end
+		return q
+	end
+	local look = CFrame.lookAt(tip, tip + dir)
+	local shaft = piece(Vector3.new(0.28, 0.12, length - 0.25), look * CFrame.new(0, 0, (length - 0.25) / 2 + 0.2))
+	for _, sign in ipairs({ -1, 1 }) do
+		piece(Vector3.new(0.28, 0.12, 0.72), look * CFrame.Angles(0, sign * math.rad(140), 0) * CFrame.new(0, 0, -0.3))
+	end
+	return shaft
+end
+
+-- Marks at the connections of a production machine: inlet, outlet and pipe connections.  They are
+-- invisible on the server; the client shows them while building or while the machine window is
+-- open (attribute ArcanePortMark).
+local function portMarks(self, room, e, def, body)
+	local cs = Config.cellSize
+	local IN, OUT, FLUID = Color3.fromRGB(63, 138, 106), Color3.fromRGB(201, 154, 60), Color3.fromRGB(96, 150, 190)
+	local function tag(anchor, text, color)
+		local gui = Instance.new("BillboardGui")
+		gui.Name, gui.Size, gui.StudsOffset, gui.MaxDistance, gui.Enabled = "PortLabel", UDim2.new(0, 110, 0, 24), Vector3.new(0, 1.3, 0), 60, false
+		local label = Instance.new("TextLabel")
+		label.Size, label.BackgroundColor3, label.BackgroundTransparency = UDim2.new(1, 0, 1, 0), color, 0.1
+		label.TextColor3, label.Font, label.TextScaled, label.Text = Color3.fromRGB(247, 244, 236), Enum.Font.GothamBold, true, text
+		local round = Instance.new("UICorner")
+		round.CornerRadius = UDim.new(0, 6)
+		round.Parent = label
+		label.Parent = gui
+		gui.Parent = anchor
+	end
+	local function edge(side)
+		local x, z, dir = Ports.cell(def, e, side)
+		local out = Vector3.new(Grid.DX[dir], 0, Grid.DZ[dir])
+		-- middle of the neighbouring cell, just above the floor
+		return WW.cellCenter(self, room, e.floor, x, z) + out * cs + Vector3.new(0, 0.12, 0), out
+	end
+	local inSide, outSide = Ports.sides(def, e)
+	local at, out = edge(inSide)
+	tag(flatArrow(body, "PortIn", at - out * 0.75, -out, IN, 1.5, true), "Einlauf", IN)
+	at, out = edge(outSide)
+	tag(flatArrow(body, "PortOut", at + out * 0.75, out, OUT, 1.5, true), Ports.isAuto(e) and "Auslauf · auto" or "Auslauf · fest", OUT)
+	for _, p in ipairs(def.ports) do
+		if p.type == "fluid" then
+			local x, z, dir = Grid.port(def, p, e.gx, e.gz, e.rot)
+			local o = Vector3.new(Grid.DX[dir], 0, Grid.DZ[dir])
+			local drop = part({ Name = "PortFluid", Shape = Enum.PartType.Ball, Size = Vector3.new(0.8, 0.8, 0.8), Color = FLUID,
+				Material = Enum.Material.Glass, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false, Transparency = 1,
+				Position = WW.cellCenter(self, room, e.floor, x, z) + o * cs + Vector3.new(0, 0.45, 0) }, body)
+			drop:SetAttribute("ArcanePortMark", true)
+			tag(drop, (p.mode == "in") and "Rohr · Zulauf" or "Rohr · Ablauf", FLUID)
+		end
+	end
+end
+
 local function entityModel(self, room, e)
 	local def = Machines[e.machine]
 	local w, d = Grid.size(def, e.rot)
@@ -7576,11 +7904,11 @@ local function entityModel(self, room, e)
 			-- keep the template's own rotation (the asset loader corrects the import orientation there)
 			-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
 			local floorY = base.Y - height / 2
-			body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+			body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(90 * e.rot), 0)
 				* (template.CFrame - template.CFrame.Position)
 		else
 			local pivot = CFrame.new(base - Vector3.new(0, height / 2, 0))
-				* CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+				* CFrame.Angles(0, math.rad(90 * e.rot), 0)
 			local mesh = Models[def.modelAssetId]
 			if mesh then
 				-- Imported MeshParts are centred on the geometry bounds. Recover the
@@ -7620,11 +7948,17 @@ local function entityModel(self, room, e)
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText, prompt.ObjectText, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = "Öffnen", def.name, 9, false
 		prompt.Parent = body
+		if Ports.isMachine(def) then portMarks(self, room, e, def, body) end
 	else
-		-- direction marker and item token for belts
-		local arrow = part({ Name = "Arrow", Size = Vector3.new(0.5, 0.2, 1.2), Color = Color3.fromRGB(201, 154, 60), CanCollide = false,
-			CFrame = CFrame.new(base + Vector3.new(0, height / 2 + 0.1, 0)) * CFrame.Angles(0, math.rad(-90 * e.rot), 0) }, body)
-		arrow.Name = "Arrow"
+		-- arrow in the real conveying direction (towards the first outlet of the part) and item token
+		local outDir = e.rot % 4
+		for _, p in ipairs(def.ports or {}) do
+			if p.mode == "out" then outDir = (p.dir + e.rot) % 4 break end
+		end
+		local flow = Vector3.new(Grid.DX[outDir], 0, Grid.DZ[outDir])
+		if def.layer ~= "pipe" then
+			flatArrow(body, "Arrow", base + Vector3.new(0, height / 2 + 0.08, 0) + flow * 0.7, flow, Color3.fromRGB(201, 154, 60), 1.4, false)
+		end
 		local token = part({ Name = "Token", Size = Vector3.new(0.9, 0.9, 0.9), Position = base + Vector3.new(0, height / 2 + 0.6, 0),
 			Color = Color3.fromRGB(95, 163, 67), Transparency = 1, CanCollide = false, Shape = Enum.PartType.Ball }, body)
 		token.Name = "Token"
@@ -7643,6 +7977,7 @@ function WW:sync(view, label)
 			seen[e.uid] = true
 			local cur = room.entities[e.uid]
 			local sig = e.machine .. ":" .. e.gx .. ":" .. e.gz .. ":" .. e.floor .. ":" .. e.rot
+				.. ":" .. tostring(e.inSide) .. ":" .. tostring(e.outSide) .. ":" .. tostring(e.outAuto)
 			if not cur or cur.sig ~= sig then
 				if cur then cur.body:Destroy() end
 				room.entities[e.uid] = { sig = sig, body = entityModel(self, room, e) }
@@ -7692,7 +8027,7 @@ return WW
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="StarterPlayer" referent="RBX000064"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000063"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000062"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000059"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
+<Item class="StarterPlayer" referent="RBX000067"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000066"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000065"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000061"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
 -- Mobile first: large touch targets, one panel at a time, everything reachable without a keyboard.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7710,6 +8045,8 @@ local Market = require(Shared.MarketCatalog)
 local Config = require(Shared.Config)
 local Grid = require(Shared.GridMath)
 local Net = require(script.Parent:WaitForChild("NetworkClient"))
+local MachineWindow = require(script.Parent:WaitForChild("MachineWindow"))
+local Ports = require(Shared.MachinePorts)
 local player = Players.LocalPlayer
 
 local C = { cream = Color3.fromRGB(241, 235, 221), ink = Color3.fromRGB(35, 32, 31), brass = Color3.fromRGB(201, 154, 60),
@@ -7840,7 +8177,9 @@ local function signature(s)
 	for i = 1, #parts do parts[i] = tostring(parts[i]) end
 	return table.concat(parts, "|")
 end
+local machineWindow                -- created further down; only one window is open at a time
 local function open(name, title, render)
+	if machineWindow and machineWindow.isOpen() then machineWindow.close() end
 	current = { name = name, title = title, render = render, version = Net.snapshot and signature(Net.snapshot), at = os.clock() }
 	panelTitle.Text = title
 	panel.Visible = true
@@ -7882,62 +8221,37 @@ local function renderInventory(s)
 	if #ids == 0 then row("Dein Beutel ist leer. Sammle Kräuter am Marktplatz.") end
 end
 
-local STATE = { Running = { "läuft", C.ok }, WaitingForInputs = { "wartet auf", C.warn }, OutputBlocked = { "Ausgang voll – bitte leeren", C.bad },
-	NoFuel = { "braucht Holzkohle", C.bad }, Paused = { "pausiert", C.dim }, InvalidRecipe = { "kein Rezept gewählt", C.warn } }
+-- Storage and transport parts (crates, shelves, tanks, belts ...) keep the simple list panel;
+-- production machines have their own window (MachineWindow.lua).
 local selectedUid = nil
-local function renderMachine(s)
+local function renderStorage(s)
 	local e
 	for _, x in ipairs(s.workshop and s.workshop.entities or {}) do if x.uid == selectedUid then e = x end end
-	if not e then row("Diese Maschine gibt es nicht mehr.") return end
+	if not e then row("Dieses Bauteil gibt es nicht mehr, oder du stehst nicht in der Werkstatt.") return end
 	local def = Machines[e.machine]
-	if def.kind == "machine" then
-		local st = STATE[e.state] or { "bereit", C.ok }
-		local text = "Status: " .. st[1]
-		if e.state == "WaitingForInputs" and e.waiting then text = text .. " " .. Items[e.waiting].name end
-		if e.job then text = text .. string.format("  (%d s übrig)", math.ceil(e.job.remaining)) end
-		row(text, e.paused and "Fortsetzen" or "Pause", function() send("ToggleMachine", { uid = e.uid }) end, st[2])
-		heading("Rezepte")
-		for id, r in pairs(Recipes) do
-			if r.machineId == e.machine then
-				local known = s.research[r.requiredResearch]
-				local line = itemList(r.inputs) .. "  →  " .. itemList(r.outputs) .. "  (" .. r.durationSec .. " s)"
-				if not known then
-					row("🔒 " .. line .. "\nForschung: " .. Research[r.requiredResearch].name, nil, nil, C.dim)
-				else
-					row(((e.recipe == id) and "● " or "") .. line, "Herstellen", function() send("StartManualCraft", { uid = e.uid, recipe = id }) end)
-				end
-			end
-		end
-		if def.usesFuel then
-			row("Brennstoff: " .. e.fuel .. " Holzkohle", "Nachlegen", function()
-				send("TransferStack", { from = "inv", to = e.uid, item = "fuel_charcoal", amount = 4 })
-			end)
-		end
-	end
 	heading("Inhalt")
+	local any = false
 	local function contents(store, slot, title)
 		for id, n in pairs(store or {}) do
+			any = true
 			row(title .. ": " .. amount(id, n), "Entnehmen", function()
 				send("TransferStack", { from = e.uid, to = "inv", item = id, amount = n, slot = slot })
 			end)
 		end
 	end
-	contents(e.out, "out", "Fertig") contents(e.outFluid, "out", "Fertig")
-	contents(e.inv, "in", (def.kind == "machine") and "Zutat" or "Lager") contents(e.fluids, "in", "Flüssigkeit")
-	if e.item then contents({ [e.item] = 1 }, nil, "Auf dem Band") end
-	if def.kind == "crate" or def.kind == "shelf" or def.kind == "tank" or (def.kind == "machine" and e.recipe) then
+	contents(e.inv, "in", "Lager") contents(e.fluids, "in", "Flüssigkeit") contents(e.out, "out", "Fertig")
+	if e.item then any = true row("Auf dem Band: " .. amount(e.item, 1)) end
+	if not any then row("Leer.") end
+	if def.kind == "crate" or def.kind == "shelf" or def.kind == "tank" then
 		heading("Aus dem Beutel einfüllen")
 		for id, n in pairs(s.items) do
-			local fits = def.kind == "crate" and Items[id].unit ~= "ml"
+			local fits = (def.kind == "crate" and Items[id].unit ~= "ml")
 				or (def.kind == "shelf" and Items[id].type == "product")
 				or (def.kind == "tank" and Items[id].unit == "ml")
-				or (def.kind == "machine" and Recipes[e.recipe].inputs[id] ~= nil)
 			if fits then
 				row(amount(id, n), "Einfüllen", function()
-					local action = (def.kind == "shelf") and "StockShelf" or "TransferStack"
-					local payload = (def.kind == "shelf") and { uid = e.uid, item = id, amount = n }
-						or { from = "inv", to = e.uid, item = id, amount = n }
-					send(action, payload)
+					if def.kind == "shelf" then send("StockShelf", { uid = e.uid, item = id, amount = n })
+					else send("TransferStack", { from = "inv", to = e.uid, item = id, amount = n }) end
 				end)
 			end
 		end
@@ -7947,12 +8261,10 @@ local function renderMachine(s)
 	row("Abbauen – Inhalt kommt in den Beutel, 60 % der Kosten zurück", "Abbauen", function()
 		if send("RemoveMachine", { uid = e.uid }).ok then closePanel() end
 	end, C.bad)
-	if e.machine == "kettle" then
-		row("Experiment: 1 Kraut + 1000 ml Wasser → +3 Wissen (max. 5 pro Tag)", "Forschen", function() send("Experiment", { uid = e.uid }) end)
-	end
 end
 
 local Build = { machine = nil, rot = 0, ghost = nil, cell = nil }
+local startBuild                   -- defined with the build mode further down
 local function renderBuild(s)
 	if not s.workshop then row("Bauen kannst du nur in deiner Werkstatt. Folge dem Wegweiser „Deine Werkstatt“ und geh hinein.") return end
 	for _, cat in ipairs({ { "machine", "Maschinen" }, { "transport", "Transport" }, { "storage", "Lager" } }) do
@@ -7964,7 +8276,7 @@ local function renderBuild(s)
 			local def = Machines[id]
 			if s.research[def.research] then
 				row(def.name .. "  –  " .. def.cost .. " Münzen  (" .. def.w * 2 .. "×" .. def.d * 2 .. " Studs)", "Platzieren", function()
-					Build.machine, Build.rot, Build.pointer, Build.cell = id, 0, nil, nil
+					startBuild(id)
 					closePanel()
 					toast("Tippe auf den Werkstattboden, um den Platz zu wählen. ⟳ dreht, ✓ baut, X bricht ab.", C.wood)
 				end)
@@ -8067,10 +8379,39 @@ button("Werkstatt", bar, function() open("workshop", "Werkstatt", renderWorkshop
 -- ---------------------------------------------------------------- build mode (ghost on the grid)
 local confirm = make("Frame", { Size = UDim2.new(0, 220, 0, 56), Position = UDim2.new(0.5, -110, 1, -130), BackgroundTransparency = 1, Visible = false }, gui)
 make("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, confirm)
+-- Marks at the connections of the machines (made invisible by the server): shown while building
+-- and while a machine window is open.
+local marksShown = false
+local function showPortMarks(on)
+	if on == marksShown then return end
+	marksShown = on
+	local root = workspace:FindFirstChild("ArcaneWorkshops")
+	if not root then return end
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("BasePart") and d:GetAttribute("ArcanePortMark") then
+			d.Transparency = on and 0.1 or 1
+			local label = d:FindFirstChild("PortLabel")
+			if label then label.Enabled = on end
+		end
+	end
+end
+workspace.DescendantAdded:Connect(function(d)
+	if marksShown and d:IsA("BasePart") then
+		task.defer(function()
+			if marksShown and d:GetAttribute("ArcanePortMark") then
+				d.Transparency = 0.1
+				local label = d:FindFirstChild("PortLabel")
+				if label then label.Enabled = true end
+			end
+		end)
+	end
+end)
+
 local function stopBuild()
 	Build.machine, Build.pointer, Build.cell = nil, nil, nil
 	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
 	confirm.Visible = false
+	showPortMarks(machineWindow ~= nil and machineWindow.isOpen())
 end
 local function placeGhost()
 	if not (Build.machine and Build.cell) then return end
@@ -8081,6 +8422,29 @@ end
 button("⟳", confirm, function() Build.rot = (Build.rot + 1) % 4 end).Size = UDim2.new(0, 64, 0, 52)
 button("✓", confirm, placeGhost, C.ok).Size = UDim2.new(0, 64, 0, 52)
 button("X", confirm, stopBuild, C.bad).Size = UDim2.new(0, 64, 0, 52)
+
+-- Grid direction (0 = +z, 1 = +x, 2 = -z, 3 = -x) that lies to the right of the current view.
+-- The workshop grid is aligned with the world axes.
+local function rightOfView()
+	local cam = workspace.CurrentCamera
+	local right = cam and cam.CFrame.RightVector or Vector3.new(1, 0, 0)
+	local best, bestDot = 1, -math.huge
+	for dir = 0, 3 do
+		local dot = right.X * Grid.DX[dir] + right.Z * Grid.DZ[dir]
+		if dot > bestDot then best, bestDot = dir, dot end
+	end
+	return best
+end
+-- Starts placing a part.  Conveyors start pointing to the right as the player sees it at this
+-- moment; the direction is then kept until the player turns it, whatever the camera does.
+startBuild = function(id)
+	local def = Machines[id]
+	local conveyor = def.category == "transport" and def.layer ~= "pipe"
+	Build.machine, Build.pointer, Build.cell = id, nil, nil
+	Build.rot = conveyor and rightOfView() or 0
+	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	showPortMarks(true)
+end
 
 local function pointerPosition()
 	if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
@@ -8112,10 +8476,35 @@ local function floorUnder(pos)
 	end
 	return nil
 end
+
+-- ghost: footprint box plus arrows that show exactly what the placed part will do
+local GHOST_IN, GHOST_OUT = Color3.fromRGB(63, 138, 106), Color3.fromRGB(201, 154, 60)
+local function ghostArrow(name, color, text)
+	local folder = make("Folder", { Name = name }, Build.ghost)
+	local pieces = {}
+	for i = 1, 3 do
+		pieces[i] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+			Material = Enum.Material.SmoothPlastic, Color = color, Size = (i == 1) and Vector3.new(0.3, 0.14, 1.3) or Vector3.new(0.3, 0.14, 0.75) }, folder)
+	end
+	if text then
+		local gui = make("BillboardGui", { Size = UDim2.new(0, 96, 0, 22), StudsOffset = Vector3.new(0, 1.2, 0), AlwaysOnTop = true }, pieces[1])
+		local label = make("TextLabel", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = color, BackgroundTransparency = 0.1, Text = text,
+			TextColor3 = C.cream, Font = Enum.Font.GothamBold, TextScaled = true }, gui)
+		corner(label, 6)
+	end
+	return pieces
+end
+local function aimArrow(pieces, tip, dir)
+	local look = CFrame.lookAt(tip, tip + dir)
+	pieces[1].CFrame = look * CFrame.new(0, 0, 0.85)
+	pieces[2].CFrame = look * CFrame.Angles(0, math.rad(140), 0) * CFrame.new(0, 0, -0.3)
+	pieces[3].CFrame = look * CFrame.Angles(0, math.rad(-140), 0) * CFrame.new(0, 0, -0.3)
+end
+
 RunService.RenderStepped:Connect(function()
 	local s = Net.snapshot
 	if not (Build.machine and s and s.workshop and s.room) then
-		if Build.ghost then stopBuild() end
+		if Build.machine or Build.ghost then stopBuild() end
 		return
 	end
 	confirm.Visible = true
@@ -8123,24 +8512,49 @@ RunService.RenderStepped:Connect(function()
 	if not hit then return end
 	local def = Machines[Build.machine]
 	local w, d = Grid.size(def, Build.rot)
-	local half = s.workshop.cells * Config.cellSize / 2
-	local gx = math.floor((hit.Position.X - s.room.x + half) / Config.cellSize)
-	local gz = math.floor((hit.Position.Z - s.room.z + half) / Config.cellSize)
+	local cs = Config.cellSize
+	local half = s.workshop.cells * cs / 2
+	local gx = math.floor((hit.Position.X - s.room.x + half) / cs)
+	local gz = math.floor((hit.Position.Z - s.room.z + half) / cs)
 	local floor = hit.Instance:GetAttribute("ArcaneFloor")
 	Build.cell = { gx = gx, gz = gz, floor = floor }
-	if not Build.ghost then
-		Build.ghost = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, Transparency = 0.5, Material = Enum.Material.Neon,
+	if not Build.ghost or Build.ghostFor ~= Build.machine then
+		if Build.ghost then Build.ghost:Destroy() end
+		Build.ghost = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, Transparency = 0.55, Material = Enum.Material.SmoothPlastic,
 			Color = C.ok, Name = "ArcaneGhost" }, workspace)
-		make("Part", { Name = "Front", Anchored = true, CanCollide = false, CanQuery = false, Color = C.brass, Material = Enum.Material.Neon,
-			Size = Vector3.new(0.6, 0.6, 1.6) }, Build.ghost)
+		Build.ghostFor, Build.arrows = Build.machine, {}
+		if Ports.isMachine(def) then
+			Build.arrows.inlet = ghostArrow("In", GHOST_IN, "Einlauf")
+			Build.arrows.outlet = ghostArrow("Out", GHOST_OUT, "Auslauf")
+		elseif def.category == "transport" and def.layer ~= "pipe" then
+			Build.arrows.flow = ghostArrow("Flow", GHOST_OUT, nil)
+		end
 	end
-	local cs = Config.cellSize
-	local centre = Vector3.new(s.room.x - half + gx * cs + w * cs / 2, s.room.y + (floor - 1) * Config.floorHeight + 1.5, s.room.z - half + gz * cs + d * cs / 2)
+	local floorY = s.room.y + (floor - 1) * Config.floorHeight
+	local function cellCentre(x, z)
+		return Vector3.new(s.room.x - half + (x + 0.5) * cs, floorY, s.room.z - half + (z + 0.5) * cs)
+	end
 	Build.ghost.Size = Vector3.new(w * cs, 3, d * cs)
-	Build.ghost.Position = centre
-	local front = (Build.rot % 4)
-	Build.ghost.Front.CFrame = CFrame.new(centre + Vector3.new(Grid.DX[front] * w * cs / 2, 1.8, Grid.DZ[front] * d * cs / 2))
-		* CFrame.Angles(0, math.rad(-90 * Build.rot), 0)
+	Build.ghost.Position = Vector3.new(s.room.x - half + gx * cs + w * cs / 2, floorY + 1.5, s.room.z - half + gz * cs + d * cs / 2)
+	local ghostEntity = { gx = gx, gz = gz, rot = Build.rot, floor = floor }
+	if Build.arrows.inlet then
+		-- a new machine starts with the definition's sides: inlet at the back, outlet at the front
+		for key, side in pairs({ inlet = Ports.DEFAULT_IN, outlet = Ports.DEFAULT_OUT }) do
+			local x, z, dir = Ports.cell(def, ghostEntity, side)
+			local out = Vector3.new(Grid.DX[dir], 0, Grid.DZ[dir])
+			local at = cellCentre(x, z) + out * cs + Vector3.new(0, 0.2, 0)
+			if key == "inlet" then aimArrow(Build.arrows.inlet, at - out * 0.75, -out)
+			else aimArrow(Build.arrows.outlet, at + out * 0.75, out) end
+		end
+	elseif Build.arrows.flow then
+		-- the arrow points where goods will actually leave this part
+		local outDir = Build.rot % 4
+		for _, p in ipairs(def.ports or {}) do
+			if p.mode == "out" then outDir = (p.dir + Build.rot) % 4 break end
+		end
+		local flow = Vector3.new(Grid.DX[outDir], 0, Grid.DZ[outDir])
+		aimArrow(Build.arrows.flow, cellCentre(gx, gz) + Vector3.new(0, 3.1, 0) + flow * 0.7, flow)
+	end
 	-- red when the cells are taken or outside (the server decides in the end)
 	local blocked = gx < 0 or gz < 0 or gx + w > s.workshop.cells or gz + d > s.workshop.cells
 	for _, e in ipairs(s.workshop.entities) do
@@ -8159,11 +8573,19 @@ UserInputService.InputBegan:Connect(function(input, processed)
 end)
 
 -- ---------------------------------------------------------------- prompts, snapshots, notifications
+machineWindow = MachineWindow.create({ gui = gui, make = make, corner = corner, send = send, toast = toast, Net = Net,
+	onClose = function() showPortMarks(Build.machine ~= nil) end })
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
 	local uid = prompt.Parent and prompt.Parent:GetAttribute("ArcaneUid")
-	if uid then
+	if not uid then return end
+	local def = Machines[prompt.Parent:GetAttribute("ArcaneMachine")]
+	if Ports.isMachine(def) then
+		closePanel()
+		machineWindow.open(uid)
+		showPortMarks(true)
+	else
 		selectedUid = uid
-		open("machine", Machines[prompt.Parent:GetAttribute("ArcaneMachine")].name, renderMachine)
+		open("machine", def.name, renderStorage)
 	end
 end)
 Net.on("OpenMarket", function(id)
@@ -8283,10 +8705,423 @@ Net.onSnapshot(function(s)
 		if f then toast(f(n), C.ok) end
 	end
 	refresh()
+	machineWindow.update(s)
 end)
 Net.send("RequestSnapshot")
 ]]></ProtectedString></Properties></Item>
-<Item class="LocalScript" referent="RBX000060"><Properties><string name="Name">MarketIdle</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: plays the idle loops of the market traders.
+<Item class="ModuleScript" referent="RBX000062"><Properties><string name="Name">MachineWindow</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: the window of one production machine - its own little workplace.
+--
+--   +---------------------------------------------------------------+
+--   | Kräutermühle                                   läuft      [X] |
+--   | [Zutaten]        [ Motiv  ====>  Fortschritt ]     [Ergebnis] |
+--   | Anschlüsse:  Draufsicht mit Einlauf / Auslauf, Automatisch    |
+--   | Rezepte, Brennstoff, Drehen, Abbauen (scrollt)                |
+--   +---------------------------------------------------------------+
+--
+-- Everything shown comes from the server snapshot of exactly this machine instance; every change
+-- (filling, taking out, choosing sides) is a server action.  Only the progress bar is advanced
+-- locally between two snapshots.
+local RunService = game:GetService("RunService")
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
+local Items = require(Shared.Items)
+local Recipes = require(Shared.Recipes)
+local Machines = require(Shared.Machines)
+local Research = require(Shared.Research)
+local Icons = require(Shared.ItemIcons)
+local Ports = require(Shared.MachinePorts)
+
+local Window = {}
+
+local PARCHMENT, PARCHMENT_DARK = Color3.fromRGB(241, 231, 208), Color3.fromRGB(226, 212, 182)
+local WOOD, WOOD_LIGHT = Color3.fromRGB(74, 48, 32), Color3.fromRGB(122, 84, 56)
+local BRASS, INK = Color3.fromRGB(201, 154, 60), Color3.fromRGB(46, 36, 30)
+local OK, WARN, BAD = Color3.fromRGB(79, 138, 85), Color3.fromRGB(206, 122, 59), Color3.fromRGB(193, 67, 59)
+local IN_COLOR, OUT_COLOR, FLUID_COLOR = Color3.fromRGB(63, 138, 106), Color3.fromRGB(201, 154, 60), Color3.fromRGB(96, 150, 190)
+
+local function amountText(id, n)
+	if Items[id] and Items[id].unit == "ml" then return n .. " ml" end
+	return tostring(n)
+end
+
+-- Why does the machine stand still?  Concrete, in the player's words.
+function Window.reason(e)
+	local s = e.state
+	if e.paused or s == "Paused" then return "Pausiert", WARN end
+	if not e.recipe then return "Kein Rezept gewählt", WARN end
+	if s == "OutputBlocked" then return "Auslauf voll", BAD end
+	if s == "NoFuel" then return "Holzkohle fehlt", BAD end
+	if s == "WaitingForInputs" then
+		local it = e.waiting and Items[e.waiting]
+		return (it and it.name or "Zutat") .. " fehlt", WARN
+	end
+	if s == "Running" then return "Läuft", OK end
+	return "Bereit", OK
+end
+
+-- ctx: { gui, make, corner, send, toast, Net, onClose }
+function Window.create(ctx)
+	local make, corner, send = ctx.make, ctx.corner, ctx.send
+	local self = { uid = nil, sig = nil, live = nil, mode = "out" }
+
+	local frame = make("Frame", { Name = "MachineWindow", Size = UDim2.new(0, 480, 1, -96), Position = UDim2.new(1, -492, 0, 12),
+		BackgroundColor3 = WOOD, Visible = false }, ctx.gui)
+	corner(frame, 12)
+	make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Color = BRASS, Thickness = 2 }, frame)
+	local sheet = make("Frame", { Size = UDim2.new(1, -12, 1, -52), Position = UDim2.new(0, 6, 0, 46), BackgroundColor3 = PARCHMENT }, frame)
+	corner(sheet, 8)
+	local title = make("TextLabel", { Size = UDim2.new(1, -190, 0, 40), Position = UDim2.new(0, 14, 0, 3), BackgroundTransparency = 1,
+		Font = Enum.Font.GothamBold, TextSize = 21, TextColor3 = PARCHMENT, TextXAlignment = Enum.TextXAlignment.Left, Text = "" }, frame)
+	local chip = make("TextLabel", { Size = UDim2.new(0, 124, 0, 28), Position = UDim2.new(1, -182, 0, 9), BackgroundColor3 = OK,
+		Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = PARCHMENT, Text = "" }, frame)
+	corner(chip, 14)
+	local close = make("TextButton", { Size = UDim2.new(0, 44, 0, 36), Position = UDim2.new(1, -50, 0, 5), BackgroundColor3 = BAD,
+		Font = Enum.Font.GothamBold, TextSize = 18, TextColor3 = PARCHMENT, Text = "X" }, frame)
+	corner(close, 8)
+
+	-- fixed part: process row and connection row (never scrolls)
+	local process = make("Frame", { Size = UDim2.new(1, -12, 0, 150), Position = UDim2.new(0, 6, 0, 6), BackgroundColor3 = PARCHMENT_DARK }, sheet)
+	corner(process, 8)
+	local portsRow = make("Frame", { Size = UDim2.new(1, -12, 0, 124), Position = UDim2.new(0, 6, 0, 162), BackgroundColor3 = PARCHMENT_DARK }, sheet)
+	corner(portsRow, 8)
+	local scroll = make("ScrollingFrame", { Size = UDim2.new(1, -12, 1, -298), Position = UDim2.new(0, 6, 0, 292), BackgroundTransparency = 1,
+		CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 8, BorderSizePixel = 0 }, sheet)
+	make("UIListLayout", { Padding = UDim.new(0, 6) }, scroll)
+
+	local function clear(holder)
+		for _, child in ipairs(holder:GetChildren()) do
+			if not (child:IsA("UIListLayout") or child:IsA("UICorner")) then child:Destroy() end
+		end
+	end
+	local function act(action, payload)
+		local result = send(action, payload)
+		self.sig = nil                                  -- redraw with the confirmed state
+		return result
+	end
+	local function textButton(text, parent, size, position, color, onClick)
+		local b = make("TextButton", { Text = text, Size = size, Position = position, BackgroundColor3 = color or BRASS, TextColor3 = INK,
+			Font = Enum.Font.GothamBold, TextSize = 14, TextWrapped = true, AutoButtonColor = true }, parent)
+		corner(b, 7)
+		local busy = false
+		b.Activated:Connect(function()
+			if busy then return end
+			busy = true
+			local ok, err = pcall(onClick)
+			if not ok then warn(err) end
+			busy = false
+		end)
+		return b
+	end
+
+	-- one material slot: tile with symbol, amount and name; optional tap action
+	local function slot(parent, x, y, id, line, missing, onTap)
+		local icon = Icons.item(id)
+		local tile = make(onTap and "TextButton" or "Frame", { Size = UDim2.new(0, 66, 0, 66), Position = UDim2.new(0, x, 0, y),
+			BackgroundColor3 = Color3.fromRGB(icon.color[1], icon.color[2], icon.color[3]) }, parent)
+		if onTap then tile.Text, tile.AutoButtonColor = "", true end
+		corner(tile, 8)
+		make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Color = missing and BAD or WOOD_LIGHT, Thickness = missing and 3 or 1.5 }, tile)
+		make("TextLabel", { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1, Text = icon.symbol,
+			TextSize = 28, Font = Enum.Font.GothamBold, TextColor3 = INK }, tile)
+		local count = make("TextLabel", { Size = UDim2.new(1, -4, 0, 16), Position = UDim2.new(0, 2, 0, 36), BackgroundColor3 = PARCHMENT,
+			BackgroundTransparency = 0.15, Text = line, TextSize = 12, Font = Enum.Font.GothamBold, TextColor3 = missing and BAD or INK,
+			TextScaled = false }, tile)
+		corner(count, 4)
+		make("TextLabel", { Size = UDim2.new(1, 8, 0, 14), Position = UDim2.new(0, -4, 1, 1), BackgroundTransparency = 1,
+			Text = Items[id] and Items[id].name or id, TextSize = 10, Font = Enum.Font.Gotham, TextColor3 = INK,
+			TextTruncate = Enum.TextTruncate.AtEnd }, tile)
+		if onTap then tile.Activated:Connect(onTap) end
+		return tile
+	end
+
+	local function drawProcess(e, def, s)
+		clear(process)
+		local r = e.recipe and Recipes[e.recipe]
+		make("TextLabel", { Size = UDim2.new(0, 150, 0, 16), Position = UDim2.new(0, 8, 0, 4), BackgroundTransparency = 1, Text = "Zutaten",
+			Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = WOOD, TextXAlignment = Enum.TextXAlignment.Left }, process)
+		make("TextLabel", { Size = UDim2.new(0, 150, 0, 16), Position = UDim2.new(1, -158, 0, 4), BackgroundTransparency = 1, Text = "Ergebnis",
+			Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = WOOD, TextXAlignment = Enum.TextXAlignment.Right }, process)
+		-- left: what the recipe needs and what is inside
+		local inputs = {}
+		if r then
+			for id in pairs(r.inputs) do inputs[#inputs + 1] = id end
+			table.sort(inputs)
+		end
+		local index = 0
+		local function place(i) return 8 + (i % 2) * 72, 22 + math.floor(i / 2) * 84 end
+		for _, id in ipairs(inputs) do
+			local liquid = Items[id].unit == "ml"
+			local have = (liquid and e.fluids[id] or e.inv[id]) or 0
+			local need = r.inputs[id]
+			local x, y = place(index)
+			index = index + 1
+			slot(process, x, y, id, amountText(id, have) .. "/" .. need, have < need, function()
+				local lack = math.max(need - have, liquid and 1000 or 1)
+				local inBag = s.items[id] or 0
+				if inBag <= 0 then ctx.toast((Items[id].name) .. " fehlt im Beutel", BAD) return end
+				act("TransferStack", { from = "inv", to = e.uid, item = id, amount = math.min(lack, inBag) })
+			end)
+		end
+		if def.usesFuel and index < 4 then
+			local need = r and r.fuelUnits or 1
+			local x, y = place(index)
+			slot(process, x, y, "fuel_charcoal", e.fuel .. "/" .. need, e.fuel < need, function()
+				local inBag = s.items.fuel_charcoal or 0
+				if inBag <= 0 then ctx.toast("Holzkohle fehlt im Beutel", BAD) return end
+				act("TransferStack", { from = "inv", to = e.uid, item = "fuel_charcoal", amount = math.min(4, inBag) })
+			end)
+		end
+		if not r then
+			make("TextLabel", { Size = UDim2.new(0, 150, 0, 60), Position = UDim2.new(0, 8, 0, 40), BackgroundTransparency = 1, TextWrapped = true,
+				Text = "Wähle unten ein Rezept.", Font = Enum.Font.Gotham, TextSize = 13, TextColor3 = INK }, process)
+		end
+		-- middle: motif, progress arrow, reason
+		local mid = make("Frame", { Size = UDim2.new(0, 150, 0, 124), Position = UDim2.new(0.5, -75, 0, 18), BackgroundTransparency = 1 }, process)
+		make("TextLabel", { Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1, Text = Icons.machine(e.machine), TextSize = 36,
+			Font = Enum.Font.GothamBold, TextColor3 = INK }, mid)
+		local track = make("Frame", { Size = UDim2.new(1, -26, 0, 18), Position = UDim2.new(0, 4, 0, 50), BackgroundColor3 = WOOD_LIGHT }, mid)
+		corner(track, 5)
+		local fill = make("Frame", { Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = BRASS }, track)
+		corner(fill, 5)
+		make("TextLabel", { Size = UDim2.new(0, 24, 0, 28), Position = UDim2.new(1, -24, 0, 45), BackgroundTransparency = 1, Text = "▶",
+			TextSize = 22, Font = Enum.Font.GothamBold, TextColor3 = BRASS }, mid)
+		local status = make("TextLabel", { Size = UDim2.new(1, 0, 0, 40), Position = UDim2.new(0, 0, 0, 74), BackgroundTransparency = 1, Text = "",
+			TextWrapped = true, Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = INK }, mid)
+		self.live = { fill = fill, status = status }
+		-- right: finished goods in the output buffer (tap to take them out)
+		local outputs, seen = {}, {}
+		for id in pairs(e.out or {}) do outputs[#outputs + 1], seen[id] = id, true end
+		for id in pairs(e.outFluid or {}) do outputs[#outputs + 1], seen[id] = id, true end
+		if r then
+			for id in pairs(r.outputs) do
+				if not seen[id] then outputs[#outputs + 1] = id end
+			end
+		end
+		table.sort(outputs)
+		for i, id in ipairs(outputs) do
+			if i > 4 then break end
+			local n = (e.out and e.out[id]) or (e.outFluid and e.outFluid[id]) or 0
+			local col, rowIndex = (i - 1) % 2, math.floor((i - 1) / 2)
+			local tile = slot(process, 0, 22 + rowIndex * 84, id, amountText(id, n), false, n > 0 and function()
+				act("TransferStack", { from = e.uid, to = "inv", item = id, amount = n, slot = "out" })
+			end or nil)
+			tile.Position = UDim2.new(1, -74 - col * 72, 0, 22 + rowIndex * 84)
+		end
+	end
+
+	-- top view of the machine in its own frame: front at the bottom, like standing in front of it
+	local SIDE_AT = { [0] = { 0.5, 1 }, [1] = { 1, 0.5 }, [2] = { 0.5, 0 }, [3] = { 0, 0.5 } }
+	local function drawPorts(e, def)
+		clear(portsRow)
+		local fluid = Ports.fluidSides(def)
+		make("TextLabel", { Size = UDim2.new(0, 200, 0, 16), Position = UDim2.new(0, 8, 0, 4), BackgroundTransparency = 1, Text = "Anschlüsse (Draufsicht)",
+			Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = WOOD, TextXAlignment = Enum.TextXAlignment.Left }, portsRow)
+		local view = make("Frame", { Size = UDim2.new(0, 96, 0, 96), Position = UDim2.new(0, 34, 0, 24), BackgroundTransparency = 1 }, portsRow)
+		local body = make("Frame", { Size = UDim2.new(0, 52, 0, 52), Position = UDim2.new(0.5, -26, 0.5, -26), BackgroundColor3 = WOOD_LIGHT }, view)
+		corner(body, 6)
+		make("TextLabel", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = Icons.machine(e.machine), TextSize = 24,
+			Font = Enum.Font.GothamBold, TextColor3 = PARCHMENT }, body)
+		for side = 0, 3 do
+			local at = SIDE_AT[side]
+			local text, color, enabled = "", PARCHMENT, true
+			if fluid[side] then
+				text, color, enabled = "💧", FLUID_COLOR, false
+			elseif side == e.inSide then
+				text, color = "Ein", IN_COLOR
+			elseif side == e.outSide then
+				text, color = "Aus", OUT_COLOR
+			end
+			local b = make("TextButton", { Size = UDim2.new(0, 40, 0, 26), AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(at[1], (at[1] - 0.5) * -8, at[2], (at[2] - 0.5) * -6), BackgroundColor3 = color, Text = text,
+				Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = (text == "") and INK or PARCHMENT, AutoButtonColor = enabled, Active = enabled }, view)
+			corner(b, 6)
+			make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Color = WOOD, Thickness = 1.5 }, b)
+			if enabled then
+				b.Activated:Connect(function()
+					if self.mode == "in" then act("SetMachinePorts", { uid = e.uid, inSide = side })
+					else act("SetMachinePorts", { uid = e.uid, outSide = side }) end
+				end)
+			end
+		end
+		make("TextLabel", { Size = UDim2.new(0, 96, 0, 12), Position = UDim2.new(0, 34, 1, -14), BackgroundTransparency = 1, Text = "Vorderseite",
+			Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = WOOD }, portsRow)
+		-- right of the view: which connection a tap sets, and the outlet mode
+		local x0 = 172
+		make("TextLabel", { Size = UDim2.new(1, -x0 - 8, 0, 16), Position = UDim2.new(0, x0, 0, 6), BackgroundTransparency = 1,
+			Text = "Seite antippen setzt:", Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = INK, TextXAlignment = Enum.TextXAlignment.Left }, portsRow)
+		local function modeButton(label, mode, x, color)
+			local on = self.mode == mode
+			local b = textButton(label, portsRow, UDim2.new(0, 136, 0, 30), UDim2.new(0, x, 0, 26), on and color or PARCHMENT, function()
+				self.mode = mode
+				self.sig = nil
+			end)
+			b.TextColor3 = on and PARCHMENT or INK
+			make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Color = color, Thickness = 2 }, b)
+		end
+		modeButton("Einlauf", "in", x0, IN_COLOR)
+		modeButton("Auslauf", "out", x0 + 144, OUT_COLOR)
+		local auto = e.outAuto ~= false
+		make("TextLabel", { Size = UDim2.new(1, -x0 - 8, 0, 32), Position = UDim2.new(0, x0, 0, 60), BackgroundTransparency = 1, TextWrapped = true,
+			Text = "Einlauf " .. Ports.SIDE_NAME[e.inSide] .. " · Auslauf " .. Ports.SIDE_NAME[e.outSide] .. "\nAuslauf: "
+				.. (auto and "Automatisch (folgt dem Band)" or "Manuell (fest)"),
+			Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = INK, TextXAlignment = Enum.TextXAlignment.Left }, portsRow)
+		local b = textButton(auto and "Automatisch ✓" or "Automatisch", portsRow, UDim2.new(0, 136, 0, 26), UDim2.new(0, x0, 0, 94),
+			auto and OK or BRASS, function()
+				if not auto then act("SetMachinePorts", { uid = e.uid, auto = true }) end
+			end)
+		b.TextColor3 = auto and PARCHMENT or INK
+		if next(fluid) then
+			make("TextLabel", { Size = UDim2.new(0, 140, 0, 26), Position = UDim2.new(0, x0 + 144, 0, 94), BackgroundTransparency = 1, TextWrapped = true,
+				Text = "💧 Rohranschluss, fest", Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = FLUID_COLOR,
+				TextXAlignment = Enum.TextXAlignment.Left }, portsRow)
+		end
+	end
+
+	local function listRow(text, actionText, onClick, color)
+		local f = make("Frame", { Size = UDim2.new(1, -10, 0, 44), BackgroundColor3 = PARCHMENT_DARK, AutomaticSize = Enum.AutomaticSize.Y }, scroll)
+		corner(f, 6)
+		make("TextLabel", { Text = text, Size = UDim2.new(1, actionText and -128 or -14, 0, 40), Position = UDim2.new(0, 8, 0, 2),
+			BackgroundTransparency = 1, TextColor3 = color or INK, Font = Enum.Font.Gotham, TextSize = 13, TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left, AutomaticSize = Enum.AutomaticSize.Y }, f)
+		if actionText then textButton(actionText, f, UDim2.new(0, 112, 0, 36), UDim2.new(1, -118, 0, 4), nil, onClick) end
+	end
+	local function heading(text)
+		make("TextLabel", { Text = text, Size = UDim2.new(1, -10, 0, 20), BackgroundTransparency = 1, TextColor3 = WOOD,
+			Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left }, scroll)
+	end
+	local function itemList(map)
+		local parts = {}
+		for id, n in pairs(map or {}) do
+			parts[#parts + 1] = amountText(id, n) .. (Items[id].unit == "ml" and " " or " × ") .. Items[id].name
+		end
+		table.sort(parts)
+		return table.concat(parts, ", ")
+	end
+	local function drawList(e, def, s)
+		local keep = scroll.CanvasPosition
+		clear(scroll)
+		heading("Rezepte")
+		local ids = {}
+		for id, r in pairs(Recipes) do if r.machineId == e.machine then ids[#ids + 1] = id end end
+		table.sort(ids)
+		for _, id in ipairs(ids) do
+			local r = Recipes[id]
+			local line = itemList(r.inputs) .. "  →  " .. itemList(r.outputs) .. "  (" .. r.durationSec .. " s)"
+			if not s.research[r.requiredResearch] then
+				listRow("🔒 " .. line .. "\nForschung: " .. Research[r.requiredResearch].name, nil, nil, Color3.fromRGB(138, 127, 115))
+			else
+				listRow(((e.recipe == id) and "● " or "") .. line, "Herstellen", function()
+					act("StartManualCraft", { uid = e.uid, recipe = id })
+				end)
+			end
+		end
+		heading("Maschine")
+		listRow(e.paused and "Die Maschine ist pausiert." or "Die Maschine arbeitet, sobald Zutaten da sind.", e.paused and "Fortsetzen" or "Pause",
+			function() act("ToggleMachine", { uid = e.uid }) end)
+		listRow("Drehen (90°) – Ein- und Auslauf drehen sich mit", "Drehen", function() act("RotateMachine", { uid = e.uid }) end)
+		listRow("Abbauen – Inhalt kommt in den Beutel, 60 % der Kosten zurück", "Abbauen", function()
+			if act("RemoveMachine", { uid = e.uid }).ok then self.close() end
+		end, BAD)
+		if e.machine == "kettle" then
+			listRow("Experiment: 1 Kraut + 1000 ml Wasser → +3 Wissen (max. 5 pro Tag)", "Forschen", function() act("Experiment", { uid = e.uid }) end)
+		end
+		task.defer(function() scroll.CanvasPosition = keep end)
+	end
+
+	local function find(s)
+		for _, e in ipairs(s and s.workshop and s.workshop.entities or {}) do
+			if e.uid == self.uid then return e end
+		end
+		return nil
+	end
+	-- fingerprint of everything drawn statically (progress is animated separately)
+	local function signature(e, s)
+		local parts = { e.machine, tostring(e.recipe), tostring(e.state), tostring(e.waiting), tostring(e.paused), e.fuel or 0,
+			tostring(e.inSide), tostring(e.outSide), tostring(e.outAuto), e.rot, self.mode }
+		for _, store in ipairs({ e.inv or {}, e.fluids or {}, e.out or {}, e.outFluid or {} }) do
+			local ids = {}
+			for id in pairs(store) do ids[#ids + 1] = id end
+			table.sort(ids)
+			for _, id in ipairs(ids) do parts[#parts + 1] = id .. "=" .. store[id] end
+			parts[#parts + 1] = "/"
+		end
+		local r = e.recipe and Recipes[e.recipe]
+		if r then for id in pairs(r.inputs) do parts[#parts + 1] = id .. ":" .. (s.items[id] or 0) end end
+		local n = 0
+		for _ in pairs(s.research) do n = n + 1 end
+		parts[#parts + 1] = n
+		for i = 1, #parts do parts[i] = tostring(parts[i]) end
+		return table.concat(parts, "|")
+	end
+
+	function self.isOpen() return frame.Visible end
+	function self.close()
+		if not frame.Visible then return end
+		frame.Visible = false
+		self.uid, self.sig, self.live, self.job = nil, nil, nil, nil
+		if ctx.onClose then ctx.onClose() end
+	end
+	close.Activated:Connect(self.close)
+
+	-- called with every snapshot and after own actions
+	function self.update(s)
+		if not frame.Visible then return end
+		local e = find(s)
+		if not e then
+			-- left the workshop or the machine was removed by someone else
+			self.close()
+			return
+		end
+		local def = Machines[e.machine]
+		title.Text = def.name
+		local text, color = Window.reason(e)
+		chip.Text, chip.BackgroundColor3 = text, color
+		-- progress as confirmed by the server, stamped with the local time it arrived
+		self.job = e.job and { remaining = e.job.remaining, total = e.job.total, at = os.clock(), running = e.state == "Running" } or nil
+		self.reason, self.reasonColor = text, color
+		local sig = signature(e, s)
+		if sig ~= self.sig then
+			self.sig = sig
+			drawProcess(e, def, s)
+			drawPorts(e, def)
+			drawList(e, def, s)
+		end
+	end
+
+	function self.open(uid)
+		self.uid, self.sig, self.mode = uid, nil, "out"
+		frame.Visible = true
+		scroll.CanvasPosition = Vector2.new(0, 0)
+		self.update(ctx.Net.snapshot)
+	end
+
+	-- smooth progress between two confirmed updates
+	RunService.RenderStepped:Connect(function()
+		if not (frame.Visible and self.live) then return end
+		if self.sig == nil and ctx.Net.snapshot then self.update(ctx.Net.snapshot) end
+		local live, job = self.live, self.job
+		if not live or not live.fill.Parent then return end
+		if job and job.total > 0 then
+			local remaining = job.remaining
+			if job.running then remaining = math.max(0, remaining - (os.clock() - job.at)) end
+			live.fill.Size = UDim2.new(math.clamp(1 - remaining / job.total, 0, 1), 0, 1, 0)
+			if job.running then
+				live.status.Text = string.format("Läuft · noch %d s", math.ceil(remaining))
+				live.status.TextColor3 = OK
+			else
+				live.status.Text, live.status.TextColor3 = self.reason or "", self.reasonColor or INK
+			end
+		else
+			live.fill.Size = UDim2.new(0, 0, 1, 0)
+			live.status.Text, live.status.TextColor3 = self.reason or "", self.reasonColor or INK
+		end
+	end)
+
+	return self
+end
+
+return Window
+]]></ProtectedString></Properties></Item>
+<Item class="LocalScript" referent="RBX000063"><Properties><string name="Name">MarketIdle</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: plays the idle loops of the market traders.
 -- A trader is a folder "Figure" of seven anchored MeshParts that the server placed in the rest
 -- pose.  MarketMotion holds, per part, the joint frame for every sample of the loop; a part moves
 -- with  pivot * frame(t) * CFrame.new(-joint) * restLocal.  Only this client sees the motion, the
@@ -8371,7 +9206,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000061"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
+<Item class="ModuleScript" referent="RBX000064"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
 -- the UI comes from server snapshots; the client never computes money, items or unlocks itself.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("ArcaneShared")

@@ -173,8 +173,34 @@ local sizes = { { 16, 1 }, { 24, 1 }, { 32, 2 }, { 40, 3 } }
 for i, plot in ipairs(plots) do
 	local cells, floors = sizes[i][1], sizes[i][2]
 	local view = { owner = 100 + i, cells = cells, floors = floors, version = 1, entities = {
-		{ uid = "k" .. i, machine = "kettle", gx = 2, gz = 2, floor = 1, rot = 0, inv = {}, fluids = {} } } }
+		{ uid = "k" .. i, machine = "kettle", gx = 2, gz = 2, floor = 1, rot = 0, inv = {}, fluids = {} },
+		{ uid = "g" .. i, machine = "grinder", gx = 8, gz = 4, floor = 1, rot = 1, inSide = 2, outSide = 1, outAuto = false, inv = {}, fluids = {} },
+		{ uid = "b" .. i, machine = "wooden_belt", gx = 12, gz = 4, floor = 1, rot = 1, inv = {}, fluids = {} },
+		{ uid = "t" .. i, machine = "belt_turn", gx = 12, gz = 8, floor = 1, rot = 0, inv = {}, fluids = {} } } }
 	local room = ww:sync(view, "Werkstatt von Test " .. i)
+	if i == 1 then
+		-- directions: a belt with rot 1 conveys towards +X; a curve with rot 0 hands over to its left (-X);
+		-- the mill's outlet mark points away from the machine, its inlet mark into it; marks start hidden
+		local function dirOf(body, name)
+			local shaft = body:FindFirstChild(name)
+			return shaft and shaft.CFrame.LookVector
+		end
+		local belt, turn, mill = room.entityFolder["b1"], room.entityFolder["t1"], room.entityFolder["g1"]
+		local fb, ft = dirOf(belt, "Arrow"), dirOf(turn, "Arrow")
+		local outMark, inMark = mill:FindFirstChild("PortOut"), mill:FindFirstChild("PortIn")
+		local centre = Vector3.new(mill.Position.X, 0, mill.Position.Z)
+		local function away(mark)
+			local flat = Vector3.new(mark.Position.X, 0, mark.Position.Z) - centre
+			return mark.CFrame.LookVector:Dot(flat.Unit)
+		end
+		local hidden, labels = 0, 0
+		for _, d in ipairs(mill:GetDescendants()) do
+			if d:IsA("BasePart") and d:GetAttribute("ArcanePortMark") and d.Transparency == 1 then hidden = hidden + 1 end
+			if d:IsA("BillboardGui") and d.Name == "PortLabel" and not d.Enabled then labels = labels + 1 end
+		end
+		p("directions: belt rot 1 arrow (%.1f, %.1f), curve rot 0 arrow (%.1f, %.1f), outlet mark away %.2f, inlet mark away %.2f, %d hidden mark parts, %d hidden labels, outlet label '%s'",
+			fb.X, fb.Z, ft.X, ft.Z, away(outMark), away(inMark), hidden, labels, outMark.PortLabel:FindFirstChildOfClass("TextLabel").Text)
+	end
 	local lo, hi, misses = math.huge, -math.huge, 0
 	for dx = -40, 40, 8 do
 		for dz = -40, 40, 8 do
