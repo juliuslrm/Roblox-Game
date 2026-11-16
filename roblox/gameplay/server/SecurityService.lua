@@ -10,6 +10,9 @@ end
 
 local function check(kind, v)
 	if kind == "int" then return Util.isInt(v) and v >= -INT_LIMIT and v <= INT_LIMIT
+	-- Roblox user ids are far above INT_LIMIT (currently in the billions); allow every positive
+	-- integer a double represents exactly
+	elseif kind == "user" then return Util.isInt(v) and v >= 1 and v <= 9007199254740991
 	elseif kind == "num" then return Util.isFinite(v)
 	elseif kind == "bool" then return type(v) == "boolean"
 	elseif kind == "str" then return type(v) == "string" and #v <= 64

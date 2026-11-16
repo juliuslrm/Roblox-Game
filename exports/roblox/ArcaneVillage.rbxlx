@@ -463,7 +463,8 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int", "num", "str", "bool", "id" (short string), "ids" (array of ids).
+<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
+-- "id" (short string), "ids" (array of ids).
 -- A field name ending in "?" is optional.
 local P = {}
 P.remoteName = "ArcaneRequest"
@@ -471,7 +472,7 @@ P.eventName = "ArcaneEvent"
 P.actions = {
 	BuyMarketOffer = { merchant = "id", item = "id" },
 	GatherNode = { node = "id" },
-	EnterWorkshop = { ["owner?"] = "int" },
+	EnterWorkshop = { ["owner?"] = "user" },
 	LeaveWorkshop = {},
 	PlaceMachine = { machine = "id", gx = "int", gz = "int", floor = "int", rot = "int" },
 	RemoveMachine = { uid = "id" },
@@ -486,8 +487,8 @@ P.actions = {
 	StockShelf = { uid = "id", item = "id", amount = "int" },
 	ClaimOrder = { kind = "id", id = "id" },
 	DonateProject = { amount = "int" },
-	InviteCoOp = { user = "int", role = "id" },
-	SetCoOpPermission = { user = "int", role = "id" },
+	InviteCoOp = { user = "user", role = "id" },
+	SetCoOpPermission = { user = "user", role = "id" },
 	SaveBlueprint = { slot = "int", name = "str", uids = "ids" },
 	PlaceBlueprint = { slot = "int", gx = "int", gz = "int", floor = "int" },
 	Experiment = { uid = "id" },
@@ -7125,6 +7126,9 @@ end
 
 local function check(kind, v)
 	if kind == "int" then return Util.isInt(v) and v >= -INT_LIMIT and v <= INT_LIMIT
+	-- Roblox user ids are far above INT_LIMIT (currently in the billions); allow every positive
+	-- integer a double represents exactly
+	elseif kind == "user" then return Util.isInt(v) and v >= 1 and v <= 9007199254740991
 	elseif kind == "num" then return Util.isFinite(v)
 	elseif kind == "bool" then return type(v) == "boolean"
 	elseif kind == "str" then return type(v) == "string" and #v <= 64

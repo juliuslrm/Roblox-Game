@@ -1,4 +1,5 @@
--- Network contract. Payload field types: "int", "num", "str", "bool", "id" (short string), "ids" (array of ids).
+-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
+-- "id" (short string), "ids" (array of ids).
 -- A field name ending in "?" is optional.
 local P = {}
 P.remoteName = "ArcaneRequest"
@@ -6,7 +7,7 @@ P.eventName = "ArcaneEvent"
 P.actions = {
 	BuyMarketOffer = { merchant = "id", item = "id" },
 	GatherNode = { node = "id" },
-	EnterWorkshop = { ["owner?"] = "int" },
+	EnterWorkshop = { ["owner?"] = "user" },
 	LeaveWorkshop = {},
 	PlaceMachine = { machine = "id", gx = "int", gz = "int", floor = "int", rot = "int" },
 	RemoveMachine = { uid = "id" },
@@ -21,8 +22,8 @@ P.actions = {
 	StockShelf = { uid = "id", item = "id", amount = "int" },
 	ClaimOrder = { kind = "id", id = "id" },
 	DonateProject = { amount = "int" },
-	InviteCoOp = { user = "int", role = "id" },
-	SetCoOpPermission = { user = "int", role = "id" },
+	InviteCoOp = { user = "user", role = "id" },
+	SetCoOpPermission = { user = "user", role = "id" },
 	SaveBlueprint = { slot = "int", name = "str", uids = "ids" },
 	PlaceBlueprint = { slot = "int", gx = "int", gz = "int", floor = "int" },
 	Experiment = { uid = "id" },

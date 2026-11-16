@@ -166,3 +166,12 @@ nur CFrames und braucht kein Skelett. Der alte Generator (`build_market.py`, `ma
 
 Place-Version 18 gemessen: 5 Figuren × 7 texturierte Teile, Serverstart fehlerfrei.
 Offen: laufende Animation und Aussehen am Gerät.
+
+## Nachtrag 2026-11-16 (9): „Diese Maschine gibt es nicht mehr" am Kessel
+
+Spielerbericht. Ursache (lokal nachgestellt): `SecurityService` prüfte Nutzernummern als `"int"` mit
+Grenze 1 000 000; echte Roblox-IDs liegen in den Milliarden. `EnterWorkshop { owner = <id> }` kam
+deshalb als `BAD_REQUEST` zurück, niemand galt je als „in der Werkstatt": Maschinenmenü ohne
+Maschine, kein Bauen, Auftrag q01 nicht erfüllbar. Die Tests nutzten nur kleine Testnummern.
+Behoben in Version 19: eigener Feldtyp `"user"` für `EnterWorkshop`, `InviteCoOp`,
+`SetCoOpPermission`; Regressionstest mit realistischen IDs.
