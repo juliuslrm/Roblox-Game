@@ -13,7 +13,8 @@ local ProfileStore = require(script.Parent.ProfileStore)
 local VillageAdapter = require(script.Parent.VillageAdapter)
 local WorkshopWorld = require(script.Parent.WorkshopWorld)
 local MarketWorld = require(script.Parent.MarketWorld)
-local Config, Locations, Protocol, Items = D.Config, D.Locations, D.Protocol, D.Items
+local ResourceWorld = require(script.Parent.ResourceWorld)
+local Config, Locations, Protocol = D.Config, D.Locations, D.Protocol
 
 -- wait until the village (or its greybox stand-in) exists, otherwise ground raycasts hit nothing
 if game:GetService("ServerScriptService"):FindFirstChild("VillageAutoBuild") then
@@ -204,15 +205,15 @@ for id, a in pairs(anchors) do
 		end)
 	end
 end
-for id, a in pairs(nodeAnchors) do
-	local node = Locations.nodes[id]
-	local m = marker("Node_" .. id, groundPosition(a), Color3.fromRGB(95, 163, 67), "Sammeln", Items[node.item].name, function(player)
+-- resource nodes: a model of the resource itself, harvested through its own prompt
+local resources
+resources = ResourceWorld.build(workspace, nodeAnchors, origin, ServerStorage:FindFirstChild("ArcaneResourceAssets"),
+	groundPosition, function(player, id)
 		local result = perform(player, "GatherNode", { node = id })
 		event:FireClient(player, "ActionResult", result)
 		push(player)
+		resources:update(world.nodes)
 	end)
-	m.Size = Vector3.new(0.4, 3, 3)
-end
 
 MarketWorld.build(workspace, world.marketAnchors, origin, ServerStorage:FindFirstChild("ArcaneMarketAssets"), groundPosition,
 	function(player, id)
@@ -280,6 +281,7 @@ RunService.Heartbeat:Connect(function(dt)
 	slowAcc = slowAcc + dt
 	if slowAcc >= 1 then
 		slowAcc = 0
+		resources:update(world.nodes)
 		for _, player in ipairs(Players:GetPlayers()) do
 			local session = world.sessions[player.UserId]
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")

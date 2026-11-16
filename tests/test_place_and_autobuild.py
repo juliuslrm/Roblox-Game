@@ -194,10 +194,10 @@ def check_autobuild():
             storage.ArcaneMarketAssets ~= nil,
             storage.VillageAssets:FindFirstChild("dup", true).TextureID }
     end)()""")
-    # 6 ids, one fails; per folder only the first "dup" survives (3 folders), 2 unique parts per asset
-    assert list(res.values()) == [5, 1, 13, 5, 0, "rbxassetid://42", "rbxassetid://7", True, True,
+    # 7 ids, one fails; per folder only the first "dup" survives (4 folders), 2 unique parts per asset
+    assert list(res.values()) == [6, 1, 16, 6, 0, "rbxassetid://42", "rbxassetid://7", True, True,
                                   "rbxassetid://72420451763699"], list(res.values())
-    print("  ok  asset loader: 5 of 6 assets loaded, failure reported, missing textures replaced, "
+    print("  ok  asset loader: 6 of 7 assets loaded, failure reported, missing textures replaced, "
           "first template of a name wins, no reload")
 
 
@@ -348,11 +348,95 @@ def check_workshop_plots():
           "open workshop has low walls with an opening on every side for all 12 sizes")
 
 
+def check_resource_world():
+    """Every resource node gets the model of its item, a prompt on that model and an empty state."""
+    lua = LuaRuntime(unpack_returned_tuples=True)
+    lua.execute(read("tests", "roblox_mock.lua"))
+    g = lua.globals()
+    g.Locations = lua.execute(read("roblox", "gameplay", "shared", "Locations.lua"))
+    g.Items = lua.execute(read("roblox", "gameplay", "shared", "Items.lua"))
+    g.Art = lua.execute(read("roblox", "gameplay", "server", "ResourceArt.lua"))
+    g.ResourceWorld = lua.eval("""function(source)
+        local env = setmetatable({
+            script = { Parent = { Data = { Locations = Locations, Items = Items }, ResourceArt = Art } },
+            require = function(value) return value end,
+        }, { __index = _G })
+        return assert(load(source, "@ResourceWorld.lua", "t", env))()
+    end""")(read("roblox", "gameplay", "server", "ResourceWorld.lua"))
+    manifest = json.loads(read("world", "resource_asset_manifest.json"))["assets"]
+    items = {n.item for n in g.Locations.nodes.values()}
+    assert {"res_" + i for i in items} == set(manifest) == set(g.Art.keys()), "one model per node item"
+    res = lua.eval("""(function()
+        local new = Instance.new
+        Instance.new = function(class, parent)
+            local obj = new(class, parent)
+            if class == "ProximityPrompt" then
+                obj.Enabled = true
+                obj.Triggered = { Connect = function(_, fn) obj.OnTrigger = fn end }
+            end
+            return obj
+        end
+        local templates = Instance.new("Folder")
+        for name, shape in pairs(Art) do
+            if name ~= "res_sand" then                       -- one model missing: fallback object
+                local mesh = Instance.new("MeshPart", templates)
+                mesh.Name = name
+                mesh.Size = Vector3.new(1, 1, 1)
+                mesh.CFrame = CFrame.new(40, 0, 0) * CFrame.Angles(0, math.rad(180), 0)   -- as left by the asset loader
+            end
+        end
+        local anchors, count = {}, 0
+        for id in pairs(Locations.nodes) do
+            count = count + 1
+            anchors[id] = { x = count * 10, y = 2, z = -count * 7 }
+        end
+        local origin = CFrame.new(5, 1, -3)
+        local gathered
+        local world = ResourceWorld.build(workspace, anchors, origin, templates,
+            function(a) return origin * Vector3.new(a.x, a.y, a.z) end, function(player, id) gathered = player .. ":" .. id end)
+        local folder = workspace.ArcaneResources
+        local meshes, fallbacks, prompts, floating = 0, 0, 0, 0
+        for id, node in pairs(Locations.nodes) do
+            local body = folder[id].Resource
+            if body.ClassName == "MeshPart" then meshes = meshes + 1 else fallbacks = fallbacks + 1 end
+            local prompt = body:FindFirstChild("ProximityPrompt")
+            if prompt and prompt.ObjectText == Items[node.item].name and prompt.ActionText == "Sammeln" then prompts = prompts + 1 end
+            local shape = Art["res_" .. node.item]
+            local ground = origin * Vector3.new(anchors[id].x, anchors[id].y, anchors[id].z)
+            if body.ClassName == "MeshPart" then
+                -- the model's lowest point sits at the ground point (centre.y - size.y / 2 is its design base)
+                local base = body.CFrame.Position.Y - body.Size.Y / 2 - ground.Y
+                if math.abs(base - (shape.center[2] - shape.size[2] / 2)) > 0.01 then floating = floating + 1 end
+                if math.abs(body.Size.X - shape.size[1]) > 0.01 then floating = floating + 1 end
+            end
+        end
+        local mint = folder.n_mint_plaza.Resource
+        mint.ProximityPrompt.OnTrigger("p1")
+        local nodes = {}
+        for id, node in pairs(Locations.nodes) do nodes[id] = { remaining = node.capacity } end
+        nodes.n_mint_plaza.remaining = 0
+        world:update(nodes)
+        local emptyT, emptyE = mint.Transparency, mint.ProximityPrompt.Enabled
+        nodes.n_mint_plaza.remaining = 2
+        world:update(nodes)
+        return { count, meshes, fallbacks, prompts, floating, gathered, emptyT, emptyE, mint.Transparency, mint.ProximityPrompt.Enabled,
+            mint.CanCollide }
+    end)()""")
+    r = list(res.values())
+    n = len(list(g.Locations.nodes.keys()))
+    sand_nodes = sum(1 for node in g.Locations.nodes.values() if node.item == "sand")
+    assert r[0] == n and r[1] == n - sand_nodes and r[2] == sand_nodes and r[3] == n and r[4] == 0, r
+    assert r[5] == "p1:n_mint_plaza" and abs(r[6] - 0.7) < 1e-6 and r[7] is False and r[8] == 0 and r[9] is True and r[10] is False, r
+    print(f"  ok  resources: {n} nodes get the model of their item ({len(manifest)} models), prompt on the model, "
+          "fallback object, used-up state")
+
+
 if __name__ == "__main__":
     try:
         check_place()
         check_autobuild()
         check_workshop_plots()
+        check_resource_world()
         check_market_world()
     except AssertionError as exc:
         print("FAILED:", exc)

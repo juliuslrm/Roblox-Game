@@ -15,6 +15,7 @@ return {
 			89059240299616,  -- arcane_machines.fbx
 		},
 		ArcaneMarketAssets = { 108160614549126 }, -- ArcaneMarket.glb: five merchants and stalls
+		ArcaneResourceAssets = { 119763588026096 }, -- arcane_resources.fbx: one model per raw item
 	},
 	-- Measured in the place (2026-11-16): Roblox imports the FBX and GLB files turned 180 degrees about
 	-- the vertical axis compared with the level plan (plan x,z arrives as -x,-z).  The loader

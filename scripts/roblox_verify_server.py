@@ -32,6 +32,31 @@ for _, c in ipairs(workspace:GetChildren()) do names[#names + 1] = c.ClassName .
 p("workspace: %s", table.concat(names, ", "))
 local market = workspace:FindFirstChild("ArcaneMarket")
 p("market folders: %d", market and #market:GetChildren() or 0)
+do -- resource nodes: the model of the item stands on the ground and carries the prompt
+	local res = workspace:FindFirstChild("ArcaneResources")
+	local nodes, meshes, prompts, worst, circles = 0, 0, 0, 0, 0
+	local rp = RaycastParams.new()
+	rp.FilterType = Enum.RaycastFilterType.Include
+	rp.FilterDescendantsInstances = { workspace.Village.terrain, workspace.Village.roads }
+	local odd = {}
+	for _, f in ipairs(res and res:GetChildren() or {}) do
+		nodes = nodes + 1
+		local body = f:FindFirstChild("Resource")
+		if body and body:IsA("MeshPart") and body.TextureID ~= "" then meshes = meshes + 1 end
+		if body and body:FindFirstChildOfClass("ProximityPrompt") then prompts = prompts + 1 end
+		if body then
+			local hit = workspace:Raycast(body.Position + Vector3.new(0, 60, 0), Vector3.new(0, -200, 0), rp)
+			local gap = hit and (body.Position.Y - body.Size.Y / 2 - hit.Position.Y) or 99
+			worst = math.max(worst, math.abs(gap))
+			if math.abs(gap) > 1.2 then odd[#odd + 1] = string.format("%s %.1f", f.Name, gap) end
+		end
+	end
+	for _, m in ipairs(workspace.ArcaneMarkers:GetChildren()) do
+		if string.sub(m.Name, 1, 5) == "Node_" then circles = circles + 1 end
+	end
+	p("resource nodes: %d, textured meshes %d, prompts %d, largest gap between model base and ground %.2f studs, old node circles %d %s",
+		nodes, meshes, prompts, worst, circles, table.concat(odd, "; "))
+end
 do
 	local fid, total, untextured = {}, 0, 0
 	for _, g in ipairs({ "terrain", "roads", "water" }) do

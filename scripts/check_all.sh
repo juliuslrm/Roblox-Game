@@ -17,6 +17,7 @@ run "village builder (mock)"    "$PY" tests/test_roblox_builder.py
 run "place file + auto build"   "$PY" tests/test_place_and_autobuild.py
 if [ "${1:-}" = "--full" ]; then
   run "gameplay assets"         "$PY" blender/build_gameplay_assets.py
+  run "resource assets"         "$PY" blender/build_resource_assets.py
   run "back-face audit"         "$PY" blender/audit_backfaces.py
 fi
 run "world validation"          "$PY" blender/validate.py

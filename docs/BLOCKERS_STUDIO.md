@@ -118,3 +118,15 @@ Farbe und werden grau. Die Deutung „Detailstufen" war falsch.
 - Behoben in Version 13: `Auto.refineGround` sichert die Textur vor `ApplyMesh` und setzt sie
   danach wieder. Gemessen: 0 von 54 Bodenteilen ohne Textur.
 - Die Änderungen aus (4) bleiben (exakte Darstellung, exakte Kollision, geschlossene Löcher).
+
+## Nachtrag 2026-11-16 (6): Rohstoffe als Modelle statt Kreise
+
+- 15 Rohstoffmodelle (`blender/village/resources.py`, eines je Rohstoff, 196–1 600 Dreiecke) ersetzen
+  die Kreise an den 22 Sammelstellen. `ResourceWorld.lua` stellt sie auf; der „Sammeln"-Prompt hängt
+  am Modell, ein leerer Vorrat wird durchscheinend und lässt sich nicht ernten.
+- Place-Version 14 gemessen: 22 Sammelstellen, 22 texturierte Modelle, 22 Prompts, kein Kreis mehr.
+- Offen: `n_water_bridge` steht 2,8 Studs über dem Gelände (vermutlich auf der Brücke),
+  `n_stone_mill` 1,4 Studs (steht vermutlich auf einem Objekt). Ob Modelle in Zäunen, Bäumen oder
+  Deko stecken, ist nicht geprüft. Die Orts-Kreise („Ansprechen") bleiben, bis es NPC-Figuren gibt.
+- Im Roblox-Konto liegt noch die alte Geländebibliothek (Asset 115718062572873, „VillageTerrain"),
+  die nicht mehr geladen wird.

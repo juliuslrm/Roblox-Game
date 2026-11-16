@@ -17,6 +17,8 @@ in einer GUI.
   Kapelle, Windmühle, Gasthaus, Schmiede, Wachturm, Markthalle)
 - **33 Naturmodelle** (11 Baumarten, Büsche, Felsen, Blumen, Beete …) und **33 Dekorationen**
   (Brunnen, Laternen, Zäune, Marktstände, Brücke, Steg, Tor …)
+- **15 Rohstoffmodelle** für die Sammelstellen (Kräuter, Pilze, Erze, Holz, Wasserpumpe …) und
+  31 Maschinenmodelle für die Werkstatt
 - **Gelände** 768 × 768 Studs mit drei Hügeln, Bachlauf und Teich, 36 Mesh-Kacheln
 - **Straßennetz**: 4 Hauptstraßen, 4 Gassen, 3 Pfade, zentraler Marktplatz
 - **Levelplan** `world/world_layout.json`: 1 889 Instanzen mit Position, Rotation, Skalierung –

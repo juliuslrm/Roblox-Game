@@ -1,0 +1,725 @@
+{
+ "units": "studs",
+ "assets": {
+  "res_herb_mint": {
+   "category": "resources",
+   "blend": "assets/resources/res_herb_mint.blend",
+   "glb": "exports/glb/resources/res_herb_mint.glb",
+   "triangles": 1104,
+   "vertices": 670,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.0673,
+     -2.1666,
+     -0.25
+    ],
+    "max": [
+     2.3689,
+     2.1666,
+     1.6436
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.0673,
+     -0.25,
+     -2.1666
+    ],
+    "max": [
+     2.3689,
+     1.6436,
+     2.1666
+    ],
+    "size": [
+     4.4362,
+     1.8936,
+     4.3332
+    ],
+    "center": [
+     0.1508,
+     0.6968,
+     0.0
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "herb_mint",
+   "backface_pixels": 1
+  },
+  "res_herb_sunleaf": {
+   "category": "resources",
+   "blend": "assets/resources/res_herb_sunleaf.blend",
+   "glb": "exports/glb/resources/res_herb_sunleaf.glb",
+   "triangles": 1600,
+   "vertices": 958,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -1.9734,
+     -2.0681,
+     -0.25
+    ],
+    "max": [
+     2.1,
+     2.2541,
+     3.078
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -1.9734,
+     -0.25,
+     -2.2541
+    ],
+    "max": [
+     2.1,
+     3.078,
+     2.0681
+    ],
+    "size": [
+     4.0734,
+     3.328,
+     4.3222
+    ],
+    "center": [
+     0.0633,
+     1.414,
+     -0.093
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "herb_sunleaf",
+   "backface_pixels": 0
+  },
+  "res_herb_moonleaf": {
+   "category": "resources",
+   "blend": "assets/resources/res_herb_moonleaf.blend",
+   "glb": "exports/glb/resources/res_herb_moonleaf.glb",
+   "triangles": 664,
+   "vertices": 412,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -1.8794,
+     -1.9696,
+     -0.25
+    ],
+    "max": [
+     2.0,
+     1.9696,
+     2.3922
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -1.8794,
+     -0.25,
+     -1.9696
+    ],
+    "max": [
+     2.0,
+     2.3922,
+     1.9696
+    ],
+    "size": [
+     3.8794,
+     2.6422,
+     3.9392
+    ],
+    "center": [
+     0.0603,
+     1.0711,
+     0.0
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "herb_moonleaf",
+   "backface_pixels": 1
+  },
+  "res_mushroom_gloom": {
+   "category": "resources",
+   "blend": "assets/resources/res_mushroom_gloom.blend",
+   "glb": "exports/glb/resources/res_mushroom_gloom.glb",
+   "triangles": 712,
+   "vertices": 412,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -1.8986,
+     -1.6897,
+     -0.1
+    ],
+    "max": [
+     1.892,
+     1.7095,
+     2.457
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -1.8986,
+     -0.1,
+     -1.7095
+    ],
+    "max": [
+     1.892,
+     2.457,
+     1.6897
+    ],
+    "size": [
+     3.7907,
+     2.557,
+     3.3992
+    ],
+    "center": [
+     -0.0033,
+     1.1785,
+     -0.0099
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "mushroom_gloom",
+   "backface_pixels": 1
+  },
+  "res_berry_red": {
+   "category": "resources",
+   "blend": "assets/resources/res_berry_red.blend",
+   "glb": "exports/glb/resources/res_berry_red.glb",
+   "triangles": 776,
+   "vertices": 442,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.1855,
+     -1.6983,
+     -0.2
+    ],
+    "max": [
+     2.2739,
+     1.6193,
+     3.0008
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.1855,
+     -0.2,
+     -1.6193
+    ],
+    "max": [
+     2.2739,
+     3.0008,
+     1.6983
+    ],
+    "size": [
+     4.4594,
+     3.2008,
+     3.3177
+    ],
+    "center": [
+     0.0442,
+     1.4004,
+     0.0395
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "berry_red",
+   "backface_pixels": 0
+  },
+  "res_wood_log": {
+   "category": "resources",
+   "blend": "assets/resources/res_wood_log.blend",
+   "glb": "exports/glb/resources/res_wood_log.glb",
+   "triangles": 584,
+   "vertices": 348,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.65,
+     -1.9,
+     -0.2
+    ],
+    "max": [
+     3.05,
+     1.9,
+     2.7685
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.65,
+     -0.2,
+     -1.9
+    ],
+    "max": [
+     3.05,
+     2.7685,
+     1.9
+    ],
+    "size": [
+     5.7,
+     2.9685,
+     3.8
+    ],
+    "center": [
+     0.2,
+     1.2843,
+     0.0
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "wood_log",
+   "backface_pixels": 0
+  },
+  "res_stone": {
+   "category": "resources",
+   "blend": "assets/resources/res_stone.blend",
+   "glb": "exports/glb/resources/res_stone.glb",
+   "triangles": 196,
+   "vertices": 120,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.2047,
+     -1.9602,
+     -0.1814
+    ],
+    "max": [
+     2.4404,
+     1.87,
+     2.3089
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.2047,
+     -0.1814,
+     -1.87
+    ],
+    "max": [
+     2.4404,
+     2.3089,
+     1.9602
+    ],
+    "size": [
+     4.645,
+     2.4904,
+     3.8302
+    ],
+    "center": [
+     0.1179,
+     1.0637,
+     0.0451
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "stone",
+   "backface_pixels": 0
+  },
+  "res_sand": {
+   "category": "resources",
+   "blend": "assets/resources/res_sand.blend",
+   "glb": "exports/glb/resources/res_sand.glb",
+   "triangles": 292,
+   "vertices": 162,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.3,
+     -2.1874,
+     -0.2
+    ],
+    "max": [
+     2.9,
+     2.1874,
+     3.8231
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.3,
+     -0.2,
+     -2.1874
+    ],
+    "max": [
+     2.9,
+     3.8231,
+     2.1874
+    ],
+    "size": [
+     5.2,
+     4.0231,
+     4.3749
+    ],
+    "center": [
+     0.3,
+     1.8115,
+     0.0
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "sand",
+   "backface_pixels": 0
+  },
+  "res_ore_copper": {
+   "category": "resources",
+   "blend": "assets/resources/res_ore_copper.blend",
+   "glb": "exports/glb/resources/res_ore_copper.glb",
+   "triangles": 484,
+   "vertices": 286,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.4516,
+     -2.009,
+     -0.2193
+    ],
+    "max": [
+     2.7279,
+     1.9406,
+     2.6345
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.4516,
+     -0.2193,
+     -1.9406
+    ],
+    "max": [
+     2.7279,
+     2.6345,
+     2.009
+    ],
+    "size": [
+     5.1795,
+     2.8537,
+     3.9497
+    ],
+    "center": [
+     0.1381,
+     1.2076,
+     0.0342
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "ore_copper",
+   "backface_pixels": 0
+  },
+  "res_ore_iron": {
+   "category": "resources",
+   "blend": "assets/resources/res_ore_iron.blend",
+   "glb": "exports/glb/resources/res_ore_iron.glb",
+   "triangles": 484,
+   "vertices": 286,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.3868,
+     -1.98,
+     -0.1284
+    ],
+    "max": [
+     2.7228,
+     2.03,
+     2.4315
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.3868,
+     -0.1284,
+     -2.03
+    ],
+    "max": [
+     2.7228,
+     2.4315,
+     1.98
+    ],
+    "size": [
+     5.1097,
+     2.5599,
+     4.0099
+    ],
+    "center": [
+     0.168,
+     1.1515,
+     -0.025
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "ore_iron",
+   "backface_pixels": 0
+  },
+  "res_crystal_raw": {
+   "category": "resources",
+   "blend": "assets/resources/res_crystal_raw.blend",
+   "glb": "exports/glb/resources/res_crystal_raw.glb",
+   "triangles": 304,
+   "vertices": 170,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.2848,
+     -1.8308,
+     -0.2046
+    ],
+    "max": [
+     1.9488,
+     1.834,
+     4.05
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.2848,
+     -0.2046,
+     -1.834
+    ],
+    "max": [
+     1.9488,
+     4.05,
+     1.8308
+    ],
+    "size": [
+     4.2336,
+     4.2546,
+     3.6648
+    ],
+    "center": [
+     -0.168,
+     1.9227,
+     -0.0016
+    ]
+   },
+   "colliders": [],
+   "lights": [
+    {
+     "position": [
+      0.0,
+      2.0,
+      -0.0
+     ],
+     "color": [
+      0.7,
+      0.85,
+      1.0
+     ],
+     "brightness": 0.6,
+     "range": 10.0
+    }
+   ],
+   "item": "crystal_raw",
+   "backface_pixels": 0
+  },
+  "res_water": {
+   "category": "resources",
+   "blend": "assets/resources/res_water.blend",
+   "glb": "exports/glb/resources/res_water.glb",
+   "triangles": 568,
+   "vertices": 312,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.2,
+     -2.4247,
+     -0.2
+    ],
+    "max": [
+     2.04,
+     1.986,
+     3.05
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.2,
+     -0.2,
+     -1.986
+    ],
+    "max": [
+     2.04,
+     3.05,
+     2.4247
+    ],
+    "size": [
+     4.24,
+     3.25,
+     4.4107
+    ],
+    "center": [
+     -0.08,
+     1.425,
+     0.2193
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "water",
+   "backface_pixels": 0
+  },
+  "res_seed_mint": {
+   "category": "resources",
+   "blend": "assets/resources/res_seed_mint.blend",
+   "glb": "exports/glb/resources/res_seed_mint.glb",
+   "triangles": 752,
+   "vertices": 446,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -1.5575,
+     -1.9547,
+     -0.2
+    ],
+    "max": [
+     2.1717,
+     1.1664,
+     2.1
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -1.5575,
+     -0.2,
+     -1.1664
+    ],
+    "max": [
+     2.1717,
+     2.1,
+     1.9547
+    ],
+    "size": [
+     3.7293,
+     2.3,
+     3.1211
+    ],
+    "center": [
+     0.3071,
+     0.95,
+     0.3941
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "seed_mint",
+   "backface_pixels": 0
+  },
+  "res_seed_sunleaf": {
+   "category": "resources",
+   "blend": "assets/resources/res_seed_sunleaf.blend",
+   "glb": "exports/glb/resources/res_seed_sunleaf.glb",
+   "triangles": 752,
+   "vertices": 446,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -1.5575,
+     -1.9547,
+     -0.2
+    ],
+    "max": [
+     2.1717,
+     1.1664,
+     2.1
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -1.5575,
+     -0.2,
+     -1.1664
+    ],
+    "max": [
+     2.1717,
+     2.1,
+     1.9547
+    ],
+    "size": [
+     3.7293,
+     2.3,
+     3.1211
+    ],
+    "center": [
+     0.3071,
+     0.95,
+     0.3941
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "seed_sunleaf",
+   "backface_pixels": 0
+  },
+  "res_fuel_charcoal": {
+   "category": "resources",
+   "blend": "assets/resources/res_fuel_charcoal.blend",
+   "glb": "exports/glb/resources/res_fuel_charcoal.glb",
+   "triangles": 582,
+   "vertices": 339,
+   "collision": "none",
+   "cast_shadow": true,
+   "bounds_blender": {
+    "min": [
+     -2.3939,
+     -1.45,
+     -0.2
+    ],
+    "max": [
+     2.6521,
+     2.2134,
+     2.48
+    ]
+   },
+   "bounds_roblox": {
+    "min": [
+     -2.3939,
+     -0.2,
+     -2.2134
+    ],
+    "max": [
+     2.6521,
+     2.48,
+     1.45
+    ],
+    "size": [
+     5.046,
+     2.68,
+     3.6634
+    ],
+    "center": [
+     0.1291,
+     1.14,
+     -0.3817
+    ]
+   },
+   "colliders": [],
+   "lights": [],
+   "item": "fuel_charcoal",
+   "backface_pixels": 0
+  }
+ }
+}
