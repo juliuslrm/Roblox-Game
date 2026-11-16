@@ -240,6 +240,9 @@ def kettle(mb):
              smooth=False, grad=(0.3, 0.7))
     band(mb, 1.57, 2.35, 0.16, "brass", 12, bolts=12)
     rivets(mb, 1.36, 3.5, 12, "brass")
+    for side in (-1, 1):
+        pipe_run(mb, [(side * 1.34, -0.38, 2.95), (side * 1.73, -0.33, 2.89),
+                      (side * 1.73, 0.32, 2.89), (side * 1.34, 0.36, 2.95)], 0.085, "brass")
     mb.cyl(1.15, 1.15, 0.1, "leaf_lime", pos=(0, 0, 3.3), segs=12, smooth=False, grad=(0.6, 0.85))
     for bx, by, r in ((0.4, 0.3, 0.2), (-0.5, -0.2, 0.15), (0.1, -0.6, 0.12)):
         mb.blob(r, "leaf_lime", pos=(bx, by, 3.42), level=0, noise=0.0, scale=(1, 1, 0.6), grad=(0.7, 0.98))

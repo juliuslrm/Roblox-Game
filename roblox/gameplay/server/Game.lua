@@ -14,9 +14,10 @@ local Config, Quests, Locations, Machines, Recipes = D.Config, D.Quests, D.Locat
 local Game = {}
 
 -- anchors: { [locationId] = {x=, z=} }, nodeAnchors: { [nodeId] = {x=, z=} } in world studs.
-function Game.newWorld(anchors, nodeAnchors, seed)
+function Game.newWorld(anchors, nodeAnchors, seed, marketAnchors)
 	local project = Quests.projects[((seed or 0) % #Quests.projects) + 1]
-	return { sessions = {}, nodes = Res.new(), anchors = anchors or {}, nodeAnchors = nodeAnchors or {}, coop = {},
+	return { sessions = {}, nodes = Res.new(), anchors = anchors or {}, nodeAnchors = nodeAnchors or {},
+		marketAnchors = marketAnchors or {}, coop = {},
 		project = { id = project.id, progress = 0, contributors = {}, done = false } }
 end
 
@@ -144,6 +145,12 @@ function Game.snapshot(world, session)
 				claimed = P.claims[p.id] == true }
 		end
 	end
+	local market = {}
+	for _, id in ipairs(D.Market.order) do
+		for _, offer in ipairs(D.Market.merchants[id].offers) do
+			market[offer.item] = Quest.ruleMet(P, offer.unlock)
+		end
+	end
 	local notes = session.rt.notes
 	session.rt.notes = {}
 	return {
@@ -152,7 +159,7 @@ function Game.snapshot(world, session)
 		items = P.items, research = P.research, discoveries = P.discoveries, stats = P.stats,
 		quest = q and { id = q.id, title = q.title, hint = q.hint, objective = q.objective, progress = P.quest.progress,
 			giver = q.giver, rewards = q.rewards } or nil,
-		questIndex = P.quest.main, chains = chains, orders = orders, nodes = nodes, locations = locations,
+		questIndex = P.quest.main, market = market, chains = chains, orders = orders, nodes = nodes, locations = locations,
 		project = project, blueprints = P.blueprints, inWorkshop = session.rt.inWorkshop,
 		workshop = session.rt.inWorkshop and Game.workshopView(world, session.rt.inWorkshop) or nil,
 		coop = world.coop[session.userId] or {}, notes = notes,

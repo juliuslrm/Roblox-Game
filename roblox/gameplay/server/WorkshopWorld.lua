@@ -3,13 +3,15 @@
 -- mirrors server state into Instances.
 local D = require(script.Parent.Data)
 local Config, Machines, Grid = D.Config, D.Machines, D.GridMath
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
+local Architecture = require(Shared.WorkshopArchitecture)
+local Models = require(Shared.WorkshopModels)
 local WW = {}
 WW.__index = WW
 
 local COLORS = {
 	machine = Color3.fromRGB(134, 87, 58), storage = Color3.fromRGB(181, 133, 86), transport = Color3.fromRGB(110, 106, 102),
-	floor = Color3.fromRGB(210, 174, 124), wall = Color3.fromRGB(235, 221, 190), beam = Color3.fromRGB(91, 58, 38),
-	pipe = Color3.fromRGB(95, 160, 138), door = Color3.fromRGB(122, 59, 42),
+	pipe = Color3.fromRGB(95, 160, 138),
 }
 local STATE_TEXT = { Running = "läuft", WaitingForInputs = "wartet auf Zutaten", OutputBlocked = "Ausgang voll",
 	NoFuel = "kein Brennstoff", Paused = "pausiert", InvalidRecipe = "kein Rezept" }
@@ -43,49 +45,46 @@ function WW:cellCenter(room, floor, x, z)
 	return room.origin + Vector3.new(x * Config.cellSize - half + 1, (floor - 1) * Config.floorHeight, z * Config.cellSize - half + 1)
 end
 
+local ARCHITECTURE_COLORS = {
+	wood_dark = "5B3A26", wood_mid = "86573A", wood_pale = "D2AE7C", wood_red = "7A3B2A",
+	plaster_cream = "EBDDBE", plaster_sage = "B9C4A0", stone_dark = "6E6A66", stone_warm = "B4A58C", stone_light = "C9C2B2",
+	iron = "3E4046", brass = "C99A3C", glass_lit = "FFD27A", glass_light = "7FB2C9",
+	leaf_dark = "3F7D3A", leaf_teal = "3F8A6A", roof_purple = "6F4E7C",
+}
+
 local function buildShell(room)
 	if room.shell then room.shell:Destroy() end
 	local shell = Instance.new("Folder")
 	shell.Name = "Shell"
 	local size = room.cells * Config.cellSize
-	local o, h = room.origin, Config.floorHeight
-	for floor = 1, room.floors do
-		local y = (floor - 1) * h
-		local f = part({ Name = "Floor" .. floor, Size = Vector3.new(size, 1, size), Position = o + Vector3.new(0, y - 0.5, 0),
-			Color = COLORS.floor, Material = Enum.Material.WoodPlanks }, shell)
-		f:SetAttribute("ArcaneFloor", floor)
-		for _, w in ipairs({ { 0, -size / 2, size, 1 }, { 0, size / 2, size, 1 }, { -size / 2, 0, 1, size }, { size / 2, 0, 1, size } }) do
-			part({ Name = "Wall", Size = Vector3.new(w[3], h, w[4]), Position = o + Vector3.new(w[1], y + h / 2, w[2]),
-				Color = COLORS.wall, Material = Enum.Material.Plaster }, shell)
+	local boxes, lights = Architecture.build(size, room.floors, Config.floorHeight)
+	for _, spec in ipairs(boxes) do
+		local item = part({
+			Name = spec.name, Size = Vector3.new(table.unpack(spec.size)),
+			CFrame = CFrame.new(room.origin + Vector3.new(table.unpack(spec.position)))
+				* CFrame.Angles(0, 0, math.rad(spec.roll or 0)),
+			Color = Color3.fromHex(ARCHITECTURE_COLORS[spec.color]),
+			Material = (spec.name == "Lamp") and Enum.Material.Neon or Enum.Material.SmoothPlastic,
+			CanCollide = spec.collides, CanQuery = spec.collides,
+		}, shell)
+		if spec.floor then item:SetAttribute("ArcaneFloor", spec.floor) end
+		if spec.name == "ExitDoor" then
+			local prompt = Instance.new("ProximityPrompt")
+			prompt.ActionText, prompt.ObjectText, prompt.HoldDuration, prompt.MaxActivationDistance = "Verlassen", "Werkstatt", 0.2, 12
+			prompt.Parent = item
+			room.exitPrompt = prompt
 		end
-		for _, c in ipairs({ { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } }) do
-			part({ Name = "Post", Size = Vector3.new(1.4, h, 1.4), Position = o + Vector3.new(c[1] * size / 2, y + h / 2, c[2] * size / 2),
-				Color = COLORS.beam, Material = Enum.Material.Wood }, shell)
-		end
-		local lamp = part({ Name = "Lamp", Size = Vector3.new(1, 1, 1), Position = o + Vector3.new(0, y + h - 2, 0),
-			Color = Color3.fromRGB(255, 210, 122), Material = Enum.Material.Neon, CanCollide = false }, shell)
+	end
+	for _, spec in ipairs(lights) do
+		local anchor = part({
+			Name = "LightAnchor", Size = Vector3.new(0.2, 0.2, 0.2),
+			Position = room.origin + Vector3.new(table.unpack(spec.position)),
+			Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false,
+		}, shell)
 		local light = Instance.new("PointLight")
-		light.Range, light.Brightness, light.Color = 60, 1.4, Color3.fromRGB(255, 220, 170)
-		light.Parent = lamp
+		light.Range, light.Brightness, light.Color = spec.range, spec.strength, Color3.fromRGB(255, 218, 164)
+		light.Parent = anchor
 	end
-	-- staircase in the reserved back-left corner (rows z >= cells - 4, x < 3)
-	if room.floors > 1 then
-		for floor = 1, room.floors - 1 do
-			local steps = 12
-			for i = 1, steps do
-				part({ Name = "Step", Size = Vector3.new(5, 1, 8 / steps + 0.2),
-					Position = o + Vector3.new(-size / 2 + 3, (floor - 1) * h + i * (h / steps) - 0.5, size / 2 - 8 + i * (8 / steps) - 0.3),
-					Color = COLORS.beam, Material = Enum.Material.Wood }, shell)
-			end
-		end
-	end
-	-- exit door at the middle of the front wall (z = -size/2 is the entrance side: cells z = 0)
-	local door = part({ Name = "ExitDoor", Size = Vector3.new(6, 9, 0.6), Position = o + Vector3.new(0, 4.5, -size / 2 + 0.9),
-		Color = COLORS.door, Material = Enum.Material.Wood }, shell)
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText, prompt.ObjectText, prompt.HoldDuration, prompt.MaxActivationDistance = "Verlassen", "Werkstatt", 0.2, 12
-	prompt.Parent = door
-	room.exitPrompt = prompt
 	shell.Parent = room.folder
 	room.shell = shell
 end
@@ -130,14 +129,38 @@ local function entityModel(self, room, e)
 	if template and template:IsA("BasePart") then
 		body = template:Clone()
 		body.Anchored = true
-		-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
-		local k = math.max(body.Size.X, body.Size.Z) / (math.max(def.w, def.d) * cs)
-		if k > 1.05 or k < 0.6 then body.Size = body.Size / k end
-		-- keep the template's own rotation (the asset loader corrects the import orientation there)
-		-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
-		local floorY = base.Y - height / 2
-		body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
-			* (template.CFrame - template.CFrame.Position)
+		if template:GetAttribute("PublishedMachineLibrary") then
+			-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
+			local k = math.max(body.Size.X, body.Size.Z) / (math.max(def.w, def.d) * cs)
+			if k > 1.05 or k < 0.6 then body.Size = body.Size / k end
+			-- keep the template's own rotation (the asset loader corrects the import orientation there)
+			-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
+			local floorY = base.Y - height / 2
+			body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+				* (template.CFrame - template.CFrame.Position)
+		else
+			local pivot = CFrame.new(base - Vector3.new(0, height / 2, 0))
+				* CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+			local mesh = Models[def.modelAssetId]
+			if mesh then
+				-- Imported MeshParts are centred on the geometry bounds. Recover the
+				-- original grid-centred, ground-level pivot before applying rotation.
+				local offset = Vector3.new(table.unpack(mesh.center))
+				body.Size = Vector3.new(table.unpack(mesh.size))
+				body.CFrame = pivot * CFrame.new(offset)
+				for _, spec in ipairs(mesh.lights or {}) do
+					local attachment = Instance.new("Attachment")
+					attachment.Position = Vector3.new(table.unpack(spec.position)) - offset
+					attachment.Parent = body
+					local light = Instance.new("PointLight")
+					light.Color = Color3.new(table.unpack(spec.color))
+					light.Brightness, light.Range = spec.brightness, spec.range
+					light.Parent = attachment
+				end
+			else
+				body.CFrame = pivot
+			end
+		end
 	else
 		body = part({ Size = Vector3.new(w * cs - 0.2, height, d * cs - 0.2), Position = base,
 			Color = (def.layer == "pipe") and COLORS.pipe or COLORS[def.category] or COLORS.machine,

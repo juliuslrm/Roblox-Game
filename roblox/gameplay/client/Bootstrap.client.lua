@@ -12,6 +12,7 @@ local Machines = require(Shared.Machines)
 local Research = require(Shared.Research)
 local Quests = require(Shared.Quests)
 local Locations = require(Shared.Locations)
+local Market = require(Shared.MarketCatalog)
 local Config = require(Shared.Config)
 local Grid = require(Shared.GridMath)
 local Net = require(script.Parent:WaitForChild("NetworkClient"))
@@ -424,6 +425,34 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt)
 		selectedUid = uid
 		open("machine", Machines[prompt.Parent:GetAttribute("ArcaneMachine")].name, renderMachine)
 	end
+end)
+Net.on("OpenMarket", function(id)
+	local merchant = Market.merchants[id]
+	if not merchant then return end
+	local buying = false
+	open("market", merchant.name, function(s)
+		heading(merchant.trade)
+		label(merchant.line, scroll)
+		for _, offer in ipairs(merchant.offers) do
+			local description = amount(offer.item, offer.amount) .. " · " .. offer.coins .. " Münzen"
+			if s.market and s.market[offer.item] then
+				row(description, "Kaufen", function()
+					if buying then return end
+					buying = true
+					local result = send("BuyMarketOffer", { merchant = id, item = offer.item })
+					buying = false
+					if result.ok and result.code == "OK" then
+						toast("Gekauft: " .. amount(result.payload.item, result.payload.amount), C.ok)
+					end
+				end)
+			else
+				local rule = offer.unlock
+				local research = rule and rule.research and Research[rule.research]
+				local quest = rule and rule.quest and Quests.main[rule.quest]
+				row(description .. "\nFreischalten: " .. (research and research.name or quest and quest.title or "Fortschritt"), nil, nil, C.dim)
+			end
+		end
+	end)
 end)
 Net.on("OpenLocation", function(id)
 	local loc = Locations.locations[id]

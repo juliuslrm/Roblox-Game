@@ -13,8 +13,11 @@ Beim Start baut `VillageAutoBuild` das Dorf selbst:
 | Zustand | Ergebnis |
 |---|---|
 | keine Meshes importiert | Voxel-Gelände aus der Höhenkarte, je Gebäude ein farbiger Block in Originalgröße und -lage („Greybox") |
-| `ServerStorage.VillageAssets` vorhanden, ohne Geländekacheln | echte Modelle auf Voxel-Gelände |
-| `VillageAssets` mit Geländekacheln | vollständiges Dorf wie in den Vorschauen |
+| `ServerStorage.VillageAssets` mit fehlenden oder leeren Gelände-/Wasser-Vorlagen | echte Modelle auf durchgehendem Voxel-Gelände |
+| `VillageAssets` mit vollständigen Gelände- und Wasser-Vorlagen | importiertes Mesh-Gelände |
+
+Im Studio-Output unter `[Village]` stehen die fehlenden Geländevorlagen, Warnungen zu
+Dorfmodellen und die Asset-Namen, deren `CollisionFidelity` geprüft werden muss.
 
 Das Spiel (Sammeln, Werkstatt, Maschinen, Verkauf) läuft in allen drei Zuständen mit denselben
 Koordinaten. Die Datei wird mit `python scripts/build_place.py` neu erzeugt. Sie ist wohlgeformtes
@@ -34,10 +37,14 @@ Mit Rojo: `rojo serve` im Repository, in Studio verbinden. `default.project.json
 Ohne Rojo: dieselben Ordner von Hand anlegen; alle Dateien außer den beiden `Bootstrap` als
 ModuleScript, Namen ohne `.lua`.
 
+Die neue Trankbrauer-Fassade und der Braukessel werden in [WORKSHOP.md](WORKSHOP.md) eingerichtet.
+
 ## 2. Maschinen-Meshes (optional, sonst Quader)
 
 `exports/library/arcane_machines.glb` (ersatzweise `.fbx`) importieren und das Model nach
 `ServerStorage.ArcaneAssets` legen. Die MeshParts müssen `mach_<id>` bzw. `logi_<id>` heißen.
+
+Für die fünf Markt-NPCs und ihre Stände siehe [MARKET_MERCHANTS.md](MARKET_MERCHANTS.md).
 
 ## 3. Einstellungen
 

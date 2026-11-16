@@ -4,6 +4,7 @@ local P = {}
 P.remoteName = "ArcaneRequest"
 P.eventName = "ArcaneEvent"
 P.actions = {
+	BuyMarketOffer = { merchant = "id", item = "id" },
 	GatherNode = { node = "id" },
 	EnterWorkshop = { ["owner?"] = "int" },
 	LeaveWorkshop = {},

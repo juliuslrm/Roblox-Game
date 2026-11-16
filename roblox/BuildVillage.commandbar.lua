@@ -14,9 +14,11 @@ if #missing > 0 then
 	warn("missing templates: " .. table.concat(missing, ", "))
 end
 
+local facade = scripts:FindFirstChild("WorkshopFacade")
 local report = Builder.build({
 	templates = ServerStorage.VillageAssets,
 	layout = layout,
+	workshopFacade = facade and require(facade),
 	origin = CFrame.new(0, 0, 0),      -- move / rotate the whole village here
 	applyLighting = false,            -- true = also copy the suggested Lighting settings
 	createSpawn = false,

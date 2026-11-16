@@ -77,6 +77,7 @@ function Loader.load(opts)
 					if d:IsA("MeshPart") then
 						report.meshParts = report.meshParts + 1
 						d.Anchored = true
+						if folderName == "ArcaneAssets" then d:SetAttribute("PublishedMachineLibrary", true) end
 						if texture and d.TextureID == "" and not hasSurfaceAppearance(d) then
 							d.TextureID = texture
 							report.retextured = report.retextured + 1

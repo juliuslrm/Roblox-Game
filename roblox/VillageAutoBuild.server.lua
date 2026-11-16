@@ -24,6 +24,7 @@ local ok, err = pcall(function()
 	end
 	local origin = workspace:GetAttribute("VillageOrigin")
 	if typeof(origin) ~= "CFrame" then origin = CFrame.new() end
+	local facade = folder:FindFirstChild("WorkshopFacade")
 	local layout = require(folder:WaitForChild("WorldLayout"))
 	local builder = require(folder:WaitForChild("VillageWorldBuilder"))
 	-- Use the meshes only if their names match the level plan; otherwise say what arrived and
@@ -45,6 +46,7 @@ local ok, err = pcall(function()
 	local report = Auto.run({
 		layout = layout,
 		heightmap = require(folder:WaitForChild("WorldHeightmap")),
+		workshopFacade = facade and require(facade),
 		builder = builder,
 		terrainBuilder = require(folder:WaitForChild("VillageTerrainBuilder")),
 		templates = templates,
@@ -58,6 +60,19 @@ local ok, err = pcall(function()
 		report.mode, report.placed, report.missing, report.terrainCells))
 	if report.mode == "greybox" then
 		print("[Village] No meshes in ServerStorage.VillageAssets - showing placeholder blocks. See docs/ROBLOX_IMPORT.md.")
+	elseif #report.missingTerrain > 0 then
+		warn("[Village] Using voxel terrain. Missing or empty terrain templates: " .. table.concat(report.missingTerrain, ", "))
+	end
+	for _, message in ipairs(report.warnings) do
+		warn("[Village] " .. message)
+	end
+	local precise = {}
+	for name in pairs(report.needsPreciseCollision) do
+		precise[#precise + 1] = name
+	end
+	if #precise > 0 then
+		table.sort(precise)
+		warn("[Village] Check CollisionFidelity in Studio for: " .. table.concat(precise, ", "))
 	end
 end)
 if not ok then warn("[Village] auto build failed: " .. tostring(err)) end

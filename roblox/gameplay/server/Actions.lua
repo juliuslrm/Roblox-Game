@@ -59,6 +59,27 @@ function H.GatherNode(world, session, p)
 	return ok({ item = def.item, amount = n, remaining = world.nodes[p.node].remaining })
 end
 
+function H.BuyMarketOffer(world, session, p)
+	local merchant = D.Market.merchants[p.merchant]
+	if not merchant then return fail("NOT_FOUND") end
+	if session.rt.inWorkshop or not D.Market.near(world.marketAnchors[p.merchant], session.rt.pos) then
+		return fail("TOO_FAR")
+	end
+	local offer
+	for _, candidate in ipairs(merchant.offers) do
+		if candidate.item == p.item then offer = candidate break end
+	end
+	if not offer then return fail("NOT_FOUND") end
+	local P = session.profile
+	if not Quest.ruleMet(P, offer.unlock) then return fail("LOCKED") end
+	local items = { [offer.item] = offer.amount }
+	if not Inv.canAdd(P.items, items, Inv.PLAYER) then return fail("NO_SPACE") end
+	if not Eco.pay(P, offer.coins) then return fail("NO_FUNDS") end
+	Inv.add(P.items, items)
+	touched(session, false)
+	return ok({ item = offer.item, amount = offer.amount, coins = offer.coins })
+end
+
 function H.EnterWorkshop(world, session, p)
 	local ownerId = p.owner or session.userId
 	if session.rt.inWorkshop then return fail("BUSY") end

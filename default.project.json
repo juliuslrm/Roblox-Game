@@ -6,6 +6,9 @@
       "$className": "ServerStorage",
       "VillageWorld": {
         "$className": "Folder",
+        "WorkshopFacade": {
+          "$path": "roblox/WorkshopFacade.lua"
+        },
         "VillageWorldBuilder": {
           "$path": "roblox/VillageWorldBuilder.lua"
         },

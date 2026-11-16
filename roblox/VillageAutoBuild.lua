@@ -53,30 +53,60 @@ function Auto.greybox(layout, parent, origin)
 	return folder, count
 end
 
+local function hasParts(template)
+	if not template or template.Archivable == false then return false end
+	if template:IsA("BasePart") then return true end
+	for _, child in ipairs(template:GetChildren()) do
+		if hasParts(child) then return true end
+	end
+	return false
+end
+
+local function missingTerrainTemplates(layout, templates)
+	local checked, missing = {}, {}
+	for _, row in ipairs(layout.instances) do
+		local group = layout.groupNames[row[7]]
+		if group == "terrain" or group == "water" then
+			local name = layout.assetNames[row[1]]
+			if not checked[name] then
+				checked[name] = true
+				local template = templates.Name == name and templates or templates:FindFirstChild(name, true)
+				if not hasParts(template) then missing[#missing + 1] = name end
+			end
+		end
+	end
+	table.sort(missing)
+	return missing
+end
+
 --[[
 	opts: layout, heightmap, builder (VillageWorldBuilder), terrainBuilder (VillageTerrainBuilder),
 	      templates (Instance or nil), parent (default workspace), origin (CFrame, default identity)
-	Returns { mode = "meshes" | "greybox", meshTerrain = bool, placed = n, missing = n, terrainCells = n }
+	Returns mode, meshTerrain, placed, missing (instance count), terrainCells,
+	        missingTerrain (template names), warnings and needsPreciseCollision.
 ]]
 function Auto.run(opts)
 	local parent = opts.parent or workspace
 	local origin = opts.origin or CFrame.new(0, 0, 0)
-	local report = { mode = "greybox", meshTerrain = false, placed = 0, missing = 0, terrainCells = 0 }
+	local report = { mode = "greybox", meshTerrain = false, placed = 0, missing = 0, terrainCells = 0,
+		missingTerrain = {}, warnings = {}, needsPreciseCollision = {} }
 	local old = parent:FindFirstChild("Village")
 	if old then old:Destroy() end
 
 	local templates = opts.templates
 	if templates then
 		report.mode = "meshes"
-		report.meshTerrain = templates:FindFirstChild("terrain_r0_c0", true) ~= nil
+		report.missingTerrain = missingTerrainTemplates(opts.layout, templates)
+		report.meshTerrain = #report.missingTerrain == 0
 		local exclude = nil
 		if not report.meshTerrain then exclude = { terrain = true, water = true } end
 		local built = opts.builder.build({ templates = templates, layout = opts.layout, parent = parent, origin = origin,
-			excludeGroups = exclude, roadLift = report.meshTerrain and 0 or 0.6, verbose = false,
+			workshopFacade = opts.workshopFacade, excludeGroups = exclude, roadLift = report.meshTerrain and 0 or 0.6, verbose = false,
 			createLights = opts.createLights ~= false })
 		report.placed = built.placed
 		for _, n in pairs(built.missing) do report.missing = report.missing + n end
 		report.warnings = built.warnings
+		report.needsPreciseCollision = built.needsPreciseCollision
 	else
 		local _folder, count = Auto.greybox(opts.layout, parent, origin)
 		report.placed = count

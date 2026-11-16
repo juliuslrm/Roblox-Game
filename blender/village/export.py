@@ -48,13 +48,15 @@ def _select_only(objs):
     bpy.context.view_layer.objects.active = objs[0]
 
 
-def export_glb(objs, filepath):
+def export_glb(objs, filepath, animate=False):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     _select_only(objs)
     bpy.ops.export_scene.gltf(
         filepath=filepath, export_format="GLB", use_selection=True, export_yup=True,
         export_apply=True, export_texcoords=True, export_normals=True, export_materials="EXPORT",
-        export_cameras=False, export_lights=False, export_animations=False, export_extras=False)
+        export_cameras=False, export_lights=False, export_animations=animate,
+        export_animation_mode="SCENE" if animate else "ACTIONS",
+        export_anim_scene_split_object=False, export_anim_slide_to_zero=animate, export_extras=False)
 
 
 def export_fbx(objs, filepath):

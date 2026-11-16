@@ -36,6 +36,7 @@ local WorldBuilder = {}
 
 WorldBuilder.DEFAULTS = {
 	templates = nil,            -- Instance that contains the imported meshes (required)
+	workshopFacade = nil,       -- optional design metadata for the workshop_facade template
 	layout = nil,               -- require(WorldLayout) (required)
 	parent = nil,               -- defaults to workspace
 	name = "Village",           -- name of the folder that receives the world
@@ -354,6 +355,12 @@ function WorldBuilder.build(options)
 		end
 		local def = layout.assets[assetName]
 		local template = findTemplate(options.templates, assetName)
+		if assetName == "house_01_timber_cottage" and options.workshopFacade then
+			local facade = findTemplate(options.templates, "workshop_facade")
+			if facade and #collectParts(facade) > 0 then
+				template, def = facade, options.workshopFacade
+			end
+		end
 		local proto = false
 		if not def then
 			report.warnings[#report.warnings + 1] = assetName .. ": no asset definition in the layout"

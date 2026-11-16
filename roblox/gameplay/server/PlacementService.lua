@@ -163,9 +163,9 @@ end
 function Place.starter(P)
 	local n = Place.cells(P)
 	local mid = math.floor(n / 2)
-	addEntity(P, "kettle", mid - 1, mid, 1, 2).recipe = nil
-	addEntity(P, "storage_crate", mid + 3, mid, 1, 0)
-	addEntity(P, "shop_shelf", mid + 3, 1, 1, 0)
+	addEntity(P, "kettle", mid - 6, mid - 2, 1, 2).recipe = nil
+	addEntity(P, "storage_crate", mid + 2, 3, 1, 0)
+	addEntity(P, "shop_shelf", mid + 3, 1, 1, 2)
 end
 
 -- ---- blueprints ----

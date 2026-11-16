@@ -12,6 +12,7 @@ local Actions = require(script.Parent.Actions)
 local ProfileStore = require(script.Parent.ProfileStore)
 local VillageAdapter = require(script.Parent.VillageAdapter)
 local WorkshopWorld = require(script.Parent.WorkshopWorld)
+local MarketWorld = require(script.Parent.MarketWorld)
 local Config, Locations, Protocol, Items = D.Config, D.Locations, D.Protocol, D.Items
 
 -- wait until the village (or its greybox stand-in) exists, otherwise ground raycasts hit nothing
@@ -59,7 +60,7 @@ local function toLocal(position)
 	return p.X, p.Z
 end
 
-local world = Game.newWorld(anchors, nodeAnchors, os.time())
+local world = Game.newWorld(anchors, nodeAnchors, os.time(), D.Market.anchors(layout))
 local workshops = WorkshopWorld.new(workspace, ServerStorage:FindFirstChild("ArcaneAssets"))
 
 -- ---- persistence ----
@@ -125,6 +126,7 @@ local function perform(player, action, payload)
 	if not session then return { ok = false, code = "NOT_READY" } end
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if action == "BuyMarketOffer" and not root then return { ok = false, code = "NOT_READY" } end
 	if root and not session.rt.inWorkshop then
 		local x, z = toLocal(root.Position)
 		Game.updatePosition(world, session, x, z)
@@ -199,6 +201,18 @@ for id, a in pairs(nodeAnchors) do
 	end)
 	m.Size = Vector3.new(0.4, 3, 3)
 end
+
+MarketWorld.build(workspace, world.marketAnchors, origin, ServerStorage:FindFirstChild("ArcaneMarketAssets"), groundPosition,
+	function(player, id)
+		local session = world.sessions[player.UserId]
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not session or not root or session.rt.inWorkshop then return end
+		local x, z = toLocal(root.Position)
+		if D.Market.near(world.marketAnchors[id], { x = x, z = z }) then
+			push(player)
+			event:FireClient(player, "OpenMarket", id)
+		end
+	end)
 
 -- ---- players ----
 local function onPlayer(player)

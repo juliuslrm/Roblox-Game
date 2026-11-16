@@ -200,4 +200,70 @@ test("integration", "the real anchors drive a full first sale", function()
 	eq(s.profile.stats.sold, 1)
 	assert(s.profile.quest.main >= 4, "tutorial quests q01-q03 done")
 end)
+test("market", "five distinct stalls are reachable on the current map", function()
+	local market = D.Market.anchors(layout)
+	eq(Util.count(market), 5)
+	local seen = {}
+	for id, a in pairs(market) do
+		eq(insideBuilding(a.approachX, a.approachZ, 0.5, nil), nil, id)
+		eq(seen[a.index], nil, "stall used twice")
+		seen[a.index] = true
+		assert(a.approachX * a.approachX + a.approachZ * a.approachZ > 17 ^ 2)
+		eq(D.Market.near(a, {x = a.approachX, z = a.approachZ}), true)
+	end
+end)
+test("market", "purchase uses server price, is replay-safe and survives save/load", function()
+	local market = D.Market.anchors(layout)
+	local world = Game.newWorld(anchors, nodeAnchors, 0, market)
+	local player = Game.addSession(world, 47)
+	local a = market.selma
+	Game.updatePosition(world, player, a.approachX, a.approachZ)
+	local p = player.profile
+	local initialCoins, initialMint = p.wallet, p.items.herb_mint
+	local request = { merchant = "selma", item = "herb_mint", amount = 99, coins = 0, actionId = "purchase_1" }
+	local r = Actions.handle(world, player, "BuyMarketOffer", request, { now = 10 })
+	eq(r.code, "OK") eq(r.payload.coins, 26) eq(r.payload.amount, 2)
+	eq(p.wallet, initialCoins - 26) eq(p.items.herb_mint, initialMint + 2)
+	eq(Actions.handle(world, player, "BuyMarketOffer", request, { now = 11 }).code, "DUPLICATE")
+	eq(p.wallet, initialCoins - 26) eq(p.items.herb_mint, initialMint + 2)
+	local loaded = Profile.load(Profile.serialize(p, 12), 47)
+	eq(loaded.wallet, p.wallet) eq(loaded.items.herb_mint, p.items.herb_mint)
+end)
+test("market", "wrong stall, distance, unlocks, capacity and funds do not change the balance", function()
+	local market = D.Market.anchors(layout)
+	local world = Game.newWorld(anchors, nodeAnchors, 0, market)
+	local player = Game.addSession(world, 48)
+	local function gotoStall(id)
+		local a = market[id]
+		Game.updatePosition(world, player, a.approachX, a.approachZ)
+	end
+	local now = 30
+	local function buy(merchant, item)
+		now = now + 1
+		return Actions.handle(world, player, "BuyMarketOffer", { merchant = merchant, item = item }, { now = now }).code
+	end
+	eq(buy("selma", "herb_mint"), "TOO_FAR")
+	gotoStall("selma")
+	eq(buy("selma", "tonic_minor"), "NOT_FOUND")
+	eq(buy("selma", "herb_moonleaf"), "NOT_FOUND")
+	player.rt.inWorkshop = 48
+	eq(buy("selma", "herb_mint"), "TOO_FAR")
+	player.rt.inWorkshop = nil
+	gotoStall("aron")
+	eq(buy("aron", "ore_iron"), "LOCKED")
+	eq(Game.snapshot(world, player).market.ore_iron, false)
+	player.profile.quest.main = 12
+	eq(Game.snapshot(world, player).market.ore_iron, true)
+	local initialCoins = player.profile.wallet
+	player.profile.items.herb_mint = D.Items.herb_mint.stackLimit * D.Config.inventory.slots
+	eq(buy("aron", "ore_iron"), "NO_SPACE")
+	eq(player.profile.wallet, initialCoins) eq(player.profile.items.ore_iron, nil)
+	player.profile.items.herb_mint = nil
+	player.profile.wallet = 0
+	eq(buy("aron", "ore_iron"), "NO_FUNDS")
+	eq(player.profile.wallet, 0) eq(player.profile.items.ore_iron, nil)
+	player.profile.wallet = 100
+	eq(buy("aron", "ore_iron"), "OK")
+	eq(player.profile.wallet, 58) eq(player.profile.items.ore_iron, 2)
+end)
 return results
