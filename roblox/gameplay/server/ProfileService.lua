@@ -90,6 +90,20 @@ function Profile.load(data, userId)
 		local b = type(e) == "table" and oldBuffers[e.uid] or nil
 		if ok then
 			if e.recipe and not (Recipes[e.recipe] and Recipes[e.recipe].machineId == e.machine) then e.recipe = nil end
+			-- inlet / outlet sides: older saves have none (definition defaults apply); impossible
+			-- values are dropped, never the machine
+			local def = Machines[e.machine]
+			if D.MachinePorts.isMachine(def) then
+				if e.inSide ~= nil and not D.MachinePorts.allowed(def, e.inSide) then e.inSide = nil note("inSide " .. e.uid) end
+				if e.outSide ~= nil and not D.MachinePorts.allowed(def, e.outSide) then e.outSide = nil note("outSide " .. e.uid) end
+				if e.inSide ~= nil and e.inSide == (e.outSide or D.MachinePorts.DEFAULT_OUT) then
+					e.inSide, e.outSide = nil, nil
+					note("ports " .. e.uid)
+				end
+				if e.outAuto ~= nil and e.outAuto ~= false then e.outAuto = nil end
+			else
+				e.inSide, e.outSide, e.outAuto = nil, nil, nil
+			end
 			w.layout[#w.layout + 1] = e
 			local nb = Place.newBuffer()
 			if type(b) == "table" then

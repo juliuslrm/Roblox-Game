@@ -12,6 +12,7 @@ P.actions = {
 	PlaceMachine = { machine = "id", gx = "int", gz = "int", floor = "int", rot = "int" },
 	RemoveMachine = { uid = "id" },
 	RotateMachine = { uid = "id" },
+	SetMachinePorts = { uid = "id", ["inSide?"] = "int", ["outSide?"] = "int", ["auto?"] = "bool" },
 	SetRecipe = { uid = "id", ["recipe?"] = "id" },
 	StartManualCraft = { uid = "id", recipe = "id" },
 	TransferStack = { from = "id", to = "id", item = "id", amount = "int", ["slot?"] = "id" },

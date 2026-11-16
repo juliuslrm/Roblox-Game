@@ -3,6 +3,7 @@ local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Eco = require(script.Parent.EconomyService)
 local Config, Machines, Grid, Util, Recipes = D.Config, D.Machines, D.GridMath, D.Util, D.Recipes
+local Ports = D.MachinePorts
 local Place = {}
 
 function Place.cells(P) return Config.plotTiers[P.workshop.sizeTier].cells end
@@ -95,6 +96,60 @@ function Place.limitCode(P, machineId)
 	return nil
 end
 
+-- Re-evaluates every automatic outlet.  Called after anything was placed, turned or removed, so
+-- the result does not depend on the building order.  Returns the uids whose outlet moved.
+function Place.refreshOutlets(P)
+	local ground = Place.occupancy(P)
+	local byUid = {}
+	for _, e in ipairs(P.workshop.layout) do byUid[e.uid] = e end
+	local function entAt(floor, x, z)
+		local e = byUid[ground[Grid.key(floor, x, z)]]
+		if e then return e, Machines[e.machine] end
+		return nil
+	end
+	local moved = {}
+	for _, e in ipairs(P.workshop.layout) do
+		local def = Machines[e.machine]
+		if Ports.isMachine(def) and Ports.isAuto(e) then
+			local _, current = Ports.sides(def, e)
+			local side = Ports.autoSide(def, e, entAt)
+			if side ~= current then
+				e.outSide = side
+				moved[#moved + 1] = e.uid
+			end
+		end
+	end
+	return moved
+end
+
+-- Player choice of inlet / outlet in the machine window.
+--   inSide / outSide: side 0..3 or nil (unchanged); auto: true switches the outlet back to automatic.
+-- Choosing an outlet fixes it ("manual").  Choosing the side the other connection uses swaps the two.
+function Place.setPorts(P, uid, inSide, outSide, auto)
+	local e = Place.find(P, uid)
+	local def = e and Machines[e.machine]
+	if not e or not Ports.isMachine(def) then return nil, "NOT_FOUND" end
+	if (inSide ~= nil and not Ports.allowed(def, inSide)) or (outSide ~= nil and not Ports.allowed(def, outSide)) then
+		return nil, "BLOCKED"
+	end
+	if inSide ~= nil and inSide == outSide then return nil, "BAD_REQUEST" end
+	local curIn, curOut = Ports.sides(def, e)
+	if inSide ~= nil and inSide ~= curIn then
+		if inSide == curOut then curOut = curIn end
+		curIn = inSide
+	end
+	if outSide ~= nil then
+		if outSide == curIn then curIn = curOut end
+		curOut = outSide
+		e.outAuto = false
+	end
+	e.inSide, e.outSide = curIn, curOut
+	if auto == true then e.outAuto = nil end
+	Place.refreshOutlets(P)
+	local finalIn, finalOut = Ports.sides(def, e)
+	return { inSide = finalIn, outSide = finalOut, auto = Ports.isAuto(e) }
+end
+
 local function newBuffer() return { inv = {}, out = {}, fluids = {}, outFluid = {}, fuel = 0 } end
 Place.newBuffer = newBuffer
 
@@ -116,6 +171,7 @@ function Place.place(P, machineId, gx, gz, floor, rot, free)
 	if not Eco.pay(P, cost) then return nil, "NO_FUNDS" end
 	local e = addEntity(P, machineId, gx, gz, floor, rot)
 	e.paid = cost
+	Place.refreshOutlets(P)
 	return e
 end
 
@@ -146,6 +202,7 @@ function Place.remove(P, uid)
 	for _, other in ipairs(P.workshop.layout) do
 		if other.link == uid then other.link = nil end
 	end
+	Place.refreshOutlets(P)
 	return { refund = refund, returned = contents }
 end
 
@@ -156,6 +213,7 @@ function Place.rotate(P, uid)
 	local code = Place.check(P, e.machine, e.gx, e.gz, e.floor, rot, uid)
 	if code then return nil, code end
 	e.rot = rot
+	Place.refreshOutlets(P)
 	return e
 end
 
@@ -186,7 +244,8 @@ function Place.saveBlueprint(P, slot, name, uids)
 	for _, uid in ipairs(uids) do
 		local e = Place.find(P, uid)
 		parts[#parts + 1] = { machine = e.machine, dx = e.gx - minX, dz = e.gz - minZ, rot = e.rot, recipe = e.recipe,
-			filter = e.filter and Util.deepCopy(e.filter) or nil }
+			filter = e.filter and Util.deepCopy(e.filter) or nil,
+			inSide = e.inSide, outSide = e.outSide, outAuto = e.outAuto }
 		cost = cost + Machines[e.machine].cost
 	end
 	P.blueprints[tostring(slot)] = { name = string.sub(name, 1, 24), parts = parts, estimateCost = cost }
@@ -211,8 +270,14 @@ function Place.placeBlueprint(P, slot, gx, gz, floor)
 			e.recipe = part.recipe
 		end
 		e.filter = part.filter and Util.deepCopy(part.filter) or nil
+		if Ports.isMachine(Machines[part.machine]) then
+			if Ports.allowed(Machines[part.machine], part.inSide) then e.inSide = part.inSide end
+			if Ports.allowed(Machines[part.machine], part.outSide) then e.outSide = part.outSide end
+			if part.outAuto == false then e.outAuto = false end
+		end
 		placed[#placed + 1] = e.uid
 	end
+	Place.refreshOutlets(P)
 	return placed
 end
 return Place

@@ -130,6 +130,16 @@ function H.RotateMachine(world, session, p)
 	return ok({ rot = e.rot })
 end
 
+-- Inlet / outlet sides of a production machine, chosen in the machine window.
+function H.SetMachinePorts(world, session, p)
+	local P, owner, code = workshop(world, session, "builder")
+	if not P then return fail(code) end
+	local res, why = Place.setPorts(P, p.uid, p.inSide, p.outSide, p.auto)
+	if not res then return fail(why) end
+	touched(owner, true)
+	return ok(res)
+end
+
 local function recipeAllowed(P, e, recipeId)
 	local r = Recipes[recipeId]
 	if not r or r.machineId ~= e.machine then return nil, "NOT_FOUND" end

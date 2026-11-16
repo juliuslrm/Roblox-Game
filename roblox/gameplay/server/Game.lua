@@ -98,6 +98,11 @@ local function entityView(P, e)
 	if b.job then
 		v.job = { recipe = b.job.recipe, remaining = b.job.remaining, total = Recipes[b.job.recipe].durationSec }
 	end
+	local def = Machines[e.machine]
+	if D.MachinePorts.isMachine(def) then
+		v.inSide, v.outSide = D.MachinePorts.sides(def, e)
+		v.outAuto = D.MachinePorts.isAuto(e)
+	end
 	return v
 end
 

@@ -4,5 +4,5 @@ return {
 	Market = require(Shared.MarketCatalog), Config = require(Shared.Config), Items = require(Shared.Items), Recipes = require(Shared.Recipes),
 	Machines = require(Shared.Machines), Research = require(Shared.Research), Quests = require(Shared.Quests),
 	Locations = require(Shared.Locations), Protocol = require(Shared.Protocol), GridMath = require(Shared.GridMath),
-	Util = require(Shared.Util), Validator = require(Shared.Validator),
+	Util = require(Shared.Util), Validator = require(Shared.Validator), MachinePorts = require(Shared.MachinePorts),
 }

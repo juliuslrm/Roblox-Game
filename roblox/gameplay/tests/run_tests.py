@@ -3,7 +3,7 @@ import sys
 
 from harness import new_runtime, lua_list
 
-SUITES = ["spec_core", "spec_progression", "spec_adapter"]
+SUITES = ["spec_core", "spec_progression", "spec_adapter", "spec_ports"]
 
 
 def run(name):

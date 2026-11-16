@@ -4,6 +4,7 @@ local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
 local Inv = require(script.Parent.InventoryService)
 local Config, Machines, Recipes, Items, Grid, Util = D.Config, D.Machines, D.Recipes, D.Items, D.GridMath, D.Util
+local Ports = D.MachinePorts
 local L = {}
 local CARRIER = { belt = true, splitter = true, merger = true, sorter = true, lift = true, gate = true }
 L.CARRIER = CARRIER
@@ -25,6 +26,12 @@ function L.build(P)
 		if not t then return false end
 		local def = Machines[t.machine]
 		if def.kind == "crate" or def.kind == "shelf" then return t.uid end
+		if def.kind == "machine" then
+			-- production machines take solid goods only at their chosen inlet side
+			local inSide = Ports.sides(def, t)
+			local px, pz, pd = Ports.cell(def, t, inSide)
+			return (px == x and pz == z and pd == Grid.opposite(dir)) and t.uid or false
+		end
 		for _, p in ipairs(def.ports) do
 			if p.type == "solid" and p.mode == "in" then
 				local px, pz, pd = Grid.port(def, p, t.gx, t.gz, t.rot)
@@ -72,10 +79,18 @@ function L.build(P)
 			c.tanks[#c.tanks + 1] = e.uid
 		end
 		local outs = {}
+		if def.kind == "machine" then
+			-- production machines hand solid goods over at their current outlet side
+			local _, outSide = Ports.sides(def, e)
+			local px, pz, dir = Ports.cell(def, e, outSide)
+			outs[1] = solidTarget(e.floor, px + Grid.DX[dir], pz + Grid.DZ[dir], dir)
+		end
 		for _, p in ipairs(def.ports) do
 			local px, pz, dir = Grid.port(def, p, e.gx, e.gz, e.rot)
 			local nx, nz = px + Grid.DX[dir], pz + Grid.DZ[dir]
-			if p.type == "solid" and p.mode == "out" then
+			if p.type == "solid" and def.kind == "machine" then
+				-- handled above through the chosen sides
+			elseif p.type == "solid" and p.mode == "out" then
 				local floor = e.floor
 				if def.kind == "lift" then floor = floor + 1 end
 				if def.kind == "gate" then
