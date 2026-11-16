@@ -21,6 +21,8 @@ def read(*parts):
 
 CHECKS = r'''
 task.wait(12)
+local __w = os.clock()
+while not workspace:GetAttribute("VillageGroundRefined") and os.clock() - __w < 120 do task.wait(1) end
 local out = {}
 local function p(...) out[#out + 1] = string.format(...) end
 p("VillageReady=%s errors=%d", tostring(workspace:GetAttribute("VillageReady")), #__errors)
@@ -30,10 +32,55 @@ for _, c in ipairs(workspace:GetChildren()) do names[#names + 1] = c.ClassName .
 p("workspace: %s", table.concat(names, ", "))
 local market = workspace:FindFirstChild("ArcaneMarket")
 p("market folders: %d", market and #market:GetChildren() or 0)
+do
+	local fid, total = {}, 0
+	for _, g in ipairs({ "terrain", "roads", "water" }) do
+		for _, d in ipairs(workspace.Village[g]:GetDescendants()) do
+			if d:IsA("MeshPart") then
+				total = total + 1
+				local key = d.RenderFidelity.Name .. "/" .. d.CollisionFidelity.Name
+				fid[key] = (fid[key] or 0) + 1
+			end
+		end
+	end
+	local s = {}
+	for k, v in pairs(fid) do s[#s + 1] = k .. "=" .. v end
+	p("ground mesh fidelity (render/collision) of %d parts: %s", total, table.concat(s, " "))
+end
 
--- workshops: build one per plot through the real adapter and measure it
 local ServerStorage = game:GetService("ServerStorage")
 local layout = require(ServerStorage.VillageWorld.WorldLayout)
+do -- ground check: rays down on a grid, compared with the height map
+	local heightmap = require(ServerStorage.VillageWorld.WorldHeightmap)
+	local heights = require(ServerStorage.VillageWorld.VillageTerrainBuilder).decodeHeights(heightmap)
+	local n, cell = heightmap.verticesPerSide, heightmap.cell
+	local rp = RaycastParams.new()
+	rp.FilterType = Enum.RaycastFilterType.Include
+	rp.FilterDescendantsInstances = { workspace.Village.terrain }
+	local patches = workspace.Village:FindFirstChild("CollisionPatches")
+	if patches then
+		-- patches are excluded from ray queries in the game; make them count for this measurement
+		for _, q in ipairs(patches:GetChildren()) do q.CanQuery = true end
+		rp.FilterDescendantsInstances = { workspace.Village.terrain, patches }
+	end
+	p("collision patches: %d", patches and #patches:GetChildren() or 0)
+	local misses, count, worst, sum, big = 0, 0, 0, 0, 0
+	for j = 1, n - 2 do
+		for i = 1, n - 2 do
+			local hit = workspace:Raycast(Vector3.new(heightmap.originX + i * cell, 300, heightmap.originZ - j * cell), Vector3.new(0, -600, 0), rp)
+			count = count + 1
+			if not hit then misses = misses + 1 else
+				local err = math.abs(hit.Position.Y - heights[j * n + i + 1])
+				sum = sum + err
+				if err > 1.5 then big = big + 1 end
+				worst = math.max(worst, err)
+			end
+		end
+	end
+	p("ground rays: %d points, %d misses, mean error %.2f, %d over 1.5 studs, worst %.2f", count, misses, sum / math.max(1, count - misses), big, worst)
+end
+
+-- workshops: build one per plot through the real adapter and measure it
 local WorkshopWorld = require(game:GetService("ServerScriptService").ArcaneServer.WorkshopWorld)
 local village = workspace:FindFirstChild("Village")
 local params = RaycastParams.new()

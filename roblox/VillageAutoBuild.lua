@@ -119,37 +119,105 @@ function Auto.run(opts)
 end
 
 --[[
-	Gives the walkable meshes (terrain, roads) exact collision.
+	Gives the ground meshes (terrain, roads, water) exact collision and exact rendering.
 
-	Imported MeshParts arrive with CollisionFidelity.Default, which cannot be changed from a script;
-	measured in the place, the ground then deviates by more than 1.5 studs at about 5 % of the
-	sample points.  AssetService:CreateMeshPartAsync can create the same mesh with precise
-	collision, MeshPart:ApplyMesh swaps it in.  That costs about one second per part, so call
-	this in the background after the players have spawned.
+	Imported MeshParts arrive with CollisionFidelity.Default and RenderFidelity.Automatic, and
+	neither can be changed from a script.  Measured / seen in the place (2026-11-16):
+	  * Default collision misses the real ground by more than 1.5 studs at about 5 % of the points
+	  * Automatic rendering swaps the big terrain meshes for coarser versions at a distance, so the
+	    ground changes shape while walking and roads float or sink
+	AssetService:CreateMeshPartAsync creates the same mesh with precise settings, MeshPart:ApplyMesh
+	swaps it in.  That takes about 0.6 s per part and does not get faster in parallel (33 s for all
+	54), so it runs in the background, nearest parts to `focus` first.
 
-	Auto.refineCollision(village, assetService [, groups]) -> converted, failed, lastError
+	Precise collision has a flaw of its own: about 0.25 % of the terrain area gets no collision at
+	all (measured: 90 of 36 481 sample points, also on the village square).  After each terrain
+	part is converted its square is scanned with rays and every hole is closed with an invisible
+	plate at the height of the height map.
+
+	opts: village (Folder built by Auto.run), assetService, heightmap, decodeHeights (function),
+	      origin (CFrame), focus (Vector3, world), step (studs between rays, default 2)
+	-> { converted, failed, patches, lastError }
 ]]
-function Auto.refineCollision(village, assetService, groups)
-	local converted, failed, lastError = 0, 0, nil
-	for _, groupName in ipairs(groups or { "terrain", "roads" }) do
+function Auto.refineGround(opts)
+	local village, origin = opts.village, opts.origin or CFrame.new(0, 0, 0)
+	local step = opts.step or 2
+	local hm = opts.heightmap
+	local heights = hm and opts.decodeHeights and opts.decodeHeights(hm)
+	local function heightAt(x, z) -- village-local, bilinear
+		local n, cell = hm.verticesPerSide, hm.cell
+		local fx = math.clamp((x - hm.originX) / cell, 0, n - 1.001)
+		local fz = math.clamp((hm.originZ - z) / cell, 0, n - 1.001)
+		local i, j = math.floor(fx), math.floor(fz)
+		local u, v = fx - i, fz - j
+		local a, b = heights[j * n + i + 1], heights[j * n + i + 2]
+		local c, d = heights[(j + 1) * n + i + 1], heights[(j + 1) * n + i + 2]
+		return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v
+	end
+
+	local parts = {}
+	for _, groupName in ipairs({ "terrain", "roads", "water" }) do
 		local group = village:FindFirstChild(groupName)
 		if group then
 			for _, part in ipairs(group:GetDescendants()) do
-				if part:IsA("MeshPart") and part.CanCollide then
-					local ok, err = pcall(function()
-						local precise = assetService:CreateMeshPartAsync(Content.fromUri(part.MeshId),
-							{ CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition })
-						local size, cframe = part.Size, part.CFrame
-						part:ApplyMesh(precise)
-						part.Size, part.CFrame = size, cframe
-						precise:Destroy()
-					end)
-					if ok then converted = converted + 1 else failed = failed + 1 lastError = tostring(err) end
+				if part:IsA("MeshPart") then parts[#parts + 1] = { part = part, terrain = groupName == "terrain" } end
+			end
+		end
+	end
+	local focus = opts.focus or origin.Position
+	table.sort(parts, function(a, b) return (a.part.Position - focus).Magnitude < (b.part.Position - focus).Magnitude end)
+
+	local report = { converted = 0, failed = 0, patches = 0, lastError = nil }
+	local patchFolder
+	for _, entry in ipairs(parts) do
+		local part = entry.part
+		local ok, err = pcall(function()
+			local precise = opts.assetService:CreateMeshPartAsync(Content.fromUri(part.MeshId), {
+				CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
+				RenderFidelity = Enum.RenderFidelity.Precise,
+			})
+			local size, cframe = part.Size, part.CFrame
+			part:ApplyMesh(precise)
+			part.Size, part.CFrame = size, cframe
+			precise:Destroy()
+		end)
+		if not ok then
+			report.failed = report.failed + 1
+			report.lastError = tostring(err)
+		else
+			report.converted = report.converted + 1
+			if entry.terrain and heights and part.CanCollide then
+				task.wait() -- let the new collision geometry take effect before it is scanned
+				local params = RaycastParams.new()
+				params.FilterType = Enum.RaycastFilterType.Include
+				params.FilterDescendantsInstances = { part }
+				local centre = origin:PointToObjectSpace(part.Position)
+				local half = math.max(part.Size.X, part.Size.Z) / 2
+				local up = origin.UpVector
+				for x = centre.X - half + step / 2, centre.X + half, step do
+					for z = centre.Z - half + step / 2, centre.Z + half, step do
+						local y = heightAt(x, z)
+						local from = origin * Vector3.new(x, y + 200, z)
+						if not workspace:Raycast(from, -up * 400, params) then
+							if not patchFolder then
+								patchFolder = Instance.new("Folder")
+								patchFolder.Name = "CollisionPatches"
+								patchFolder.Parent = village
+							end
+							local plate = Instance.new("Part")
+							plate.Name, plate.Anchored, plate.Transparency, plate.CastShadow = "Patch", true, 1, false
+							plate.CanQuery = false
+							plate.Size = Vector3.new(step, 1, step)
+							plate.CFrame = origin * CFrame.new(x, y - 0.5, z)
+							plate.Parent = patchFolder
+							report.patches = report.patches + 1
+						end
+					end
 				end
 			end
 		end
 	end
-	return converted, failed, lastError
+	return report
 end
 
 return Auto

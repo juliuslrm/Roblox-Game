@@ -77,18 +77,31 @@ local ok, err = pcall(function()
 end)
 if not ok then warn("[Village] auto build failed: " .. tostring(err)) end
 workspace:SetAttribute("VillageReady", true)
--- Exact ground collision takes about a minute; do it while people already play.
+-- Exact ground (rendering and collision) takes about half a minute; do it while people already
+-- play, starting at the spawn point.
 task.spawn(function()
 	local village = workspace:FindFirstChild("Village")
-	if not village or not village:FindFirstChild("terrain") then return end
-	local okRefine, converted, failed, lastError = pcall(function()
-		return require(folder:WaitForChild("VillageAutoBuild")).refineCollision(village, game:GetService("AssetService"))
-	end)
-	if okRefine then
-		print(string.format("[Village] precise ground collision: %d parts converted, %d failed %s", converted, failed, tostring(lastError or "")))
-	else
-		warn("[Village] precise ground collision failed: " .. tostring(converted))
+	if village and village:FindFirstChild("terrain") then
+		local t0 = os.clock()
+		local okRefine, result = pcall(function()
+			local layout = require(folder:WaitForChild("WorldLayout"))
+			local origin = workspace:GetAttribute("VillageOrigin")
+			if typeof(origin) ~= "CFrame" then origin = CFrame.new() end
+			return require(folder:WaitForChild("VillageAutoBuild")).refineGround({
+				village = village, assetService = game:GetService("AssetService"), origin = origin,
+				heightmap = require(folder:WaitForChild("WorldHeightmap")),
+				decodeHeights = require(folder:WaitForChild("VillageTerrainBuilder")).decodeHeights,
+				focus = origin * Vector3.new(layout.spawn[1], layout.spawn[2], layout.spawn[3]),
+			})
+		end)
+		if okRefine then
+			print(string.format("[Village] precise ground: %d parts converted, %d failed, %d collision holes patched in %.1f s %s",
+				result.converted, result.failed, result.patches, os.clock() - t0, tostring(result.lastError or "")))
+		else
+			warn("[Village] precise ground failed: " .. tostring(result))
+		end
 	end
+	workspace:SetAttribute("VillageGroundRefined", true)
 end)
 Players.CharacterAutoLoads = true
 for _, player in ipairs(Players:GetPlayers()) do

@@ -89,3 +89,20 @@ Offen:
   (vermutlich grobe Standardkollision am steilen Hang daneben) – nach der Verfeinerung nicht
   nachgemessen.
 - Aussehen, Kamera im Gebäude, Bauen per Touch: nur am Gerät prüfbar.
+
+## Nachtrag 2026-11-16 (4): Boden verändert sich beim Laufen
+
+Spielerbericht mit Screenshot (Handy): Boden und Wege verändern beim Laufen ihre Form.
+Deutung (nicht am Gerät bestätigt): `RenderFidelity.Automatic` ersetzt die großen Geländemeshes
+auf Distanz durch gröbere Stufen.
+
+- `Auto.refineGround` setzt Gelände, Wege und Wasser im Hintergrund auf `RenderFidelity.Precise`
+  und präzise Kollision, beginnend am Spawn (54 Teile, ca. 40 s; parallel wird es nicht schneller).
+- Gemessen: Präzise Kollision hat Löcher – 90 von 36 481 Punkten im 4-Stud-Raster ohne Boden, auch
+  auf dem Dorfplatz. Die Standardkollision hat keine Löcher, liegt aber an 5 % der Punkte um mehr
+  als 1,5 Studs daneben. Lösung: nach jedem Geländeteil wird sein Quadrat im 2-Stud-Raster
+  abgetastet und jedes Loch mit einer unsichtbaren Platte auf Höhenkarten-Niveau geschlossen
+  (652 Platten).
+- Ergebnis im Place: 0 von 36 481 Punkten ohne Boden, mittlere Abweichung 0,26 Studs, 322 Punkte
+  (0,9 %) über 1,5 Studs, größte 24 (Ursache offen, vermutlich Bachufer/Weltrand).
+- Offen: ob die per `ApplyMesh` gesetzte Kollision und Darstellung auch auf dem Client ankommen.
