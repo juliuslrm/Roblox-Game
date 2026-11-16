@@ -3697,6 +3697,13 @@ function Loader.load(opts)
 				end
 			end
 			if any then
+				-- first template of a name wins (ids list newer single models before the libraries)
+				local seen = {}
+				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("MeshPart") then
+						if seen[d.Name] then d:Destroy() else seen[d.Name] = true end
+					end
+				end
 				if not textureResolved then
 					texture = paletteTexture(insertService, ids.paletteDecal, report)
 					textureResolved = true
@@ -3734,11 +3741,20 @@ return Loader
 -- Set a value to nil to skip it; with no ids the village falls back to placeholder blocks.
 return {
 	-- target folder in ServerStorage -> list of Model asset ids
+	-- Within one folder the first template of a name wins, so newer single models go first.
 	folders = {
-		VillageAssets = { 121417351385239, 115718062572873 }, -- village_assets.fbx, village_terrain.fbx
-		ArcaneAssets = { 89059240299616 },                    -- arcane_machines.fbx
+		VillageAssets = {
+			72420451763699,  -- workshop_facade.glb
+			121417351385239, -- village_assets.fbx
+			115718062572873, -- village_terrain.fbx
+		},
+		ArcaneAssets = {
+			137911422416588, -- mach_kettle.glb (replaces the kettle of the machine library)
+			89059240299616,  -- arcane_machines.fbx
+		},
+		ArcaneMarketAssets = { 108160614549126 }, -- ArcaneMarket.glb: five merchants and stalls
 	},
-	-- Measured in the place (2026-11-16): Roblox imports the FBX libraries turned 180 degrees about
+	-- Measured in the place (2026-11-16): Roblox imports the FBX and GLB files turned 180 degrees about
 	-- the vertical axis compared with the level plan (plan x,z arrives as -x,-z).  The loader
 	-- turns the templates back by this angle.
 	importYaw = 180,
@@ -7445,7 +7461,8 @@ local function imported(parent, templates, name, pivot, role)
 	if not template or not template.Archivable then return false end
 	local mesh = template:Clone()
 	mesh.Size = Vector3.new(table.unpack(shape.size))
-	mesh.CFrame = pivot * CFrame.new(table.unpack(shape.center))
+	-- keep the template's rotation: the asset loader stores the import correction there
+	mesh.CFrame = pivot * CFrame.new(table.unpack(shape.center)) * (template.CFrame - template.CFrame.Position)
 	mesh.Anchored, mesh.CanCollide, mesh.CanQuery, mesh.CanTouch = true, false, false, false
 	local rootBone = role and mesh:FindFirstChild("root", true)
 	if rootBone and rootBone:IsA("Bone") then

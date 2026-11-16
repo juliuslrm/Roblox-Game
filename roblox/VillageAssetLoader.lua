@@ -65,6 +65,13 @@ function Loader.load(opts)
 				end
 			end
 			if any then
+				-- first template of a name wins (ids list newer single models before the libraries)
+				local seen = {}
+				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("MeshPart") then
+						if seen[d.Name] then d:Destroy() else seen[d.Name] = true end
+					end
+				end
 				if not textureResolved then
 					texture = paletteTexture(insertService, ids.paletteDecal, report)
 					textureResolved = true

@@ -32,7 +32,8 @@ local function imported(parent, templates, name, pivot, role)
 	if not template or not template.Archivable then return false end
 	local mesh = template:Clone()
 	mesh.Size = Vector3.new(table.unpack(shape.size))
-	mesh.CFrame = pivot * CFrame.new(table.unpack(shape.center))
+	-- keep the template's rotation: the asset loader stores the import correction there
+	mesh.CFrame = pivot * CFrame.new(table.unpack(shape.center)) * (template.CFrame - template.CFrame.Position)
 	mesh.Anchored, mesh.CanCollide, mesh.CanQuery, mesh.CanTouch = true, false, false, false
 	local rootBone = role and mesh:FindFirstChild("root", true)
 	if rootBone and rootBone:IsA("Bone") then

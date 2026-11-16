@@ -51,3 +51,22 @@ Gefundene und behobene Fehler:
 
 Weiter ungeprüft: Aussehen (kein Bild aus dem Place), `Bootstrap.server.lua`, Client-UI.
 Offen: Ursache der 39 Abweichungen über 1,5 Studs (Rand, Bachufer) ist nicht geklärt.
+
+## Nachtrag 2026-11-16 (2): Markt, Werkstatt und Serverstart im echten Place
+
+Place-Version 9, geprüft mit `scripts/roblox_verify_server.lua` (führt beide Server-Startskripte
+im Place aus):
+
+- `VillageAutoBuild` und `Bootstrap.server.lua` laufen ohne Fehler durch; `[Arcane] server ready -
+  persistent saves: true`. RemoteFunction/RemoteEvent, Werkstätten, Marker und Markt entstehen.
+- `ArcaneMarket.glb`, `workshop_facade.glb` und `mach_kettle.glb` sind als Assets hochgeladen
+  (IDs in `roblox/VillageAssetIds.lua`); GLB kommt wie FBX um 180° gedreht an.
+- Alle fünf Händler und Stände stehen als importierte Meshes an ihren Plätzen, die alten
+  Marktstände sind ersetzt.
+
+Offen:
+- Händler-Animation: Roblox legt die 40 Bones aller fünf Figuren in ein gemeinsames `RootPart`
+  statt in die MeshParts. `MarketWorld`/`MarketIdle` finden deshalb kein Skelett, die Händler stehen
+  still. Ansatz: die fünf `merchant_*.glb` einzeln hochladen und das ganze Rig-Modell platzieren.
+- Nicht nachgemessen: ob die Werkstattfassade das Fachwerkhaus ersetzt hat, Blickrichtung der
+  Figuren, Aussehen allgemein, gesamte Client-UI (Handeln-Dialog auf Touch).

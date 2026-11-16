@@ -182,6 +182,7 @@ def check_autobuild():
             end
             local a = Instance.new("MeshPart", model); a.Name = "house_" .. id; a.TextureID = ""
             local b = Instance.new("MeshPart", model); b.Name = "kept_" .. id; b.TextureID = "rbxassetid://7"
+            local c = Instance.new("MeshPart", model); c.Name = "dup"; c.TextureID = "rbxassetid://" .. id
             return model
         end
         local rep = Loader.load({ ids = Ids, insertService = insert, parent = storage })
@@ -189,10 +190,15 @@ def check_autobuild():
         return { rep.loaded, #rep.failed, rep.meshParts, rep.retextured, again.loaded,
             storage.VillageAssets:FindFirstChild("house_121417351385239", true).TextureID,
             storage.VillageAssets:FindFirstChild("kept_121417351385239", true).TextureID,
-            storage.ArcaneAssets:FindFirstChild("house_89059240299616", true):GetAttribute("PublishedMachineLibrary") }
+            storage.ArcaneAssets:FindFirstChild("house_89059240299616", true):GetAttribute("PublishedMachineLibrary"),
+            storage.ArcaneMarketAssets ~= nil,
+            storage.VillageAssets:FindFirstChild("dup", true).TextureID }
     end)()""")
-    assert list(res.values()) == [2, 1, 4, 2, 0, "rbxassetid://42", "rbxassetid://7", True], list(res.values())
-    print("  ok  asset loader: 2 of 3 libraries loaded, failure reported, missing textures replaced, no reload")
+    # 6 ids, one fails; per folder only the first "dup" survives (3 folders), 2 unique parts per asset
+    assert list(res.values()) == [5, 1, 13, 5, 0, "rbxassetid://42", "rbxassetid://7", True, True,
+                                  "rbxassetid://72420451763699"], list(res.values())
+    print("  ok  asset loader: 5 of 6 assets loaded, failure reported, missing textures replaced, "
+          "first template of a name wins, no reload")
 
 
 def check_market_world():
