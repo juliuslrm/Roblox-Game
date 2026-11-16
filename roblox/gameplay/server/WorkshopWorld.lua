@@ -133,7 +133,11 @@ local function entityModel(self, room, e)
 		-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
 		local k = math.max(body.Size.X, body.Size.Z) / (math.max(def.w, def.d) * cs)
 		if k > 1.05 or k < 0.6 then body.Size = body.Size / k end
-		body.CFrame = CFrame.new(base - Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+		-- keep the template's own rotation (the asset loader corrects the import orientation there)
+		-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
+		local floorY = base.Y - height / 2
+		body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+			* (template.CFrame - template.CFrame.Position)
 	else
 		body = part({ Size = Vector3.new(w * cs - 0.2, height, d * cs - 0.2), Position = base,
 			Color = (def.layer == "pipe") and COLORS.pipe or COLORS[def.category] or COLORS.machine,

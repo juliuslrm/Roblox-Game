@@ -48,8 +48,12 @@ local ok, err = pcall(function()
 		builder = builder,
 		terrainBuilder = require(folder:WaitForChild("VillageTerrainBuilder")),
 		templates = templates,
+		-- The time of day is fixed to the afternoon; 76 lantern and window lights on top of the
+		-- sunlight made the village glow.  Switch back on once there is a day/night cycle.
+		createLights = false,
 		origin = origin,
 	})
+	if layout.lighting then builder.applyLighting(layout.lighting) end
 	print(string.format("[Village] built in mode '%s': %d objects placed, %d missing, %d terrain cells",
 		report.mode, report.placed, report.missing, report.terrainCells))
 	if report.mode == "greybox" then
@@ -58,6 +62,19 @@ local ok, err = pcall(function()
 end)
 if not ok then warn("[Village] auto build failed: " .. tostring(err)) end
 workspace:SetAttribute("VillageReady", true)
+-- Exact ground collision takes about a minute; do it while people already play.
+task.spawn(function()
+	local village = workspace:FindFirstChild("Village")
+	if not village or not village:FindFirstChild("terrain") then return end
+	local okRefine, converted, failed, lastError = pcall(function()
+		return require(folder:WaitForChild("VillageAutoBuild")).refineCollision(village, game:GetService("AssetService"))
+	end)
+	if okRefine then
+		print(string.format("[Village] precise ground collision: %d parts converted, %d failed %s", converted, failed, tostring(lastError or "")))
+	else
+		warn("[Village] precise ground collision failed: " .. tostring(converted))
+	end
+end)
 Players.CharacterAutoLoads = true
 for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(function() player:LoadCharacter() end)

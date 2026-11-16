@@ -72,7 +72,8 @@ function Auto.run(opts)
 		local exclude = nil
 		if not report.meshTerrain then exclude = { terrain = true, water = true } end
 		local built = opts.builder.build({ templates = templates, layout = opts.layout, parent = parent, origin = origin,
-			excludeGroups = exclude, roadLift = report.meshTerrain and 0 or 0.6, verbose = false })
+			excludeGroups = exclude, roadLift = report.meshTerrain and 0 or 0.6, verbose = false,
+			createLights = opts.createLights ~= false })
 		report.placed = built.placed
 		for _, n in pairs(built.missing) do report.missing = report.missing + n end
 		report.warnings = built.warnings
@@ -85,6 +86,40 @@ function Auto.run(opts)
 		report.terrainCells = res.cells
 	end
 	return report
+end
+
+--[[
+	Gives the walkable meshes (terrain, roads) exact collision.
+
+	Imported MeshParts arrive with CollisionFidelity.Default, which cannot be changed from a script;
+	measured in the place, the ground then deviates by more than 1.5 studs at about 5 % of the
+	sample points.  AssetService:CreateMeshPartAsync can create the same mesh with precise
+	collision, MeshPart:ApplyMesh swaps it in.  That costs about one second per part, so call
+	this in the background after the players have spawned.
+
+	Auto.refineCollision(village, assetService [, groups]) -> converted, failed, lastError
+]]
+function Auto.refineCollision(village, assetService, groups)
+	local converted, failed, lastError = 0, 0, nil
+	for _, groupName in ipairs(groups or { "terrain", "roads" }) do
+		local group = village:FindFirstChild(groupName)
+		if group then
+			for _, part in ipairs(group:GetDescendants()) do
+				if part:IsA("MeshPart") and part.CanCollide then
+					local ok, err = pcall(function()
+						local precise = assetService:CreateMeshPartAsync(Content.fromUri(part.MeshId),
+							{ CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition })
+						local size, cframe = part.Size, part.CFrame
+						part:ApplyMesh(precise)
+						part.Size, part.CFrame = size, cframe
+						precise:Destroy()
+					end)
+					if ok then converted = converted + 1 else failed = failed + 1 lastError = tostring(err) end
+				end
+			end
+		end
+	end
+	return converted, failed, lastError
 end
 
 return Auto

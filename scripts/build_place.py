@@ -61,7 +61,7 @@ def main():
               "return {}\n")
     body = ""
     body += item("Workspace", "Workspace", props='<bool name="StreamingEnabled">false</bool>')
-    body += item("Lighting", "Lighting", props='<float name="ClockTime">15.2</float><float name="Brightness">2.6</float>')
+    body += item("Lighting", "Lighting", props='<float name="ClockTime">15.2</float><float name="Brightness">2</float>')
     body += item("ReplicatedStorage", "ReplicatedStorage", folder_of("roblox/gameplay/shared", "ArcaneShared"))
     body += item("ServerStorage", "ServerStorage",
                  item("Folder", "VillageWorld", village)

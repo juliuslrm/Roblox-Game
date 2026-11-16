@@ -2,7 +2,7 @@
 <External>null</External>
 <External>nil</External>
 <Item class="Workspace" referent="RBX000008"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item>
-<Item class="Lighting" referent="RBX000009"><Properties><string name="Name">Lighting</string><float name="ClockTime">15.2</float><float name="Brightness">2.6</float></Properties></Item>
+<Item class="Lighting" referent="RBX000009"><Properties><string name="Name">Lighting</string><float name="ClockTime">15.2</float><float name="Brightness">2</float></Properties></Item>
 <Item class="ReplicatedStorage" referent="RBX000022"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000021"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000010"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Global tuning values. Pure data (Lua 5.1 compatible).
 return {
 	schemaVersion = 1,
@@ -1357,7 +1357,8 @@ function Auto.run(opts)
 		local exclude = nil
 		if not report.meshTerrain then exclude = { terrain = true, water = true } end
 		local built = opts.builder.build({ templates = templates, layout = opts.layout, parent = parent, origin = origin,
-			excludeGroups = exclude, roadLift = report.meshTerrain and 0 or 0.6, verbose = false })
+			excludeGroups = exclude, roadLift = report.meshTerrain and 0 or 0.6, verbose = false,
+			createLights = opts.createLights ~= false })
 		report.placed = built.placed
 		for _, n in pairs(built.missing) do report.missing = report.missing + n end
 		report.warnings = built.warnings
@@ -1372,6 +1373,40 @@ function Auto.run(opts)
 	return report
 end
 
+--[[
+	Gives the walkable meshes (terrain, roads) exact collision.
+
+	Imported MeshParts arrive with CollisionFidelity.Default, which cannot be changed from a script;
+	measured in the place, the ground then deviates by more than 1.5 studs at about 5 % of the
+	sample points.  AssetService:CreateMeshPartAsync can create the same mesh with precise
+	collision, MeshPart:ApplyMesh swaps it in.  That costs about one second per part, so call
+	this in the background after the players have spawned.
+
+	Auto.refineCollision(village, assetService [, groups]) -> converted, failed, lastError
+]]
+function Auto.refineCollision(village, assetService, groups)
+	local converted, failed, lastError = 0, 0, nil
+	for _, groupName in ipairs(groups or { "terrain", "roads" }) do
+		local group = village:FindFirstChild(groupName)
+		if group then
+			for _, part in ipairs(group:GetDescendants()) do
+				if part:IsA("MeshPart") and part.CanCollide then
+					local ok, err = pcall(function()
+						local precise = assetService:CreateMeshPartAsync(Content.fromUri(part.MeshId),
+							{ CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition })
+						local size, cframe = part.Size, part.CFrame
+						part:ApplyMesh(precise)
+						part.Size, part.CFrame = size, cframe
+						precise:Destroy()
+					end)
+					if ok then converted = converted + 1 else failed = failed + 1 lastError = tostring(err) end
+				end
+			end
+		end
+	end
+	return converted, failed, lastError
+end
+
 return Auto
 ]]></ProtectedString></Properties></Item>
 <Item class="ModuleScript" referent="RBX000004"><Properties><string name="Name">VillageAssetLoader</string><ProtectedString name="Source"><![CDATA[--[[
@@ -1380,6 +1415,9 @@ return Auto
 	Loads the uploaded model libraries with InsertService:LoadAsset at server start and stores
 	them as template folders in ServerStorage, where VillageWorldBuilder (VillageAssets) and
 	WorkshopWorld (ArcaneAssets) look for meshes by name.
+
+	The importer turns the libraries about the vertical axis (ids.importYaw); the loader turns
+	every part back so the templates match the level plan.
 
 	Every mesh uses the one palette texture.  If the import lost the texture (MeshPart.TextureID
 	empty and no SurfaceAppearance), the loader assigns the uploaded palette image instead.
@@ -1442,7 +1480,11 @@ function Loader.load(opts)
 					texture = paletteTexture(insertService, ids.paletteDecal, report)
 					textureResolved = true
 				end
+				local undo = CFrame.Angles(0, math.rad(-(ids.importYaw or 0)), 0)
 				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("BasePart") and (ids.importYaw or 0) ~= 0 then
+						d.CFrame = undo * d.CFrame -- undo the import rotation about the world origin
+					end
 					if d:IsA("MeshPart") then
 						report.meshParts = report.meshParts + 1
 						d.Anchored = true
@@ -1474,6 +1516,10 @@ return {
 		VillageAssets = { 121417351385239, 115718062572873 }, -- village_assets.fbx, village_terrain.fbx
 		ArcaneAssets = { 89059240299616 },                    -- arcane_machines.fbx
 	},
+	-- Measured in the place (2026-11-16): Roblox imports the FBX libraries turned 180 degrees about
+	-- the vertical axis compared with the level plan (plan x,z arrives as -x,-z).  The loader
+	-- turns the templates back by this angle.
+	importYaw = 180,
 	paletteDecal = 124079534405265,                           -- exports/textures/village_palette.png
 }
 ]]></ProtectedString></Properties></Item>
@@ -1485,7 +1531,7 @@ return {
 	worldSize = 768,
 	spawn = {0, 3.5, 24},
 	spawnLookAt = {0, 6, 0},
-	lighting = {clock_time = 15.2, geographic_latitude = 38, brightness = 2.6, ambient = {0.52, 0.56, 0.66}, outdoor_ambient = {0.56, 0.6, 0.7}, color_shift_top = {1, 0.94, 0.82}, fog_color = {0.78, 0.87, 0.96}, fog_start = 380, fog_end = 1500},
+	lighting = {clock_time = 15.2, geographic_latitude = 38, brightness = 2, ambient = {0.27, 0.29, 0.34}, outdoor_ambient = {0.44, 0.47, 0.55}, color_shift_top = {1, 0.94, 0.82}, fog_color = {0.78, 0.87, 0.96}, fog_start = 380, fog_end = 1500},
 	assetNames = {"banner_pole", "barrel", "barrel_stack", "beehives", "bench", "bridge_stone", "bush_a", "bush_b", "bush_berry", "cart", "clothesline", "crate_stack", "dock", "fence_picket", "fence_post", "fence_wood", "flowers_blue", "flowers_red", "flowers_white", "flowers_yellow", "fountain", "garden_bed", "gate_arch", "grass_tuft", "hay_bale", "haystack", "hedge", "house_01_timber_cottage", "house_02_gabled_townhouse", "house_03_thatched_cottage", "house_04_farmhouse", "house_05_bakery", "house_06_crooked_tower_house", "house_07_stone_manor", "house_08_plank_cabin", "house_09_twin_gable", "house_10_saltbox", "house_11_stair_house", "house_12_turret_house", "house_13_fisher_hut", "house_14_long_weaver_house", "house_15_tower_house", "house_16_porch_tower_house", "house_17_red_barn", "house_18_tiny_cottage", "lantern_post", "lantern_post_double", "lily_pads", "lm_chapel", "lm_market_hall", "lm_smithy", "lm_tavern", "lm_town_hall", "lm_watchtower", "lm_windmill", "log_pile", "market_stall_bread", "market_stall_cloth", "market_stall_fruit", "mushrooms", "notice_board", "planter", "plaza_paving", "pumpkin_patch", "reeds", "road_chapel_lane", "road_east_road", "road_farm_path", "road_mill_lane", "road_north_road", "road_pond_lane", "road_pond_path", "road_ring_lane", "road_south_road", "road_tower_path", "road_west_road", "rock_a", "rock_b", "rock_c", "rock_cliff", "rock_large", "rowboat", "sack_pile", "scarecrow", "signpost", "stone_wall", "stream_banks", "terrain_r0_c0", "terrain_r0_c1", "terrain_r0_c2", "terrain_r0_c3", "terrain_r0_c4", "terrain_r0_c5", "terrain_r1_c0", "terrain_r1_c1", "terrain_r1_c2", "terrain_r1_c3", "terrain_r1_c4", "terrain_r1_c5", "terrain_r2_c0", "terrain_r2_c1", "terrain_r2_c2", "terrain_r2_c3", "terrain_r2_c4", "terrain_r2_c5", "terrain_r3_c0", "terrain_r3_c1", "terrain_r3_c2", "terrain_r3_c3", "terrain_r3_c4", "terrain_r3_c5", "terrain_r4_c0", "terrain_r4_c1", "terrain_r4_c2", "terrain_r4_c3", "terrain_r4_c4", "terrain_r4_c5", "terrain_r5_c0", "terrain_r5_c1", "terrain_r5_c2", "terrain_r5_c3", "terrain_r5_c4", "terrain_r5_c5", "tree_apple", "tree_autumn", "tree_birch", "tree_blossom", "tree_oak_a", "tree_oak_b", "tree_pine_a", "tree_pine_b", "tree_pine_c", "tree_poplar", "tree_round", "tree_stump", "trough", "water_surface", "well", "wheat_patch", "woodpile"},
 	groupNames = {"buildings", "lights", "market", "nature", "props", "roads", "terrain", "water"},
 	assets = {
@@ -3598,8 +3644,12 @@ local ok, err = pcall(function()
 		builder = builder,
 		terrainBuilder = require(folder:WaitForChild("VillageTerrainBuilder")),
 		templates = templates,
+		-- The time of day is fixed to the afternoon; 76 lantern and window lights on top of the
+		-- sunlight made the village glow.  Switch back on once there is a day/night cycle.
+		createLights = false,
 		origin = origin,
 	})
+	if layout.lighting then builder.applyLighting(layout.lighting) end
 	print(string.format("[Village] built in mode '%s': %d objects placed, %d missing, %d terrain cells",
 		report.mode, report.placed, report.missing, report.terrainCells))
 	if report.mode == "greybox" then
@@ -3608,6 +3658,19 @@ local ok, err = pcall(function()
 end)
 if not ok then warn("[Village] auto build failed: " .. tostring(err)) end
 workspace:SetAttribute("VillageReady", true)
+-- Exact ground collision takes about a minute; do it while people already play.
+task.spawn(function()
+	local village = workspace:FindFirstChild("Village")
+	if not village or not village:FindFirstChild("terrain") then return end
+	local okRefine, converted, failed, lastError = pcall(function()
+		return require(folder:WaitForChild("VillageAutoBuild")).refineCollision(village, game:GetService("AssetService"))
+	end)
+	if okRefine then
+		print(string.format("[Village] precise ground collision: %d parts converted, %d failed %s", converted, failed, tostring(lastError or "")))
+	else
+		warn("[Village] precise ground collision failed: " .. tostring(converted))
+	end
+end)
 Players.CharacterAutoLoads = true
 for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(function() player:LoadCharacter() end)
@@ -6258,7 +6321,11 @@ local function entityModel(self, room, e)
 		-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
 		local k = math.max(body.Size.X, body.Size.Z) / (math.max(def.w, def.d) * cs)
 		if k > 1.05 or k < 0.6 then body.Size = body.Size / k end
-		body.CFrame = CFrame.new(base - Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+		-- keep the template's own rotation (the asset loader corrects the import orientation there)
+		-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
+		local floorY = base.Y - height / 2
+		body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(-90 * e.rot), 0)
+			* (template.CFrame - template.CFrame.Position)
 	else
 		body = part({ Size = Vector3.new(w * cs - 0.2, height, d * cs - 0.2), Position = base,
 			Color = (def.layer == "pipe") and COLORS.pipe or COLORS[def.category] or COLORS.machine,

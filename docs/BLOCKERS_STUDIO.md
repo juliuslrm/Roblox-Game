@@ -26,3 +26,28 @@ Bekannte Annahmen, die falsch sein können:
   ist offen.
 - Ohne importierte Maschinen-Meshes zeigt der Server farbige Quader mit Beschriftung. Das ist
   eine Rückfallebene, kein Endzustand.
+
+## Nachtrag 2026-11-16: erste Messungen im echten Place (Open Cloud)
+
+Mit `scripts/roblox_exec.py` (Luau Execution API) lassen sich Skripte im veröffentlichten Place
+ausführen. `scripts/roblox_verify_world.lua` baut das Dorf wie beim Serverstart und misst es.
+
+Bestätigt (Place-Version 8):
+- Die drei Modellbibliotheken laden per `InsertService:LoadAsset`: 172 MeshParts, Namen und Maßstab
+  (1:1) stimmen, Palettentextur ist gesetzt.
+- 140 von 140 Vorlagen gefunden, 1 889 von 1 889 Objekten platziert, 0 Warnungen.
+- Bodenprüfung (2 304 Strahlen gegen die Höhenkarte): mittlere Abweichung 0,30 Studs nach der
+  Kollisionsverfeinerung (vorher 0,48), 39 Punkte über 1,5 Studs, 2 ohne Treffer.
+
+Gefundene und behobene Fehler:
+- Roblox importiert die FBX-Bibliotheken um 180° um die Hochachse gedreht. Jedes Geländestück lag
+  dadurch verdreht an seinem Platz (Lücken, schwebende Wege). `VillageAssetLoader` dreht zurück
+  (`importYaw` in `VillageAssetIds.lua`).
+- Beleuchtung zu hell (Ambient 0,5 als Standard, Brightness 2,6, 76 Lampen am Tag): Werte gesenkt,
+  Lampen bis zu einem Tag-Nacht-Wechsel aus.
+- Importierte MeshParts haben `CollisionFidelity.Default`; `Auto.refineCollision` ersetzt Gelände
+  und Wege im Hintergrund durch präzise Kollision (ca. 40 s).
+- Maschinenmodelle standen zur Hälfte im Boden (`WorkshopWorld`).
+
+Weiter ungeprüft: Aussehen (kein Bild aus dem Place), `Bootstrap.server.lua`, Client-UI.
+Offen: Ursache der 39 Abweichungen über 1,5 Studs (Rand, Bachufer) ist nicht geklärt.

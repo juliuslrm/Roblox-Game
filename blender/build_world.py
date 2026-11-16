@@ -182,8 +182,9 @@ def main():
         },
         "spawn": {"blender": list(spawn_b), "roblox": coords.to_roblox((spawn_b[0], spawn_b[1], spawn_b[2] + 3.0)),
                   "look_at_roblox": coords.to_roblox((0.0, 0.0, 6.0))},
-        "lighting": {"clock_time": 15.2, "geographic_latitude": 38.0, "brightness": 2.6,
-                     "ambient": [0.52, 0.56, 0.66], "outdoor_ambient": [0.56, 0.6, 0.7],
+        "lighting": {"clock_time": 15.2, "geographic_latitude": 38.0, "brightness": 2.0,
+                     # 2.6 / 0.52 / 0.56 looked overexposed on a phone (player report 2026-11-16)
+                     "ambient": [0.27, 0.29, 0.34], "outdoor_ambient": [0.44, 0.47, 0.55],
                      "color_shift_top": [1.0, 0.94, 0.82], "fog_color": [0.78, 0.87, 0.96],
                      "fog_start": 380, "fog_end": 1500},
         "terrain": {"cell": tr.CELL, "vertices_per_side": tr.N + 1, "chunk_cells": tr.CHUNK_CELLS,

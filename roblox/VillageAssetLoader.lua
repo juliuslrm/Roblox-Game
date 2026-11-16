@@ -5,6 +5,9 @@
 	them as template folders in ServerStorage, where VillageWorldBuilder (VillageAssets) and
 	WorkshopWorld (ArcaneAssets) look for meshes by name.
 
+	The importer turns the libraries about the vertical axis (ids.importYaw); the loader turns
+	every part back so the templates match the level plan.
+
 	Every mesh uses the one palette texture.  If the import lost the texture (MeshPart.TextureID
 	empty and no SurfaceAppearance), the loader assigns the uploaded palette image instead.
 
@@ -66,7 +69,11 @@ function Loader.load(opts)
 					texture = paletteTexture(insertService, ids.paletteDecal, report)
 					textureResolved = true
 				end
+				local undo = CFrame.Angles(0, math.rad(-(ids.importYaw or 0)), 0)
 				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("BasePart") and (ids.importYaw or 0) ~= 0 then
+						d.CFrame = undo * d.CFrame -- undo the import rotation about the world origin
+					end
 					if d:IsA("MeshPart") then
 						report.meshParts = report.meshParts + 1
 						d.Anchored = true

@@ -37,16 +37,16 @@
  "lighting": {
   "clock_time": 15.2,
   "geographic_latitude": 38.0,
-  "brightness": 2.6,
+  "brightness": 2.0,
   "ambient": [
-   0.52,
-   0.56,
-   0.66
+   0.27,
+   0.29,
+   0.34
   ],
   "outdoor_ambient": [
-   0.56,
-   0.6,
-   0.7
+   0.44,
+   0.47,
+   0.55
   ],
   "color_shift_top": [
    1.0,
