@@ -9,7 +9,7 @@ local function main(id, title, hint, objective, coins, knowledge, rep, giver)
 		prerequisite = Q.mainOrder[#Q.mainOrder] }
 	Q.mainOrder[#Q.mainOrder + 1] = id
 end
-main("q01", "Deine Werkstatt wartet", "Geh zur Werkstatttür am Markt und tritt ein.", { type = "enter_workshop" }, 0, 5, 0, "plaza")
+main("q01", "Deine Werkstatt wartet", "Folge dem Wegweiser „Deine Werkstatt“ und geh hinein.", { type = "enter_workshop" }, 0, 5, 0, "plaza")
 main("q02", "Der erste Trank", "Braue am Kessel 1 Kleines Tonikum (2 Minze + Wasser).", { type = "craft", item = "tonic_minor", count = 1 }, 10, 8, 0, "workshop_door")
 main("q03", "Ware ins Regal", "Stelle einen Trank ins Verkaufsregal und warte auf Kundschaft.", { type = "sell", count = 1 }, 15, 10, 2, "workshop_door")
 main("q04", "Drei für die Markthalle", "Liefere 3 Tränke deiner Wahl in der Markthalle ab.", { type = "deliver", at = "market_hall", anyOf = { "tonic_minor", "vitality_draught", "night_ink" }, count = 3 }, 60, 15, 6)

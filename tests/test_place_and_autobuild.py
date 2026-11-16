@@ -367,6 +367,7 @@ def check_resource_world():
     items = {n.item for n in g.Locations.nodes.values()}
     assert {"res_" + i for i in items} == set(manifest) == set(g.Art.keys()), "one model per node item"
     res = lua.eval("""(function()
+        UDim2 = UDim2 or { new = function(...) return { ... } end }
         local new = Instance.new
         Instance.new = function(class, parent)
             local obj = new(class, parent)

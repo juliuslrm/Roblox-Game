@@ -61,6 +61,16 @@ function World.build(parent, nodeAnchors, origin, templates, groundPosition, onG
 		prompt.MaxActivationDistance, prompt.RequiresLineOfSight, prompt.HoldDuration = 10, false, 0.15
 		prompt.Triggered:Connect(function(player) onGather(player, id) end)
 		prompt.Parent = body
+		-- small name tag, readable from a few steps away
+		local tag = Instance.new("BillboardGui")
+		tag.Name, tag.Size, tag.MaxDistance = "Name", UDim2.new(0, 130, 0, 26), 45
+		tag.StudsOffsetWorldSpace = Vector3.new(0, body.Size.Y / 2 + 1.4, 0)
+		local text = Instance.new("TextLabel")
+		text.Size, text.BackgroundTransparency, text.TextScaled = UDim2.new(1, 0, 1, 0), 1, true
+		text.Font, text.TextColor3, text.TextStrokeTransparency = Enum.Font.GothamBold, Color3.fromRGB(247, 244, 236), 0.4
+		text.Text = Items[node.item].name
+		text.Parent = tag
+		tag.Parent = body
 		self.entries[id] = { body = body, prompt = prompt, empty = false }
 	end
 	local previous = parent:FindFirstChild(root.Name)

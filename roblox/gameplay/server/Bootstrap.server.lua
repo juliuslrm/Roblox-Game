@@ -50,10 +50,54 @@ else
 	warn("[Arcane] ServerStorage.VillageWorld.WorldLayout not found - village services are disabled")
 end
 
+-- Ground height under a village-local point.  Taken from the height map of the level plan, not from
+-- a ray: at server start the ground meshes still have their coarse default collision, and rays
+-- put objects up to 2.8 studs too high (measured in the place).  Without a height map (plain test
+-- place) a ray is the fallback.
+local heightAt
+do
+	local worldFolder = ServerStorage:FindFirstChild("VillageWorld")
+	local hmModule = worldFolder and worldFolder:FindFirstChild("WorldHeightmap")
+	local tbModule = worldFolder and worldFolder:FindFirstChild("VillageTerrainBuilder")
+	if hmModule and tbModule then
+		local hm = require(hmModule)
+		local heights = require(tbModule).decodeHeights(hm)
+		local n, cell = hm.verticesPerSide, hm.cell
+		heightAt = function(x, z)
+			local fx = math.clamp((x - hm.originX) / cell, 0, n - 1.001)
+			local fz = math.clamp((hm.originZ - z) / cell, 0, n - 1.001)
+			local i, j = math.floor(fx), math.floor(fz)
+			local u, v = fx - i, fz - j
+			local h00, h10 = heights[j * n + i + 1], heights[j * n + i + 2]
+			local h01, h11 = heights[(j + 1) * n + i + 1], heights[(j + 1) * n + i + 2]
+			return (h00 * (1 - u) + h10 * u) * (1 - v) + (h01 * (1 - u) + h11 * u) * v
+		end
+	end
+end
 local function groundPosition(a)
+	if heightAt then return origin * Vector3.new(a.x, heightAt(a.x, a.z) + 0.1, a.z) end
 	local p = origin * Vector3.new(a.x, a.y or 0, a.z)
 	local hit = workspace:Raycast(p + Vector3.new(0, 200, 0), Vector3.new(0, -500, 0))
 	return hit and hit.Position or p
+end
+-- Like groundPosition, but on top of the bridge or the dock where one of them is above the point
+-- (places and water sources there would otherwise end up in the stream).
+local decks
+local function standPosition(a)
+	local ground = groundPosition(a)
+	if not decks then
+		decks = {}
+		local village = workspace:FindFirstChild("Village")
+		for _, d in ipairs(village and village:GetDescendants() or {}) do
+			if d:IsA("Model") and (d.Name == "bridge_stone" or d.Name == "dock") then decks[#decks + 1] = d end
+		end
+	end
+	if #decks == 0 then return ground end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = decks
+	local hit = workspace:Raycast(ground + Vector3.new(0, 60, 0), Vector3.new(0, -60, 0), params)
+	return (hit and hit.Position.Y > ground.Y) and hit.Position or ground
 end
 -- the pure core works in village-local coordinates; convert character positions back into them
 local function toLocal(position)
@@ -111,6 +155,20 @@ local function snapshotFor(player)
 	if snap.workshop then
 		local room = workshops.rooms[snap.workshop.owner]
 		if room then snap.room = { x = room.origin.X, y = room.origin.Y, z = room.origin.Z } end
+	end
+	-- where the player's own workshop stands and where the current main quest sends him: the client
+	-- shows both as signposts on screen
+	local home = walkable and workshops.rooms[player.UserId]
+	if home then snap.home = { x = home.origin.X, y = home.origin.Y, z = home.origin.Z } end
+	local o = snap.quest and snap.quest.objective
+	if o then
+		local at = o.at or o.visit or (o.type == "research" and "market_hall") or nil
+		if at and anchors[at] then
+			local pos = groundPosition(anchors[at])
+			snap.guide = { x = pos.X, y = pos.Y, z = pos.Z, label = Locations.locations[at].name }
+		elseif snap.home then
+			snap.guide = { x = snap.home.x, y = snap.home.y, z = snap.home.z, label = "Deine Werkstatt", home = true }
+		end
 	end
 	return snap
 end
@@ -173,19 +231,58 @@ end
 local markers = Instance.new("Folder")
 markers.Name = "ArcaneMarkers"
 markers.Parent = workspace
+-- A place to talk to someone: a lamp post with a name plate that always faces the camera and a
+-- quiet ring on the ground.  (Replaces the glowing discs of the first version.)
 local function marker(name, position, color, actionText, objectText, onTrigger)
-	local p = Instance.new("Part")
-	p.Name, p.Anchored, p.CanCollide, p.Shape = name, true, false, Enum.PartType.Cylinder
-	p.Size, p.Color, p.Material, p.Transparency = Vector3.new(0.4, 5, 5), color, Enum.Material.Neon, 0.35
-	p.CFrame = CFrame.new(position + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	local folder = Instance.new("Folder")
+	folder.Name = name
+	local function piece(props)
+		local q = Instance.new("Part")
+		q.Anchored, q.CanCollide, q.CanTouch, q.CanQuery, q.CastShadow = true, false, false, false, false
+		q.TopSurface, q.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+		for k, v in pairs(props) do q[k] = v end
+		q.Parent = folder
+		return q
+	end
+	local segments, radius = 14, 3.2
+	for i = 1, segments do
+		local angle = (i - 1) / segments * math.pi * 2
+		piece({ Name = "Ring", Size = Vector3.new(0.95, 0.12, 0.3), Color = color, Material = Enum.Material.SmoothPlastic,
+			Transparency = 0.25,
+			CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * radius, 0.08, math.sin(angle) * radius))
+				* CFrame.Angles(0, -angle + math.pi / 2, 0) })
+	end
+	local wood = Color3.fromRGB(91, 58, 38)
+	piece({ Name = "Post", Size = Vector3.new(0.45, 6.4, 0.45), Color = wood, Material = Enum.Material.Wood,
+		Position = position + Vector3.new(0, 3.2, 0), CastShadow = true })
+	piece({ Name = "Cap", Size = Vector3.new(0.8, 0.2, 0.8), Color = wood, Material = Enum.Material.Wood,
+		Position = position + Vector3.new(0, 6.5, 0) })
+	local gem = piece({ Name = "Gem", Size = Vector3.new(0.9, 0.9, 0.9), Shape = Enum.PartType.Ball, Color = color,
+		Material = Enum.Material.Glass, Transparency = 0.1, Position = position + Vector3.new(0, 7.1, 0), CanQuery = true })
+	local plate = Instance.new("BillboardGui")
+	plate.Name, plate.Size, plate.StudsOffset = "Name", UDim2.new(0, 190, 0, 34), Vector3.new(0, 1.5, 0)
+	plate.MaxDistance, plate.AlwaysOnTop = 110, false
+	local text = Instance.new("TextLabel")
+	text.Size, text.BackgroundColor3, text.BackgroundTransparency = UDim2.new(1, 0, 1, 0), Color3.fromRGB(241, 235, 221), 0.1
+	text.TextColor3, text.Font, text.TextScaled, text.Text = Color3.fromRGB(60, 40, 28), Enum.Font.GothamBold, true, objectText
+	local round = Instance.new("UICorner")
+	round.CornerRadius = UDim.new(0, 8)
+	round.Parent = text
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft, pad.PaddingRight, pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 8), UDim.new(0, 5), UDim.new(0, 5)
+	pad.Parent = text
+	text.Parent = plate
+	plate.Parent = gem
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText, prompt.ObjectText, prompt.MaxActivationDistance, prompt.RequiresLineOfSight = actionText, objectText, 12, false
 	prompt.HoldDuration = 0.15
 	prompt.Triggered:Connect(onTrigger)
-	prompt.Parent = p
-	p.Parent = markers
-	return p
+	prompt.Parent = gem
+	folder.Parent = markers
+	return folder
 end
+local MARKER_COLORS = { hub = Color3.fromRGB(201, 154, 60), home = Color3.fromRGB(193, 120, 70),
+	service = Color3.fromRGB(96, 150, 190), nature = Color3.fromRGB(95, 163, 110) }
 for id, a in pairs(anchors) do
 	local loc = Locations.locations[id]
 	if id == "workshop_door" and not walkable then
@@ -194,7 +291,7 @@ for id, a in pairs(anchors) do
 			push(player)
 		end)
 	else
-		marker("Location_" .. id, groundPosition(a), Color3.fromRGB(127, 178, 201), "Ansprechen", loc.name, function(player)
+		marker("Location_" .. id, standPosition(a), MARKER_COLORS[loc.markerStyle] or MARKER_COLORS.service, "Ansprechen", loc.name, function(player)
 			local session = world.sessions[player.UserId]
 			if session then
 				local x, z = toLocal(player.Character.HumanoidRootPart.Position)
@@ -208,7 +305,7 @@ end
 -- resource nodes: a model of the resource itself, harvested through its own prompt
 local resources
 resources = ResourceWorld.build(workspace, nodeAnchors, origin, ServerStorage:FindFirstChild("ArcaneResourceAssets"),
-	groundPosition, function(player, id)
+	standPosition, function(player, id)
 		local result = perform(player, "GatherNode", { node = id })
 		event:FireClient(player, "ActionResult", result)
 		push(player)

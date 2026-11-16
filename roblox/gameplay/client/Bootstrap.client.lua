@@ -130,18 +130,46 @@ local function row(text, actionText, onClick, color)
 	return f
 end
 local function heading(text) label(text, scroll, UDim2.new(1, -8, 0, 26), C.wood, true) end
+-- Short fingerprint of everything the panels show that changes through actions.
+local function signature(s)
+	local parts = { s.wallet, s.knowledge, s.repPoints, s.questIndex, s.version, tostring(s.inWorkshop),
+		s.quest and s.quest.progress or 0, s.project and s.project.progress or 0, s.workshop and s.workshop.version or 0 }
+	local ids = {}
+	for id in pairs(s.items) do ids[#ids + 1] = id end
+	table.sort(ids)
+	for _, id in ipairs(ids) do parts[#parts + 1] = id .. "=" .. s.items[id] end
+	local n = 0
+	for _ in pairs(s.research) do n = n + 1 end
+	parts[#parts + 1] = n
+	for _, o in ipairs(s.orders or {}) do parts[#parts + 1] = tostring(o.id) end
+	for id, c in pairs(s.chains or {}) do parts[#parts + 1] = id .. (c.done or 0) end
+	for i = 1, #parts do parts[i] = tostring(parts[i]) end
+	return table.concat(parts, "|")
+end
 local function open(name, title, render)
-	current = { name = name, title = title, render = render }
+	current = { name = name, title = title, render = render, version = Net.snapshot and signature(Net.snapshot), at = os.clock() }
 	panelTitle.Text = title
 	panel.Visible = true
 	clear()
+	scroll.CanvasPosition = Vector2.new(0, 0)
 	if Net.snapshot then render(Net.snapshot) end
 end
-local function refresh()
-	if current and Net.snapshot then
-		clear()
-		current.render(Net.snapshot)
-	end
+-- Panels with running timers; everything else only changes when the game state changes.
+local LIVE = { machine = 2, workshop = 2 }
+-- The server sends a snapshot every second.  Rebuilding the open panel each time made lists jump
+-- back to the top and swallowed taps on buttons that were just being replaced.  Rebuild only when
+-- the state changed (or at a slow pace for panels that show timers) and keep the scroll position.
+local function refresh(force)
+	local s = Net.snapshot
+	if not (current and s) then return end
+	local age = os.clock() - current.at
+	local sig = signature(s)
+	if not force and sig == current.version and age < (LIVE[current.name] or 8) then return end
+	current.version, current.at = sig, os.clock()
+	local keep = scroll.CanvasPosition
+	clear()
+	current.render(s)
+	task.defer(function() scroll.CanvasPosition = keep end)
 end
 
 -- ---------------------------------------------------------------- panels
@@ -232,7 +260,7 @@ end
 
 local Build = { machine = nil, rot = 0, ghost = nil, cell = nil }
 local function renderBuild(s)
-	if not s.workshop then row("Bauen kannst du nur in deiner Werkstatt.") return end
+	if not s.workshop then row("Bauen kannst du nur in deiner Werkstatt. Folge dem Wegweiser „Deine Werkstatt“ und geh hinein.") return end
 	for _, cat in ipairs({ { "machine", "Maschinen" }, { "transport", "Transport" }, { "storage", "Lager" } }) do
 		heading(cat[2])
 		local ids = {}
@@ -242,9 +270,9 @@ local function renderBuild(s)
 			local def = Machines[id]
 			if s.research[def.research] then
 				row(def.name .. "  –  " .. def.cost .. " Münzen  (" .. def.w * 2 .. "×" .. def.d * 2 .. " Studs)", "Platzieren", function()
-					Build.machine, Build.rot = id, 0
+					Build.machine, Build.rot, Build.pointer, Build.cell = id, 0, nil, nil
 					closePanel()
-					toast("Tippe auf den Boden. Drehen: R oder ⟳, Bestätigen: ✓", C.wood)
+					toast("Tippe auf den Werkstattboden, um den Platz zu wählen. ⟳ dreht, ✓ baut, X bricht ab.", C.wood)
 				end)
 			else
 				row("🔒 " .. def.name .. "\nForschung: " .. Research[def.research].name, nil, nil, C.dim)
@@ -318,7 +346,7 @@ end
 
 local function renderWorkshop(s)
 	local w = s.workshop
-	if not w then row("Du bist nicht in einer Werkstatt.") return end
+	if not w then row("Du bist nicht in einer Werkstatt. Folge dem Wegweiser „Deine Werkstatt“ und geh hinein.") return end
 	heading("Betrieb")
 	row(string.format("Durchsatz: %.1f Teile pro Minute (letzte Minute)", w.ratePerMin))
 	row("Im Regal: " .. itemList(w.stock) .. string.format("\nNächster Kunde in etwa %d s", math.max(0, math.ceil(w.nextCustomerIn))))
@@ -346,7 +374,7 @@ button("Werkstatt", bar, function() open("workshop", "Werkstatt", renderWorkshop
 local confirm = make("Frame", { Size = UDim2.new(0, 220, 0, 56), Position = UDim2.new(0.5, -110, 1, -130), BackgroundTransparency = 1, Visible = false }, gui)
 make("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, confirm)
 local function stopBuild()
-	Build.machine = nil
+	Build.machine, Build.pointer, Build.cell = nil, nil, nil
 	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
 	confirm.Visible = false
 end
@@ -362,10 +390,33 @@ button("X", confirm, stopBuild, C.bad).Size = UDim2.new(0, 64, 0, 52)
 
 local function pointerPosition()
 	if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+		-- touch: the last spot tapped on the floor; before the first tap the screen centre
+		if Build.pointer then return Build.pointer end
 		local cam = workspace.CurrentCamera
-		return Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)     -- touch: aim with the screen centre
+		return Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
 	end
 	return UserInputService:GetMouseLocation()
+end
+UserInputService.TouchTapInWorld:Connect(function(position, processed)
+	if Build.machine and not processed then Build.pointer = position end
+end)
+-- First workshop floor under a screen point.  The ray passes the own character (which stands in the
+-- middle of the screen on a phone), machines and walls.
+local function floorUnder(pos)
+	local cam = workspace.CurrentCamera
+	local ray = cam:ViewportPointToRay(pos.X, pos.Y)
+	local ignore = { Build.ghost, player.Character }
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local from = ray.Origin
+	for _ = 1, 8 do
+		params.FilterDescendantsInstances = ignore
+		local hit = workspace:Raycast(from, ray.Direction * 500, params)
+		if not hit then return nil end
+		if hit.Instance:GetAttribute("ArcaneFloor") then return hit end
+		ignore[#ignore + 1] = hit.Instance
+	end
+	return nil
 end
 RunService.RenderStepped:Connect(function()
 	local s = Net.snapshot
@@ -374,11 +425,8 @@ RunService.RenderStepped:Connect(function()
 		return
 	end
 	confirm.Visible = true
-	local cam = workspace.CurrentCamera
-	local pos = pointerPosition()
-	local ray = cam:ViewportPointToRay(pos.X, pos.Y)
-	local hit = workspace:Raycast(ray.Origin, ray.Direction * 400)
-	if not hit or not hit.Instance:GetAttribute("ArcaneFloor") then return end
+	local hit = floorUnder(pointerPosition())
+	if not hit then return end
 	local def = Machines[Build.machine]
 	local w, d = Grid.size(def, Build.rot)
 	local half = s.workshop.cells * Config.cellSize / 2
@@ -484,7 +532,49 @@ local NOTE = {
 	visit = function(n) return "Entdeckt: " .. Locations.locations[n.at].name end,
 	coop = function(n) return "Werkstatt-Einladung: Rolle " .. n.role end,
 }
+-- ---------------------------------------------------------------- signposts
+-- Two markers that are visible through everything: the own workshop and the place the current
+-- main quest sends the player to.  Positions come from the server snapshot.
+local function signpost(color)
+	local anchor = make("Part", { Name = "ArcaneSignpost", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false,
+		Transparency = 1, Size = Vector3.new(1, 1, 1) }, workspace)
+	local board = make("BillboardGui", { Size = UDim2.new(0, 180, 0, 46), AlwaysOnTop = true, MaxDistance = 100000, Enabled = false,
+		StudsOffsetWorldSpace = Vector3.new(0, 14, 0) }, anchor)
+	local text = make("TextLabel", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = color, BackgroundTransparency = 0.15,
+		TextColor3 = C.cream, Font = Enum.Font.GothamBold, TextScaled = true, Text = "" }, board)
+	corner(text, 10)
+	make("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) }, text)
+	return { anchor = anchor, board = board, text = text, label = "" }
+end
+local posts = { home = signpost(C.wood), quest = signpost(C.ok) }
+local function setPost(post, target, labelText)
+	post.board.Enabled = target ~= nil
+	if target then
+		post.anchor.Position = Vector3.new(target.x, target.y, target.z)
+		post.label = labelText
+	end
+end
+local postAcc = 0
+RunService.Heartbeat:Connect(function(dt)
+	postAcc = postAcc + dt
+	if postAcc < 0.25 then return end
+	postAcc = 0
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	for _, post in pairs(posts) do
+		if post.board.Enabled then
+			local distance = root and math.floor((root.Position - post.anchor.Position).Magnitude) or nil
+			post.text.Text = distance and (post.label .. "  ·  " .. distance .. " m") or post.label
+			-- close by the marker would only be in the way
+			post.text.Visible = not distance or distance > 14
+		end
+	end
+end)
+
 Net.onSnapshot(function(s)
+	local atHome = s.inWorkshop == s.userId
+	local questAtHome = s.guide and s.guide.home
+	setPost(posts.home, (not atHome and not questAtHome) and s.home or nil, "Deine Werkstatt")
+	setPost(posts.quest, (s.guide and not (questAtHome and atHome)) and s.guide or nil, s.guide and ("Auftrag: " .. s.guide.label) or "")
 	hudMoney.Text = s.wallet .. " Münzen   " .. s.knowledge .. " Wissen   Ruf " .. s.repLevel
 	if s.quest then
 		hudQuest.Text = s.quest.title

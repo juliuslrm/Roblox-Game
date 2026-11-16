@@ -51,9 +51,16 @@ do -- resource nodes: the model of the item stands on the ground and carries the
 			if math.abs(gap) > 1.2 then odd[#odd + 1] = string.format("%s %.1f", f.Name, gap) end
 		end
 	end
+	local places, discs = 0, 0
 	for _, m in ipairs(workspace.ArcaneMarkers:GetChildren()) do
 		if string.sub(m.Name, 1, 5) == "Node_" then circles = circles + 1 end
+		local gem = m:FindFirstChild("Gem")
+		if gem and gem:FindFirstChildOfClass("ProximityPrompt") and gem:FindFirstChild("Name") then places = places + 1 end
+		for _, d in ipairs(m:IsA("BasePart") and { m } or m:GetDescendants()) do
+			if d:IsA("BasePart") and d.Material == Enum.Material.Neon then discs = discs + 1 end
+		end
 	end
+	p("place markers: %d posts with name plate and prompt, %d glowing parts left", places, discs)
 	p("resource nodes: %d, textured meshes %d, prompts %d, largest gap between model base and ground %.2f studs, old node circles %d %s",
 		nodes, meshes, prompts, worst, circles, table.concat(odd, "; "))
 end

@@ -130,3 +130,28 @@ Farbe und werden grau. Die Deutung „Detailstufen" war falsch.
   Deko stecken, ist nicht geprüft. Die Orts-Kreise („Ansprechen") bleiben, bis es NPC-Figuren gibt.
 - Im Roblox-Konto liegt noch die alte Geländebibliothek (Asset 115718062572873, „VillageTerrain"),
   die nicht mehr geladen wird.
+
+## Nachtrag 2026-11-16 (7): Bedienung, Markierungen, Bodenhöhen
+
+Place-Version 17. Auf dem Server gemessen, Client-Änderungen nur per Syntaxprüfung und Durchsicht.
+
+Behoben:
+- Client: Das offene Menü wurde bei jedem Snapshot (1 ×/s) neu aufgebaut – Listen sprangen nach
+  oben, Tipps auf Knöpfe gingen verloren. Jetzt nur bei geänderter Signatur des Spielstands (bzw.
+  alle 2 s bei Menüs mit Timern), die Scrollposition bleibt erhalten.
+- Client: Der Bau-Platzhalter zielte am Handy auf die Bildschirmmitte, wo die eigene Figur steht;
+  der Strahl traf sie statt des Bodens. Jetzt zählt die zuletzt angetippte Stelle, und der Strahl
+  geht durch Figur, Maschinen und Wände bis zum Werkstattboden.
+- Server: Bodenhöhen für Sammelstellen, Ortsmarkierungen und Marktstände kamen aus Strahlen gegen
+  die noch grobe Startkollision (bis 2,8 Studs zu hoch). Jetzt aus der Höhenkarte; auf Brücke und
+  Steg zählt deren Oberseite. Gemessen: größte Lücke Modell–Boden 0,9 Studs (vorher 2,8).
+
+Neu:
+- Wegweiser auf dem Bildschirm zur eigenen Werkstatt und zum Ziel des Hauptauftrags, mit Entfernung
+  (`snap.home`, `snap.guide`).
+- Ortsmarkierungen: Pfosten mit Namensschild und ruhigem Bodenring statt leuchtender Scheiben,
+  Farbe nach Art des Ortes. Gemessen: 16 Pfosten mit Schild und Prompt, kein Neon-Teil mehr.
+- Namensschilder an den Rohstoffen; Hinweistexte nennen den Wegweiser.
+
+Weiter offen: Händler-Animation, Aussehen und Bedienung auf dem Gerät (alle Client-Änderungen
+dieser Runde), 0,9 % der Bodenpunkte mit mehr als 1,5 Studs Kollisionsabweichung.
