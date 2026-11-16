@@ -1,9 +1,9 @@
 <roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
 <External>null</External>
 <External>nil</External>
-<Item class="Workspace" referent="RBX000006"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item>
-<Item class="Lighting" referent="RBX000007"><Properties><string name="Name">Lighting</string><float name="ClockTime">15.2</float><float name="Brightness">2.6</float></Properties></Item>
-<Item class="ReplicatedStorage" referent="RBX000020"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000019"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000008"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Global tuning values. Pure data (Lua 5.1 compatible).
+<Item class="Workspace" referent="RBX000008"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item>
+<Item class="Lighting" referent="RBX000009"><Properties><string name="Name">Lighting</string><float name="ClockTime">15.2</float><float name="Brightness">2.6</float></Properties></Item>
+<Item class="ReplicatedStorage" referent="RBX000022"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000021"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000010"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Global tuning values. Pure data (Lua 5.1 compatible).
 return {
 	schemaVersion = 1,
 	cellSize = 2,                 -- studs per workshop grid cell
@@ -43,7 +43,7 @@ return {
 	maxPlayers = 4,
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000009"><Properties><string name="Name">GridMath</string><ProtectedString name="Source"><![CDATA[-- Grid geometry of the workshop. Cells are integers; direction 0=+z 1=+x 2=-z 3=-x.
+<Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">GridMath</string><ProtectedString name="Source"><![CDATA[-- Grid geometry of the workshop. Cells are integers; direction 0=+z 1=+x 2=-z 3=-x.
 local GridMath = {}
 GridMath.DX = { [0] = 0, [1] = 1, [2] = 0, [3] = -1 }
 GridMath.DZ = { [0] = 1, [1] = 0, [2] = -1, [3] = 0 }
@@ -81,7 +81,7 @@ function GridMath.opposite(dir)
 end
 return GridMath
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000010"><Properties><string name="Name">Items</string><ProtectedString name="Source"><![CDATA[-- Item database. Liquids are counted in integer millilitres (unit = "ml").
+<Item class="ModuleScript" referent="RBX000012"><Properties><string name="Name">Items</string><ProtectedString name="Source"><![CDATA[-- Item database. Liquids are counted in integer millilitres (unit = "ml").
 local Items = {}
 local function add(id, type_, name, sell, tier, extra)
 	local it = { id = id, type = type_, name = name, sellBase = sell or 0, unlockTier = tier or 0,
@@ -140,7 +140,7 @@ add("void_seed", "product", "Leerensaat", 450, 5, { rarity = "epic" })
 add("elixir_master", "product", "Meisterelixier", 850, 5, { rarity = "epic" })
 return Items
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">Locations</string><ProtectedString name="Source"><![CDATA[-- Village locations and resource nodes. Positions are NOT stored here: VillageAdapter derives
+<Item class="ModuleScript" referent="RBX000013"><Properties><string name="Name">Locations</string><ProtectedString name="Source"><![CDATA[-- Village locations and resource nodes. Positions are NOT stored here: VillageAdapter derives
 -- every anchor from the generated WorldLayout (asset id of the unique building instance).
 -- unlock: nil (always) | { research = id } | { quest = id } | { rep = level }
 local L = { locations = {}, nodes = {} }
@@ -197,7 +197,7 @@ node("n_seed_mint_farm", "seed_mint", "farm", -12, 8, 1, 3, 60, { research = "fa
 node("n_seed_sun_farm", "seed_sunleaf", "farm", -16, 12, 1, 3, 60, { research = "farming" })
 return L
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000012"><Properties><string name="Name">Machines</string><ProtectedString name="Source"><![CDATA[-- Placeable workshop entities: machines, storage and logistics.
+<Item class="ModuleScript" referent="RBX000014"><Properties><string name="Name">Machines</string><ProtectedString name="Source"><![CDATA[-- Placeable workshop entities: machines, storage and logistics.
 -- Footprints are in grid cells (1 cell = 2 studs). Local frame: +z = front, +x = right.
 -- Directions: 0 = +z (front), 1 = +x (right), 2 = -z (back), 3 = -x (left).
 -- kind: machine | pump | crate | shelf | belt | turn | hopper | splitter | merger | sorter | pipe | tank | lift | gate
@@ -272,7 +272,7 @@ M.shop_shelf = { id = "shop_shelf", name = "Verkaufsregal", kind = "shelf", tier
 	modelAssetId = "logi_shop_shelf", category = "storage" }
 return M
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000013"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int", "num", "str", "bool", "id" (short string), "ids" (array of ids).
+<Item class="ModuleScript" referent="RBX000015"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int", "num", "str", "bool", "id" (short string), "ids" (array of ids).
 -- A field name ending in "?" is optional.
 local P = {}
 P.remoteName = "ArcaneRequest"
@@ -315,7 +315,7 @@ P.messages = {
 }
 return P
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000014"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
+<Item class="ModuleScript" referent="RBX000016"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
 --   enter_workshop | craft{item,count,auto?} | sell{count} | deliver{items,at} | visit{at}
 --   research{id} | place{machine} | piped{ml} | floors{count} | lines{count,windowSec} | rate{perMin,windowSec}
 -- rewards: coins, knowledge, rep, flag
@@ -414,7 +414,7 @@ Q.projects = {
 }
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000015"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
+<Item class="ModuleScript" referent="RBX000017"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
 local W = 1000
 local R = {}
 local function add(id, tier, machine, inputs, outputs, t, research, extra)
@@ -462,7 +462,7 @@ add("d02", 3, "quarry_drill", {}, { ore_copper = 1 }, 30, "licensed_mining", { k
 add("d03", 3, "quarry_drill", {}, { ore_iron = 1 }, 30, "licensed_mining", { knowledgeRewardFirstCraft = 0, supply = true, fuelUnits = 1, source = true })
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000016"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
+<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
 local T = {}
 local function node(id, tier, cost, prereqs, unlocks, name)
 	T[id] = { id = id, tier = tier, cost = cost, prereqs = prereqs, unlocks = unlocks, name = name }
@@ -497,7 +497,7 @@ node("portal_logistics", 5, 200, { "arcane_depths", "smart_sorting" }, { "magica
 node("master_blueprints", 5, 130, { "multi_floor", "flow_control" }, { "blueprint_slots_20" }, "Meisterbaupläne")
 return T
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000017"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
+<Item class="ModuleScript" referent="RBX000019"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
 local Util = {}
 function Util.isInt(v)
 	return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge and math.floor(v) == v
@@ -533,7 +533,7 @@ function Util.nextRandom(state)
 end
 return Util
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
+<Item class="ModuleScript" referent="RBX000020"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
 local Validator = {}
 function Validator.run(D)
 	local errs = {}
@@ -672,7 +672,7 @@ return Validator
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="ServerStorage" referent="RBX000023"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000021"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
+<Item class="ServerStorage" referent="RBX000025"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000023"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
 	VillageWorldBuilder  (ModuleScript)
 
 	Assembles the village from imported meshes and the generated WorldLayout
@@ -1374,7 +1374,110 @@ end
 
 return Auto
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000004"><Properties><string name="Name">WorldLayout</string><ProtectedString name="Source"><![CDATA[-- AUTO-GENERATED by blender/build_world.py from world/world_layout.json. Do not edit by hand.
+<Item class="ModuleScript" referent="RBX000004"><Properties><string name="Name">VillageAssetLoader</string><ProtectedString name="Source"><![CDATA[--[[
+	VillageAssetLoader  (UNVERIFIED_IN_STUDIO)
+
+	Loads the uploaded model libraries with InsertService:LoadAsset at server start and stores
+	them as template folders in ServerStorage, where VillageWorldBuilder (VillageAssets) and
+	WorkshopWorld (ArcaneAssets) look for meshes by name.
+
+	Every mesh uses the one palette texture.  If the import lost the texture (MeshPart.TextureID
+	empty and no SurfaceAppearance), the loader assigns the uploaded palette image instead.
+
+	Loader.load{ ids = <VillageAssetIds>, insertService = InsertService, parent = ServerStorage }
+	  -> report { folders = {name = Folder}, loaded, failed = {..}, meshParts, retextured, texture }
+	Existing folders (e.g. imported by hand in Studio) are kept and not loaded again.
+]]
+local Loader = {}
+
+local function paletteTexture(insertService, decalId, report)
+	if not decalId then return nil end
+	local ok, result = pcall(function() return insertService:LoadAsset(decalId) end)
+	if not ok then
+		report.failed[#report.failed + 1] = "palette " .. tostring(decalId) .. ": " .. tostring(result)
+		return nil
+	end
+	local texture
+	for _, d in ipairs(result:GetDescendants()) do
+		if d:IsA("Decal") and d.Texture ~= "" then texture = d.Texture break end
+	end
+	result:Destroy()
+	return texture
+end
+
+local function hasSurfaceAppearance(part)
+	for _, child in ipairs(part:GetChildren()) do
+		if child:IsA("SurfaceAppearance") then return true end
+	end
+	return false
+end
+
+function Loader.load(opts)
+	local ids, insertService, parent = opts.ids, opts.insertService, opts.parent
+	local report = { folders = {}, loaded = 0, failed = {}, meshParts = 0, retextured = 0 }
+	local texture -- resolved lazily, only when something was actually loaded
+	local textureResolved = false
+
+	for folderName, assetIds in pairs(ids.folders or {}) do
+		local existing = parent:FindFirstChild(folderName)
+		if existing then
+			report.folders[folderName] = existing
+		else
+			local folder = Instance.new("Folder")
+			folder.Name = folderName
+			local any = false
+			for _, assetId in ipairs(assetIds) do
+				local ok, result = pcall(function() return insertService:LoadAsset(assetId) end)
+				if ok and result then
+					result.Name = "Asset_" .. tostring(assetId)
+					result.Parent = folder
+					report.loaded = report.loaded + 1
+					any = true
+				else
+					report.failed[#report.failed + 1] = tostring(assetId) .. ": " .. tostring(result)
+				end
+			end
+			if any then
+				if not textureResolved then
+					texture = paletteTexture(insertService, ids.paletteDecal, report)
+					textureResolved = true
+				end
+				for _, d in ipairs(folder:GetDescendants()) do
+					if d:IsA("MeshPart") then
+						report.meshParts = report.meshParts + 1
+						d.Anchored = true
+						if texture and d.TextureID == "" and not hasSurfaceAppearance(d) then
+							d.TextureID = texture
+							report.retextured = report.retextured + 1
+						end
+					end
+				end
+				folder.Parent = parent
+				report.folders[folderName] = folder
+			else
+				folder:Destroy()
+			end
+		end
+	end
+	report.texture = texture
+	return report
+end
+
+return Loader
+]]></ProtectedString></Properties></Item>
+<Item class="ModuleScript" referent="RBX000005"><Properties><string name="Name">VillageAssetIds</string><ProtectedString name="Source"><![CDATA[-- Roblox asset ids of the uploaded model libraries (exports/library/*.fbx, uploaded through the
+-- Open Cloud Assets API).  The ids only load in experiences of the account that owns the assets.
+-- Set a value to nil to skip it; with no ids the village falls back to placeholder blocks.
+return {
+	-- target folder in ServerStorage -> list of Model asset ids
+	folders = {
+		VillageAssets = { 121417351385239, 115718062572873 }, -- village_assets.fbx, village_terrain.fbx
+		ArcaneAssets = { 89059240299616 },                    -- arcane_machines.fbx
+	},
+	paletteDecal = 124079534405265,                           -- exports/textures/village_palette.png
+}
+]]></ProtectedString></Properties></Item>
+<Item class="ModuleScript" referent="RBX000006"><Properties><string name="Name">WorldLayout</string><ProtectedString name="Source"><![CDATA[-- AUTO-GENERATED by blender/build_world.py from world/world_layout.json. Do not edit by hand.
 -- Positions are Roblox coordinates in studs. Instance rows:
 --   { assetIndex, x, y, z, yawDegrees, scale, groupIndex [, displayName] }
 return {
@@ -3420,7 +3523,7 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000005"><Properties><string name="Name">WorldHeightmap</string><ProtectedString name="Source"><![CDATA[-- AUTO-GENERATED by blender/build_world.py. Height map of the village terrain.
+<Item class="ModuleScript" referent="RBX000007"><Properties><string name="Name">WorldHeightmap</string><ProtectedString name="Source"><![CDATA[-- AUTO-GENERATED by blender/build_world.py. Height map of the village terrain.
 -- heights: 2 characters per vertex, row j (north, Roblox -Z) by column i (east, Roblox +X).
 -- value = (index(c1) * 90 + index(c2)) * step - offset   (see TerrainBuilder.lua)
 return {
@@ -3438,14 +3541,14 @@ return {
 }
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ModuleScript" referent="RBX000022"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
+<Item class="ModuleScript" referent="RBX000024"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
 -- Without imported meshes the village appears as placeholder blocks on voxel terrain.
 -- To get the real models import exports/library/village_assets.glb and village_terrain.glb into
 -- ServerStorage.VillageAssets and exports/library/arcane_machines.glb into ServerStorage.ArcaneAssets.
 return {}
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ServerScriptService" referent="RBX000047"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000024"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
+<Item class="ServerScriptService" referent="RBX000049"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000026"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
 -- Characters are held back until the ground exists, so nobody falls into the void.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
@@ -3454,14 +3557,47 @@ local folder = ServerStorage:WaitForChild("VillageWorld")
 Players.CharacterAutoLoads = false
 local ok, err = pcall(function()
 	local Auto = require(folder:WaitForChild("VillageAutoBuild"))
+	-- Fetch the uploaded model libraries; without them the village is built from placeholder blocks.
+	local loadOk, loaded = pcall(function()
+		return require(folder:WaitForChild("VillageAssetLoader")).load({
+			ids = require(folder:WaitForChild("VillageAssetIds")),
+			insertService = game:GetService("InsertService"),
+			parent = ServerStorage,
+		})
+	end)
+	if loadOk then
+		print(string.format("[Village] assets: %d libraries loaded, %d failed, %d mesh parts, %d retextured",
+			loaded.loaded, #loaded.failed, loaded.meshParts, loaded.retextured))
+		for _, message in ipairs(loaded.failed) do warn("[Village] asset load failed: " .. message) end
+	else
+		warn("[Village] asset loader failed: " .. tostring(loaded))
+	end
 	local origin = workspace:GetAttribute("VillageOrigin")
 	if typeof(origin) ~= "CFrame" then origin = CFrame.new() end
+	local layout = require(folder:WaitForChild("WorldLayout"))
+	local builder = require(folder:WaitForChild("VillageWorldBuilder"))
+	-- Use the meshes only if their names match the level plan; otherwise say what arrived and
+	-- fall back to placeholder blocks instead of building an empty world.
+	local templates = ServerStorage:FindFirstChild("VillageAssets")
+	if templates then
+		local found, missing = builder.checkTemplates(templates, layout)
+		print(string.format("[Village] templates: %d found, %d missing", #found, #missing))
+		if #found == 0 then
+			local names = {}
+			for _, d in ipairs(templates:GetDescendants()) do
+				if #names >= 20 then break end
+				names[#names + 1] = d.ClassName .. ":" .. d.Name
+			end
+			warn("[Village] no template name matches the level plan. First instances: " .. table.concat(names, ", "))
+			templates = nil
+		end
+	end
 	local report = Auto.run({
-		layout = require(folder:WaitForChild("WorldLayout")),
+		layout = layout,
 		heightmap = require(folder:WaitForChild("WorldHeightmap")),
-		builder = require(folder:WaitForChild("VillageWorldBuilder")),
+		builder = builder,
 		terrainBuilder = require(folder:WaitForChild("VillageTerrainBuilder")),
-		templates = ServerStorage:FindFirstChild("VillageAssets"),
+		templates = templates,
 		origin = origin,
 	})
 	print(string.format("[Village] built in mode '%s': %d objects placed, %d missing, %d terrain cells",
@@ -3480,7 +3616,7 @@ Players.PlayerAdded:Connect(function(player)
 	if not player.Character then player:LoadCharacter() end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="Folder" referent="RBX000046"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000025"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
+<Item class="Folder" referent="RBX000048"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000027"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
 -- handle(world, session, action, payload, ctx) -> { ok, code, version, payload }
 -- ctx = { now = seconds (server clock) }.  The client never supplies positions, prices or amounts of money.
 local D = require(script.Parent.Data)
@@ -3966,7 +4102,7 @@ end
 Actions.handlers = H
 return Actions
 ]]></ProtectedString></Properties></Item>
-<Item class="Script" referent="RBX000026"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
+<Item class="Script" referent="RBX000028"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
 -- and the DataStore.  Place under ServerScriptService.ArcaneServer (see default.project.json).
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -4258,7 +4394,7 @@ workspace.DescendantAdded:Connect(function(inst)
 end)
 print("[Arcane] server ready - persistent saves: " .. tostring(persistent))
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000027"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
+<Item class="ModuleScript" referent="RBX000029"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
 local Co = {}
 Co.RANK = { visitor = 1, operator = 2, builder = 3, owner = 4 }
 function Co.role(world, ownerId, userId)
@@ -4285,7 +4421,7 @@ end
 function Co.clearOwner(world, ownerId) world.coop[ownerId] = nil end
 return Co
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000028"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
+<Item class="ModuleScript" referent="RBX000030"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 return {
 	Config = require(Shared.Config), Items = require(Shared.Items), Recipes = require(Shared.Recipes),
@@ -4294,7 +4430,7 @@ return {
 	Util = require(Shared.Util), Validator = require(Shared.Validator),
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000029"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
+<Item class="ModuleScript" referent="RBX000031"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
 local D = require(script.Parent.Data)
 local Config, Util = D.Config, D.Util
 local Eco = {}
@@ -4335,7 +4471,7 @@ function Eco.priceFor(P, itemId, baseSell)
 end
 return Eco
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000030"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
+<Item class="ModuleScript" referent="RBX000032"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
 -- Pure Lua; the Roblox adapters (Bootstrap) feed positions, time and network into it.
 local D = require(script.Parent.Data)
 local Profile = require(script.Parent.ProfileService)
@@ -4497,7 +4633,7 @@ function Game.snapshot(world, session)
 end
 return Game
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000031"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
+<Item class="ModuleScript" referent="RBX000033"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
 -- Player inventory: limited slots for solids, capacity per liquid. Containers: slot limited.
 local D = require(script.Parent.Data)
 local Items, Config, Util = D.Items, D.Config, D.Util
@@ -4574,7 +4710,7 @@ function Inv.total(store)
 end
 return Inv
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000032"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
+<Item class="ModuleScript" referent="RBX000034"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
 -- Tokens are data only; nothing here creates Roblox instances.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
@@ -4889,7 +5025,7 @@ function L.stepFluids(P, G, dt, emit)
 end
 return L
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000033"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
+<Item class="ModuleScript" referent="RBX000035"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
 local D = require(script.Parent.Data)
 local Config, Items = D.Config, D.Items
 local Metrics = {}
@@ -4951,7 +5087,7 @@ function Metrics.perItem(stats, clock, windowSec)
 end
 return Metrics
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000034"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
+<Item class="ModuleScript" referent="RBX000036"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Eco = require(script.Parent.EconomyService)
@@ -5170,7 +5306,7 @@ function Place.placeBlueprint(P, slot, gx, gz, floor)
 end
 return Place
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000035"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
+<Item class="ModuleScript" referent="RBX000037"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
 local D = require(script.Parent.Data)
 local Config, Machines, Recipes, Items, Util = D.Config, D.Machines, D.Recipes, D.Items, D.Util
 local Prod = {}
@@ -5253,7 +5389,7 @@ function Prod.step(P, G, dt, emit)
 end
 return Prod
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000036"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
+<Item class="ModuleScript" referent="RBX000038"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
 local Inv = require(script.Parent.InventoryService)
@@ -5381,7 +5517,7 @@ function Profile.load(data, userId)
 end
 return Profile
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000037"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
+<Item class="ModuleScript" referent="RBX000039"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
 -- GlobalDataStore; tests inject a mock.  Rules (spec §13):
 --   * a failed load never yields a fresh default profile that could overwrite the real one
 --   * saves go through UpdateAsync, refuse to overwrite a newer revision and keep a session lock
@@ -5477,7 +5613,7 @@ function Store:save(userId, P, release)
 end
 return Store
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000038"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
+<Item class="ModuleScript" referent="RBX000040"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Inv = require(script.Parent.InventoryService)
@@ -5669,7 +5805,7 @@ end
 Q.templateById = templateById
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000039"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
+<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Research = D.Research
@@ -5693,7 +5829,7 @@ function R.unlock(P, id)
 end
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000040"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
+<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Locations = D.Locations
@@ -5730,7 +5866,7 @@ function Res.gather(nodes, P, nodeId)
 end
 return Res
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
+<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
 local D = require(script.Parent.Data)
 local Config, Protocol, Util = D.Config, D.Protocol, D.Util
 local Sec = {}
@@ -5811,7 +5947,7 @@ function Sec.remember(session, actionId, result)
 end
 return Sec
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
+<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Config, Machines, Items, Util = D.Config, D.Machines, D.Items, D.Util
@@ -5902,7 +6038,7 @@ function Shop.step(P, dt, emit)
 end
 return Shop
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
+<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
 -- computeAnchors() is pure: it derives every interaction point from WorldLayout (asset id of the
 -- unique building instance), so anchors follow the buildings when the world is regenerated.
 local D = require(script.Parent.Data)
@@ -5945,7 +6081,7 @@ function Adapter.computeAnchors(layout)
 end
 return Adapter
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
+<Item class="ModuleScript" referent="RBX000046"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
 local D = require(script.Parent.Data)
 local Logistics = require(script.Parent.LogisticsService)
 local Production = require(script.Parent.ProductionService)
@@ -5987,7 +6123,7 @@ function Sim.step(P, rt, dt)
 end
 return Sim
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): builds the walkable workshop interiors and the visible
+<Item class="ModuleScript" referent="RBX000047"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): builds the walkable workshop interiors and the visible
 -- representation of every placed entity.  All game rules live in the pure services; this module only
 -- mirrors server state into Instances.
 local D = require(script.Parent.Data)
@@ -6213,7 +6349,7 @@ return WW
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="StarterPlayer" referent="RBX000052"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000051"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000050"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000048"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
+<Item class="StarterPlayer" referent="RBX000054"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000053"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000052"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000050"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
 -- Mobile first: large touch targets, one panel at a time, everything reachable without a keyboard.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -6690,7 +6826,7 @@ Net.onSnapshot(function(s)
 end)
 Net.send("RequestSnapshot")
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000049"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
+<Item class="ModuleScript" referent="RBX000051"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
 -- the UI comes from server snapshots; the client never computes money, items or unlocks itself.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("ArcaneShared")

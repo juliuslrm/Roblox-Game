@@ -20,6 +20,12 @@
         },
         "VillageAutoBuild": {
           "$path": "roblox/VillageAutoBuild.lua"
+        },
+        "VillageAssetLoader": {
+          "$path": "roblox/VillageAssetLoader.lua"
+        },
+        "VillageAssetIds": {
+          "$path": "roblox/VillageAssetIds.lua"
         }
       }
     },

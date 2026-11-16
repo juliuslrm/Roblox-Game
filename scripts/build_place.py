@@ -53,7 +53,7 @@ def folder_of(rel_dir, name):
 
 def main():
     village = "".join(script("ModuleScript", n, f"roblox/{n}.lua") for n in
-                      ("VillageWorldBuilder", "VillageTerrainBuilder", "VillageAutoBuild", "WorldLayout", "WorldHeightmap"))
+                      ("VillageWorldBuilder", "VillageTerrainBuilder", "VillageAutoBuild", "VillageAssetLoader", "VillageAssetIds", "WorldLayout", "WorldHeightmap"))
     readme = ("-- Arcane Village: press Play.\n"
               "-- Without imported meshes the village appears as placeholder blocks on voxel terrain.\n"
               "-- To get the real models import exports/library/village_assets.glb and village_terrain.glb into\n"

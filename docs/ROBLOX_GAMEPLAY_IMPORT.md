@@ -90,3 +90,15 @@ curl -X POST "https://apis.roblox.com/universes/v1/<universeId>/places/<placeId>
   `400 Invalid Content stream` (`scripts/build_place.py` und der Test stellen das sicher).
 - `versionType=Saved` speichert nur, ohne zu veröffentlichen.
 - Der Key gehört nicht ins Repository.
+
+## Modelle ohne Studio (Open Cloud Assets API)
+
+Die Sammeldateien aus `exports/library/*.fbx` und die Palettentextur wurden über
+`POST https://apis.roblox.com/assets/v1/assets` (API-System `assets`, Read + Write) als Assets
+hochgeladen. Die IDs stehen in `roblox/VillageAssetIds.lua`. Beim Serverstart lädt
+`roblox/VillageAssetLoader.lua` sie mit `InsertService:LoadAsset` nach `ServerStorage.VillageAssets`
+und `ServerStorage.ArcaneAssets`; passen keine Namen zum Levelplan, bleibt es bei der Blockversion.
+
+- Tatsächlich geprüft (2026-11-16): Upload aller vier Assets, Moderation „Approved".
+- UNVERIFIED_IN_STUDIO: ob `LoadAsset` die Meshes mit den erwarteten Namen und der Textur liefert.
+  Die Konsole meldet dazu `[Village] assets: …` und `[Village] templates: …`.

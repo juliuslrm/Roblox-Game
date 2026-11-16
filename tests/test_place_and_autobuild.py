@@ -116,6 +116,34 @@ def check_autobuild():
     assert rep.mode == "meshes" and rep.meshTerrain and rep.placed == len(layout["instances"]) and rep.terrainCells == 0
     print(f"  ok  with meshes: {n_rest} objects on voxel terrain, or all {len(layout['instances'])} with mesh terrain")
 
+    # 4) asset loader: libraries become template folders, lost textures are replaced, failures reported
+    g.Loader = loader(read("roblox", "VillageAssetLoader.lua"), "VillageAssetLoader")
+    g.Ids = loader(read("roblox", "VillageAssetIds.lua"), "VillageAssetIds")
+    res = lua.eval("""(function()
+        local storage = Instance.new("Folder")
+        local insert = {}
+        function insert:LoadAsset(id)
+            if id == 115718062572873 then error("HTTP 403") end
+            local model = Instance.new("Model")
+            if id == Ids.paletteDecal then
+                local decal = Instance.new("Decal", model)
+                decal.Texture = "rbxassetid://42"
+                return model
+            end
+            local a = Instance.new("MeshPart", model); a.Name = "house_" .. id; a.TextureID = ""
+            local b = Instance.new("MeshPart", model); b.Name = "kept_" .. id; b.TextureID = "rbxassetid://7"
+            return model
+        end
+        local rep = Loader.load({ ids = Ids, insertService = insert, parent = storage })
+        local again = Loader.load({ ids = Ids, insertService = insert, parent = storage })
+        return { rep.loaded, #rep.failed, rep.meshParts, rep.retextured, again.loaded,
+            storage.VillageAssets:FindFirstChild("house_121417351385239", true).TextureID,
+            storage.VillageAssets:FindFirstChild("kept_121417351385239", true).TextureID,
+            storage.ArcaneAssets ~= nil }
+    end)()""")
+    assert list(res.values()) == [2, 1, 4, 2, 0, "rbxassetid://42", "rbxassetid://7", True], list(res.values())
+    print("  ok  asset loader: 2 of 3 libraries loaded, failure reported, missing textures replaced, no reload")
+
 
 if __name__ == "__main__":
     try:
