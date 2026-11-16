@@ -7,6 +7,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 local Architecture = require(Shared.WorkshopArchitecture)
 local Models = require(Shared.WorkshopModels)
 local Ports = require(Shared.MachinePorts)
+local ItemArt = require(script.Parent.ItemArt)
 local WW = {}
 WW.__index = WW
 
@@ -31,8 +32,10 @@ end
 -- plots: optional list of world positions (Vector3, ground level) of the building plots in the
 --   village.  With plots the workshops are open buildings that players simply walk into; without
 --   them (no level plan) they are closed interiors far away, entered by teleport as before.
-function WW.new(parent, templates, plots, plotHalf)
-	local self = setmetatable({ rooms = {}, slots = {}, templates = templates, plots = plots, plotHalf = plotHalf or 42 }, WW)
+-- itemTemplates: optional Folder with the item models ("item_<id>"), shown on conveyors
+function WW.new(parent, templates, plots, plotHalf, itemTemplates)
+	local self = setmetatable({ rooms = {}, slots = {}, templates = templates, plots = plots, plotHalf = plotHalf or 42,
+		itemTemplates = itemTemplates }, WW)
 	if plots and #plots == 0 then self.plots = nil end
 	self.root = Instance.new("Folder")
 	self.root.Name = "ArcaneWorkshops"
@@ -324,6 +327,38 @@ local function entityModel(self, room, e)
 	return body
 end
 
+-- The thing lying on a conveyor: the model of that item, standing on the token's spot and turned
+-- a little differently from piece to piece.  Without the model library a small ball in the item's
+-- stead (the token itself) is shown.
+local function showGoods(self, cur, item)
+	if cur.goodsItem == item then return end
+	cur.goodsItem = item
+	if cur.goods then cur.goods:Destroy() cur.goods = nil end
+	local token = cur.body:FindFirstChild("Token")
+	if not token then return end
+	if not item then token.Transparency = 1 return end
+	local name = "item_" .. item
+	local template = self.itemTemplates and self.itemTemplates:FindFirstChild(name, true)
+	local shape = ItemArt[name]
+	if not (template and shape and template:IsA("BasePart")) then
+		token.Transparency = 0
+		return
+	end
+	token.Transparency = 1
+	local mesh = template:Clone()
+	mesh.Name = "Goods"
+	mesh.Size = Vector3.new(table.unpack(shape.size))
+	local turn = 0
+	for i = 1, #item do turn = (turn * 31 + string.byte(item, i)) % 360 end
+	local foot = CFrame.new(token.Position - Vector3.new(0, token.Size.Y / 2 + 0.26, 0))   -- top of the belt * CFrame.Angles(0, math.rad(turn), 0)
+	-- keep the template's rotation: the asset loader stores the import correction there
+	mesh.CFrame = foot * CFrame.new(table.unpack(shape.center)) * (template.CFrame - template.CFrame.Position)
+	mesh.Anchored, mesh.CanCollide, mesh.CanQuery, mesh.CanTouch, mesh.CastShadow = true, false, false, false, false
+	mesh:SetAttribute("ArcaneItem", item)
+	mesh.Parent = cur.body
+	cur.goods = mesh
+end
+
 -- Mirrors a workshop view (Game.workshopView) into Instances. Cheap when nothing changed.
 function WW:sync(view, label)
 	local room = self:ensureRoom(view.owner, view.cells, view.floors, label)
@@ -366,8 +401,7 @@ function WW:sync(view, label)
 				end
 				label.Text.Text = line
 			end
-			local token = cur.body:FindFirstChild("Token")
-			if token then token.Transparency = e.item and 0 or 1 end
+			showGoods(self, cur, e.item)
 		end
 	end
 	return room

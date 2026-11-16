@@ -18,6 +18,7 @@ local Machines = require(Shared.Machines)
 local Research = require(Shared.Research)
 local Icons = require(Shared.ItemIcons)
 local Ports = require(Shared.MachinePorts)
+local Sheet = require(Shared.ItemIconSheet)
 
 local Window = {}
 
@@ -109,8 +110,17 @@ function Window.create(ctx)
 		if onTap then tile.Text, tile.AutoButtonColor = "", true end
 		corner(tile, 8)
 		make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Color = missing and BAD or WOOD_LIGHT, Thickness = missing and 3 or 1.5 }, tile)
-		make("TextLabel", { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1, Text = icon.symbol,
-			TextSize = 28, Font = Enum.Font.GothamBold, TextColor3 = INK }, tile)
+		local cell = Sheet.image ~= "" and Sheet.items[id]
+		if cell then
+			-- picture rendered from the item's Blender model, cut out of the common sheet
+			tile.BackgroundColor3 = PARCHMENT
+			make("ImageLabel", { Size = UDim2.new(0, 44, 0, 44), Position = UDim2.new(0.5, -22, 0, -3), BackgroundTransparency = 1,
+				Image = Sheet.image, ImageRectOffset = Vector2.new(cell[1] * Sheet.cell, cell[2] * Sheet.cell),
+				ImageRectSize = Vector2.new(Sheet.cell, Sheet.cell), ScaleType = Enum.ScaleType.Fit }, tile)
+		else
+			make("TextLabel", { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.new(0, 0, 0, 2), BackgroundTransparency = 1, Text = icon.symbol,
+				TextSize = 28, Font = Enum.Font.GothamBold, TextColor3 = INK }, tile)
+		end
 		local count = make("TextLabel", { Size = UDim2.new(1, -4, 0, 16), Position = UDim2.new(0, 2, 0, 36), BackgroundColor3 = PARCHMENT,
 			BackgroundTransparency = 0.15, Text = line, TextSize = 12, Font = Enum.Font.GothamBold, TextColor3 = missing and BAD or INK,
 			TextScaled = false }, tile)

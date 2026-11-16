@@ -194,10 +194,10 @@ def check_autobuild():
             storage.ArcaneMarketAssets ~= nil,
             storage.VillageAssets:FindFirstChild("dup", true).TextureID }
     end)()""")
-    # 7 ids, one fails; per folder only the first "dup" survives (4 folders), 2 unique parts per asset
-    assert list(res.values()) == [6, 1, 16, 6, 0, "rbxassetid://42", "rbxassetid://7", True, True,
+    # 8 ids, one fails; per folder only the first "dup" survives (5 folders), 2 unique parts per asset
+    assert list(res.values()) == [7, 1, 19, 7, 0, "rbxassetid://42", "rbxassetid://7", True, True,
                                   "rbxassetid://72420451763699"], list(res.values())
-    print("  ok  asset loader: 6 of 7 assets loaded, failure reported, missing textures replaced, "
+    print("  ok  asset loader: 7 of 8 assets loaded, failure reported, missing textures replaced, "
           "first template of a name wins, no reload")
 
 
@@ -443,12 +443,37 @@ def check_resource_world():
           "fallback object, used-up state")
 
 
+def check_item_art():
+    """Every item has a model (bounds) and a cell on the icon sheet; nothing is left over."""
+    lua = LuaRuntime(unpack_returned_tuples=True)
+    items = set(lua.execute(read("roblox", "gameplay", "shared", "Items.lua")).keys())
+    art = lua.execute(read("roblox", "gameplay", "server", "ItemArt.lua"))
+    sheet = lua.execute(read("roblox", "gameplay", "shared", "ItemIconSheet.lua"))
+    manifest = json.loads(read("world", "item_asset_manifest.json"))["assets"]
+    assert {"item_" + i for i in items} == set(art.keys()) == set(manifest), "one model per item"
+    assert set(sheet["items"].keys()) == items, "one icon per item"
+    cells = set()
+    for item in items:
+        col, row = sheet["items"][item][1], sheet["items"][item][2]
+        assert 0 <= col < sheet.columns and 0 <= row < sheet.rows and (col, row) not in cells
+        cells.add((col, row))
+        size = [art["item_" + item].size[k] for k in (1, 2, 3)]
+        assert max(size[0], size[2]) <= 1.6 and size[1] <= 1.9, (item, size)      # fits on a 2 stud belt
+    png = os.path.join(ROOT, "exports", "textures", "item_icons.png")
+    with open(png, "rb") as fh:
+        head = fh.read(24)
+    width, height = int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+    assert (width, height) == (sheet.columns * sheet.cell, sheet.rows * sheet.cell), (width, height)
+    print(f"  ok  items: {len(items)} models with bounds, {len(items)} icons on a {width} x {height} sheet")
+
+
 if __name__ == "__main__":
     try:
         check_place()
         check_autobuild()
         check_workshop_plots()
         check_resource_world()
+        check_item_art()
         check_market_world()
     except AssertionError as exc:
         print("FAILED:", exc)

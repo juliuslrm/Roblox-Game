@@ -197,3 +197,19 @@ Client nur syntaktisch geprüft.
 Am Gerät zu prüfen: Aussehen und Bedienung des Maschinenfensters (passt es ohne Scrollen, treffen
 die Finger die Seitenknöpfe), Emoji-Symbole, flüssiger Fortschrittsbalken, Bandvorschau aus
 mehreren Blickrichtungen, Sichtbarkeit der Marken, Zustand nach Wiederbeitritt.
+
+## Nachtrag 2026-11-16 (11): Materialmodelle und Bilder
+
+- 45 Item-Modelle (`blender/village/items.py`, 36–516 Dreiecke, zusammen rund 10 000), gebaut und
+  geprüft mit `blender/build_item_assets.py` (Größe ≤ 1,6 Studs, Dreiecksbudget, Rückseiten-Audit).
+- Daraus gerendert: Bildbogen `exports/textures/item_icons.png` (8 × 6 Felder à 128 px), als Decal
+  hochgeladen; Bild-ID und Zellen in `ItemIconSheet.lua`. Das Maschinenfenster zeigt diese Bilder
+  statt der Emoji-Kacheln (Emoji bleiben Rückfall, falls kein Bild hinterlegt ist).
+- Modellbibliothek `arcane_items.fbx` hochgeladen (`ArcaneItemAssets`). `WorkshopWorld` legt auf
+  jedes Förderteil das Modell der Ware, die es gerade trägt.
+- Im Place gemessen (Version 21): 45 Modelle geladen; auf dem Band liegt `herb_mint` mit Textur,
+  0,9 Studs breit; nach Warenwechsel `tonic_minor`; nach dem Weitergeben verschwunden.
+
+Offen: Die Ware springt von Feld zu Feld (ein Schritt je Bandtakt); eine gleitende Bewegung wäre
+ein Client-Effekt und ist nicht umgesetzt. Bilder im Beutel und in den Listen nutzen noch Text.
+Aussehen am Gerät ungeprüft.

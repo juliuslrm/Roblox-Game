@@ -18,6 +18,7 @@ run "place file + auto build"   "$PY" tests/test_place_and_autobuild.py
 if [ "${1:-}" = "--full" ]; then
   run "gameplay assets"         "$PY" blender/build_gameplay_assets.py
   run "resource assets"         "$PY" blender/build_resource_assets.py
+  run "item assets"             "$PY" blender/build_item_assets.py --no-render
   run "back-face audit"         "$PY" blender/audit_backfaces.py
 fi
 run "world validation"          "$PY" blender/validate.py

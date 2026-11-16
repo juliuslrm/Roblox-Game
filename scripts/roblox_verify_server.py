@@ -168,14 +168,15 @@ for _, q in ipairs(layout.workshopPlots.plots) do plots[#plots + 1] = Vector3.ne
 local holder = Instance.new("Folder")
 holder.Name = "VerifyWorkshops"
 holder.Parent = workspace
-local ww = WorkshopWorld.new(holder, ServerStorage:FindFirstChild("ArcaneAssets"), plots, layout.workshopPlots.half)
+local ww = WorkshopWorld.new(holder, ServerStorage:FindFirstChild("ArcaneAssets"), plots, layout.workshopPlots.half,
+	ServerStorage:FindFirstChild("ArcaneItemAssets"))
 local sizes = { { 16, 1 }, { 24, 1 }, { 32, 2 }, { 40, 3 } }
 for i, plot in ipairs(plots) do
 	local cells, floors = sizes[i][1], sizes[i][2]
 	local view = { owner = 100 + i, cells = cells, floors = floors, version = 1, entities = {
 		{ uid = "k" .. i, machine = "kettle", gx = 2, gz = 2, floor = 1, rot = 0, inv = {}, fluids = {} },
 		{ uid = "g" .. i, machine = "grinder", gx = 8, gz = 4, floor = 1, rot = 1, inSide = 2, outSide = 1, outAuto = false, inv = {}, fluids = {} },
-		{ uid = "b" .. i, machine = "wooden_belt", gx = 12, gz = 4, floor = 1, rot = 1, inv = {}, fluids = {} },
+		{ uid = "b" .. i, machine = "wooden_belt", gx = 12, gz = 4, floor = 1, rot = 1, inv = {}, fluids = {}, item = "herb_mint" },
 		{ uid = "t" .. i, machine = "belt_turn", gx = 12, gz = 8, floor = 1, rot = 0, inv = {}, fluids = {} } } }
 	local room = ww:sync(view, "Werkstatt von Test " .. i)
 	if i == 1 then
@@ -197,6 +198,23 @@ for i, plot in ipairs(plots) do
 		for _, d in ipairs(mill:GetDescendants()) do
 			if d:IsA("BasePart") and d:GetAttribute("ArcanePortMark") and d.Transparency == 1 then hidden = hidden + 1 end
 			if d:IsA("BillboardGui") and d.Name == "PortLabel" and not d.Enabled then labels = labels + 1 end
+		end
+		do -- goods on the belt: the model of the item, textured, standing on the belt; swapped when the item changes
+			local goods = belt:FindFirstChild("Goods")
+			local top = belt.Position.Y + belt.Size.Y / 2
+			local line = goods and string.format("%s textured=%s, base %.2f above the belt top, %.1f studs wide",
+				tostring(goods:GetAttribute("ArcaneItem")), tostring(goods.TextureID ~= ""), goods.Position.Y - goods.Size.Y / 2 - top,
+				math.max(goods.Size.X, goods.Size.Z)) or "missing"
+			view.entities[3].item = "tonic_minor"
+			ww:sync(view)
+			local second = belt:FindFirstChild("Goods")
+			view.entities[3].item = nil
+			ww:sync(view)
+			p("goods on belt: %s; after change: %s; after leaving: %s", line, second and tostring(second:GetAttribute("ArcaneItem")) or "missing",
+				belt:FindFirstChild("Goods") and "still there" or "gone")
+			local n = 0
+			for _, d in ipairs(ServerStorage.ArcaneItemAssets:GetDescendants()) do if d:IsA("MeshPart") then n = n + 1 end end
+			p("item models loaded: %d", n)
 		end
 		p("directions: belt rot 1 arrow (%.1f, %.1f), curve rot 0 arrow (%.1f, %.1f), outlet mark away %.2f, inlet mark away %.2f, %d hidden mark parts, %d hidden labels, outlet label '%s'",
 			fb.X, fb.Z, ft.X, ft.Z, away(outMark), away(inMark), hidden, labels, outMark.PortLabel:FindFirstChildOfClass("TextLabel").Text)

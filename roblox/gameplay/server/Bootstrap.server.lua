@@ -116,7 +116,7 @@ if layout and layout.workshopPlots then
 end
 local walkable = #plotPositions > 0
 local workshops = WorkshopWorld.new(workspace, ServerStorage:FindFirstChild("ArcaneAssets"), plotPositions,
-	layout and layout.workshopPlots and layout.workshopPlots.half)
+	layout and layout.workshopPlots and layout.workshopPlots.half, ServerStorage:FindFirstChild("ArcaneItemAssets"))
 if walkable then world.plotPresence = {} end
 
 -- ---- persistence ----

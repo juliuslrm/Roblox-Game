@@ -17,6 +17,8 @@ in einer GUI.
   Kapelle, Windmühle, Gasthaus, Schmiede, Wachturm, Markthalle)
 - **33 Naturmodelle** (11 Baumarten, Büsche, Felsen, Blumen, Beete …) und **33 Dekorationen**
   (Brunnen, Laternen, Zäune, Marktstände, Brücke, Steg, Tor …)
+- **45 Materialmodelle** (jede Zutat, jedes Zwischen- und Endprodukt) samt gerendertem Bildbogen
+  für die Oberfläche
 - **15 Rohstoffmodelle** für die Sammelstellen (Kräuter, Pilze, Erze, Holz, Wasserpumpe …) und
   31 Maschinenmodelle für die Werkstatt
 - **Gelände** 768 × 768 Studs mit drei Hügeln, Bachlauf und Teich, 36 Mesh-Kacheln
