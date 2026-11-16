@@ -155,3 +155,14 @@ Neu:
 
 Weiter offen: Händler-Animation, Aussehen und Bedienung auf dem Gerät (alle Client-Änderungen
 dieser Runde), 0,9 % der Bodenpunkte mit mehr als 1,5 Studs Kollisionsabweichung.
+
+## Nachtrag 2026-11-16 (8): Händler neu aufgebaut
+
+Die Händler aus dem Import (ein skinned Mesh je Figur) haben sich in Roblox nie bewegt: Der
+Asset-Upload legt die Bones aller Figuren in ein gemeinsames `RootPart`. Sie sind durch
+Gliederfiguren aus sieben starren Teilen ersetzt (`docs/MARKET_MERCHANTS.md`); die Animation setzt
+nur CFrames und braucht kein Skelett. Der alte Generator (`build_market.py`, `market_rig.py`,
+`market_motion.py`, `MarketIdle.lua`) ist entfernt.
+
+Place-Version 18 gemessen: 5 Figuren × 7 texturierte Teile, Serverstart fehlerfrei.
+Offen: laufende Animation und Aussehen am Gerät.

@@ -47,7 +47,7 @@ def check_place():
     assert source(shared["Recipes"]) == read("roblox", "gameplay", "shared", "Recipes.lua")
     assert source(village["WorldLayout"]) == read("roblox", "WorldLayout.lua")
     assert source(village["WorkshopFacade"]) == read("roblox", "WorkshopFacade.lua")
-    for module in ("WorkshopArchitecture", "WorkshopModels", "MarketCatalog", "MarketIdle", "MarketMotion"):
+    for module in ("WorkshopArchitecture", "WorkshopModels", "MarketCatalog", "MarketMotion"):
         assert source(shared[module]) == read("roblox", "gameplay", "shared", module + ".lua")
     assert source(village["VillageAutoBuild"]) == read("roblox", "VillageAutoBuild.lua")
     assert source(children(services["ServerScriptService"])["VillageAutoBuild"]) == read(
@@ -209,13 +209,6 @@ def check_market_world():
     g.Market = lua.execute(read("roblox", "gameplay", "shared", "MarketCatalog.lua"))
     g.Art = lua.execute(read("roblox", "gameplay", "server", "MarketArt.lua"))
     g.Motion = lua.execute(read("roblox", "gameplay", "shared", "MarketMotion.lua"))
-    g.Idle = lua.eval("""function(source)
-        local env = setmetatable({
-            script = { Parent = { MarketMotion = Motion } },
-            require = function(value) return value end,
-        }, { __index = _G })
-        return assert(load(source, "@MarketIdle.lua", "t", env))()
-    end""")(read("roblox", "gameplay", "shared", "MarketIdle.lua"))
     g.MarketWorld = lua.eval("""function(source)
         local env = setmetatable({
             script = { Parent = { Data = { Market = Market }, MarketArt = Art } },
@@ -251,52 +244,70 @@ def check_market_world():
         local called
         local function open(player, id) called = player .. id end
         local templates = Instance.new("Folder")
-        local model = Instance.new("Model", templates)
-        model.Name = "merchant_nyra"
-        local mesh = Instance.new("MeshPart", model)
-        mesh.Archivable = true
-        local stand = Instance.new("MeshPart", templates)
-        stand.Name = "stall_nyra"
-        stand.Archivable = true
-        local esme = Instance.new("MeshPart", templates)
-        esme.Name, esme.Archivable = "merchant_esme", true
-        local bone = Instance.new("Bone", esme)
-        bone.Name, bone.Archivable = "root", true
+        local function template(name)
+            local mesh = Instance.new("MeshPart", templates)
+            mesh.Name, mesh.Archivable = name, true
+            mesh.Size = Vector3.new(1, 1, 1)
+            mesh.CFrame = CFrame.new(9, 0, 0) * CFrame.Angles(0, math.rad(180), 0)   -- as left by the asset loader
+            return mesh
+        end
+        template("stall_nyra")
+        for part in pairs(Art.merchants.nyra.parts) do template("merchant_nyra_" .. part) end
+        for part in pairs(Art.merchants.esme.parts) do                 -- one part of Esme is missing
+            if part ~= "head" then template("merchant_esme_" .. part) end
+        end
         local market = MarketWorld.build(workspace, anchors, origin, templates, ground, open)
         assert(#market:GetChildren() == 5 and #stalls:GetChildren() == 1 and extra.Parent == stalls)
+        -- no templates: simple stand-in figure
         assert(market.selma:FindFirstChild("Coat") and not market.nyra:FindFirstChild("Coat"))
         assert(market.selma.Head.SpecialMesh.MeshType == Enum.MeshType.Sphere)
-        assert(market.selma.Head.SpecialMesh.Scale.Y < 1 and market.selma.Head.CFrame.Y > 5)
-        local actor = market.nyra:FindFirstChild("MeshPart")
-        assert(actor and actor.Size.Y == Art.merchant_nyra.size[2] and actor.CanCollide == false)
+        -- incomplete set of parts: stand-in figure, no half figure left behind
+        assert(market.esme:FindFirstChild("Coat") and not market.esme:FindFirstChild("Figure"))
+        -- complete set: a figure of seven parts in the rest pose
+        local figure = market.nyra.Figure
         local pivot = origin * CFrame.new(anchors.nyra.x, anchors.nyra.y + 0.34, anchors.nyra.z)
             * CFrame.Angles(0, math.rad(anchors.nyra.yaw), 0) * CFrame.new(0, 0, -1.6)
-        assert((actor.CFrame.Position - (pivot * Vector3.new(table.unpack(Art.merchant_nyra.center)))).Magnitude < 0.001)
+        assert(figure:GetAttribute("MerchantRole") == "nyra")
+        assert((figure:GetAttribute("MerchantPivot").Position - pivot.Position).Magnitude < 0.001)
+        local count = 0
+        for part, shape in pairs(Art.merchants.nyra.parts) do
+            count = count + 1
+            local mesh = figure[part]
+            assert(mesh.CanCollide == false and math.abs(mesh.Size.Y - shape.size[2]) < 1e-6)
+            assert((mesh.CFrame.Position - (pivot * Vector3.new(table.unpack(shape.center)))).Magnitude < 0.001, part)
+        end
+        assert(count == 7)
         assert(market.nyra.CounterCollision.CanCollide)
         market.nyra.TradePrompt.ProximityPrompt.OnTrigger("Player-")
-        local rig = market.esme:FindFirstChild("merchant_esme")
-        assert(rig and rig.root:IsA("Bone") and rig:GetAttribute("MarketRigRole") == "esme")
-        assert(not actor:GetAttribute("MarketRigRole"))
-        local count = 0
-        for _, tracks in pairs(Motion.bones) do
-            count = count + 1
-            local moved = 0
-            for _, track in pairs(tracks) do
-                assert(#track == 49)
-                local x, y, z, w = Idle.sample(track, 2.3)
-                assert(math.abs(x*x + y*y + z*z + w*w - 1) < 1e-6)
-                moved = moved + x*x + y*y + z*z
-                for _, t in ipairs({0, Motion.duration}) do
-                    local qx, qy, qz, qw = Idle.sample(track, t)
-                    assert(qx*qx + qy*qy + qz*qz < 1e-6 and math.abs(qw - 1) < 1e-6)
-                end
-            end
-            assert(moved > 0.0001)
-        end
-        assert(count == 5)
         assert(called == "Player-nyra")
+
+        -- idle loops: complete, unit rotations, closed, something moves, joints match the art data
+        local roles = 0
+        for role, data in pairs(Motion.roles) do
+            roles = roles + 1
+            local samples = data.duration * Motion.fps
+            local parts = 0
+            for part, rows in pairs(data.parts) do
+                parts = parts + 1
+                assert(#rows == samples, role .. " " .. part)
+                local joint, artJoint = data.joints[part], Art.merchants[role].parts[part].joint
+                for k = 1, 3 do assert(math.abs(joint[k] - artJoint[k]) < 1e-6) end
+                local travel = 0
+                for i, r in ipairs(rows) do
+                    assert(math.abs(r[4]^2 + r[5]^2 + r[6]^2 + r[7]^2 - 1) < 1e-3)
+                    local nxt = rows[i % #rows + 1]
+                    local step = math.sqrt((r[1]-nxt[1])^2 + (r[2]-nxt[2])^2 + (r[3]-nxt[3])^2)
+                    assert(step < 0.6, role .. " " .. part .. " jumps")
+                    travel = travel + step + math.abs(r[4]-nxt[4]) + math.abs(r[5]-nxt[5]) + math.abs(r[6]-nxt[6])
+                end
+                assert(travel > 0.01, role .. " " .. part .. " never moves")
+            end
+            assert(parts == 6 and Art.merchants[role].parts.lower)
+        end
+        assert(roles == 5)
     """)
-    print("  ok  market: five shops, scaled imported NPC, fallback, prompt and targeted stall replacement")
+    print("  ok  market: five shops, figures of seven parts in the rest pose, stand-in for missing parts, prompt,\n"
+          "      closed idle loops for 5 traders x 6 moving parts")
 
 
 def check_workshop_plots():

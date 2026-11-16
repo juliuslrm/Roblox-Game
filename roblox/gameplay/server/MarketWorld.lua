@@ -18,28 +18,38 @@ local function block(parent, name, frame, size, color, collides, transparency)
 	return part
 end
 
-local function imported(parent, templates, name, pivot, role)
+local function imported(parent, templates, name, pivot, shape)
 	local template = templates and templates:FindFirstChild(name, true)
-	local shape = Art[name]
-	if not template or not shape then return false end
-	if not template:IsA("BasePart") then
-		local parts = {}
-		for _, child in ipairs(template:GetDescendants()) do
-			if child:IsA("BasePart") then parts[#parts + 1] = child end
-		end
-		template = #parts == 1 and parts[1] or nil
-	end
-	if not template or not template.Archivable then return false end
+	shape = shape or Art[name]
+	if not template or not shape or not template:IsA("BasePart") or not template.Archivable then return nil end
 	local mesh = template:Clone()
 	mesh.Size = Vector3.new(table.unpack(shape.size))
 	-- keep the template's rotation: the asset loader stores the import correction there
 	mesh.CFrame = pivot * CFrame.new(table.unpack(shape.center)) * (template.CFrame - template.CFrame.Position)
 	mesh.Anchored, mesh.CanCollide, mesh.CanQuery, mesh.CanTouch = true, false, false, false
-	local rootBone = role and mesh:FindFirstChild("root", true)
-	if rootBone and rootBone:IsA("Bone") then
-		mesh:SetAttribute("MarketRigRole", role)
-	end
 	mesh.Parent = parent
+	return mesh
+end
+
+-- A trader is a figure of seven rigid parts (see blender/village/merchants.py).  The server sets
+-- them up in the rest pose; every client plays the idle loop locally (MarketIdle.client.lua) and
+-- needs the role, the part name and the ground frame of the figure for that.
+local function importedMerchant(parent, templates, role, pivot)
+	local art = Art.merchants and Art.merchants[role]
+	if not art or not templates then return false end
+	local figure = Instance.new("Folder")
+	figure.Name = "Figure"
+	for part, shape in pairs(art.parts) do
+		local mesh = imported(figure, templates, "merchant_" .. role .. "_" .. part, pivot, shape)
+		if not mesh then
+			figure:Destroy()
+			return false
+		end
+		mesh.Name = part
+	end
+	figure:SetAttribute("MerchantRole", role)
+	figure:SetAttribute("MerchantPivot", pivot)
+	figure.Parent = parent
 	return true
 end
 
@@ -104,7 +114,7 @@ function World.build(parent, anchors, origin, templates, groundPosition, onOpen)
 				* (origin - origin.Position) * CFrame.Angles(0, math.rad(anchor.yaw), 0)
 			if not imported(folder, templates, "stall_" .. id, pivot) then fallbackStall(folder, pivot, accent) end
 			local npc = pivot * CFrame.new(0, 0, -1.6)
-			if not imported(folder, templates, "merchant_" .. id, npc, id) then
+			if not importedMerchant(folder, templates, id, npc) then
 				fallbackMerchant(folder, npc, accent)
 			end
 			block(folder, "CounterCollision", pivot * CFrame.new(0, 1.5, 0.45), Vector3.new(8.2, 3, 2.25), WOOD, true, 1)

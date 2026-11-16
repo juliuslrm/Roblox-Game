@@ -42,71 +42,54 @@ Die 14 verkaufbaren Produkte verdienen Münzen im Spielerregal und in Aufträgen
 Kaufbündel haben feste Startpreise. Die Freischaltungen der 14 Rohwaren
 entsprechen ihren Sammelpunkten.
 
+## Figuren (Fassung vom 2026-11-16)
+
+Die Händler sind Gliederfiguren im Stil des Dorfs: großer Kopf, klares Gesicht, sieben starre Teile
+je Figur, die sich in Kugelgelenken drehen (kein Skelett, kein Skinning):
+
+| Teil | Inhalt | Gelenk |
+|---|---|---|
+| `lower` | Beine, Stiefel, Rock bzw. Mantelschoß | fest |
+| `torso` | Oberkörper, Schürze, Gürtel, Hals | Taille |
+| `head` | Gesicht, Haare, Kopfbedeckung | Hals |
+| `upper_l`, `upper_r` | Oberarm mit Schulterkappe | Schulter |
+| `fore_l`, `fore_r` | Unterarm, Hand, Werkzeug | Ellbogen |
+
+- **Gesicht:** Augen mit Iris, Pupille, Glanzpunkt und Lid, Brauen mit eigenem Ausdruck je Figur,
+  Nase, geschwungener Mund, Ohren; Haare und Kopfbedeckung je Rolle.
+- **Hände:** Greifhand als Faust um den Werkzeuggriff (Handrücken, vier gefaltete Finger, Daumen
+  quer) oder offene Hand mit einzelnen Fingern.
+- **In der Hand:** Selma Kräuterzweig und Korb, Nyra Kristall und Laterne, Lio Phiole und Poliertuch,
+  Aron Hammer und Erzbrocken, Esme Axt und Zollstock. Korb und Laterne hängen bei vorgestrecktem
+  Unterarm senkrecht.
+- **Bewegungsschleifen** (6–8 s, weich überblendet, geschlossen): Selma riecht am Zweig und legt
+  ihn zum Korb; Nyra hebt die Laterne und dreht den Kristall in ihrem Licht; Lio poliert die Phiole
+  und hält sie gegen das Licht; Aron wiegt das Erz und klopft zweimal mit dem Hammer darauf; Esme
+  trägt die Axt auf der Schulter und peilt am Zollstock entlang.
+
 ## Dateien und Aufbau
 
-- `assets/market/ArcaneVillage_Market.blend` enthält drei editierbare Szenen
-  mit Händlerübersicht, Dorfplatz und Exportmodellen. Die verwendeten Bilder
-  sind in der Datei gepackt.
-- `exports/glb/market/ArcaneMarket.glb` enthält alle fünf Figuren und Stände.
-  Die fünf `merchant_*.glb` erlauben Einzelimporte.
-- `previews/market/` enthält die Händlerübersicht, Marktansicht und Nahaufnahme der Standanimation mit allen fünf Griffen als MP4.
-- `roblox/gameplay/shared/MarketCatalog.lua` definiert Waren, Preise und
-  Marktpositionen. Die Standorte leiten sich aus `WorldLayout.lua` ab.
-- `blender/build_market.py` reproduziert die Modelle, Render und Roblox-Maße.
-  Benötigt die vorhandenen Dorfexporte und `lupa`.
+- `blender/village/merchants.py` – Figuren, Werkzeuge und Schleifen (Gelenkwinkel als Keyframes).
+- `blender/village/market.py` – Marktstände und Auslagen.
+- `blender/build_merchants.py` – baut alles, prüft und schreibt:
+  `exports/glb/market/*.glb`, `exports/library/arcane_market.{glb,fbx}`,
+  `assets/market/arcane_market.blend`, `roblox/gameplay/server/MarketArt.lua` (Maße, Gelenke),
+  `roblox/gameplay/shared/MarketMotion.lua` (Schleifen, 8 Bilder pro Sekunde als Gelenkrahmen),
+  `previews/market/01-haendler.png`, `02-bewegung.png`.
+- `roblox/gameplay/server/MarketWorld.lua` stellt Stand und Figur auf (Ruhepose),
+  `roblox/gameplay/client/MarketIdle.client.lua` spielt die Schleife auf jedem Client ab:
+  `Teil = Standpunkt * Rahmen(t) * CFrame.new(-Gelenk) * Ruhelage`.
 
-```bash
-blender -b --python-use-system-env --python-exit-code 1 -P blender/build_market.py
-```
+Prüfungen beim Bauen: Katalog gegen Spieldaten, Dreiecksbudget (≤ 6 000 je Figur), Rückseiten-Audit,
+Schleifen ohne Sprung, und die exportierten Roblox-Rahmen ergeben dieselben Posen wie Blender
+(Abweichung 0,0001 Studs).
 
-`-- --no-render` erstellt die Modelle und Blender-Datei ohne neue PNGs.
-Die Platzierung nutzt 1 Blender-Einheit je Stud, Bodenpivot und die
-Dorf-Achsen Blender −Y / Roblox +Z. Die Figuren sind stationäre Händler
-mit erwachsenen Körperproportionen, geformten Gesichtern und abgerundeter
-Kleidung. Ihre Grundhöhe liegt bei etwa sieben bis siebeneinhalb Kopfhöhen.
-Die achtsekündigen Standanimationen lassen Selma Kräuter sortieren, Nyra
-einen Kristall im Laternenlicht drehen, Lio seine Phiole am Blasrohr prüfen,
-Aron den Hammer absenken und nicken und Esme ihr Maß anheben. Esme hält
-die Axt seitlich mit der Schneide nach unten und greift das Klappmaß
-am schmalen Anfang. Nyra fasst den Kristall am schmalen Ende. Lios
-linke Hand folgt dem Griffpunkt auf dem Blasrohr über den gesamten Loop.
-Handfläche und Finger richten sich an Griff und Unterarm aus. Die
-Manschetten verformen sich am Übergang zum Handgelenk.
+## In Roblox
 
-Jede Figur hat ein Skelett mit einem Root-Bone, einem Kopf-Bone und je
-drei Bones für Oberarm, Unterarm und Hand. Der Generator berechnet die
-Ellbogenposition per Zwei-Knochen-IK und schreibt die Posen als Keyframes
-in die Blender-Timeline. In den beiden Vorschauszenen lassen sich die
-Werkzeuge als eigene Objekte bearbeiten. Im GLB liegen Körper und Requisiten
-in einem skinned Mesh. Jeder Griff ist vollständig an den zugehörigen
-Hand-Bone gewichtet. Füße, Stand und Handelspunkt bleiben am Platz.
+Die Bibliothek `arcane_market.fbx` ist als Asset hochgeladen (ID in `roblox/VillageAssetIds.lua`) und
+wird beim Serverstart nach `ServerStorage.ArcaneMarketAssets` geladen. Fehlt ein Teil, erscheint eine
+einfache Ersatzfigur.
 
-Die GLBs enthalten die gebackenen Animationen. Das Projekt spielt dieselben
-Keyframes beim Händler über `MarketIdle.client.lua` und `Bone.Transform`
-ab. Dafür braucht der Spielstand keine hochgeladenen Animations-IDs.
-
-## Roblox Studio
-
-1. `exports/roblox/ArcaneVillage.rbxlx` öffnen oder mit Rojo synchronisieren.
-2. In ServerStorage den Ordner `ArcaneMarketAssets` anlegen.
-3. `ArcaneMarket.glb` über den 3D Importer mit **Import Only As Model** und
-   **Rig Type: Custom** importieren. **Merge Meshes** ausgeschaltet lassen.
-   Das importierte Modell in `ArcaneMarketAssets` verschieben und beim Upgrade die frühere Gruppe
-   aus dem Ordner entfernen. Die Figur muss als skinned MeshPart
-   (z. B. `merchant_esme`) mit Bone-Hierarchie (beginnend mit `root`)
-   vorliegen. Die Stände heißen z. B. `stall_esme`. Für den direkten
-   Einsatz der importierten Clips über einen `Animator` müssten die Clips
-   in Studio separat veröffentlicht werden.
-4. Play starten. Die Stände nutzen die fünf vorgesehenen Plätze. Bei fehlenden
-   Importen nutzt das Spiel vereinfachte runde Ersatzfiguren.
-   Über **Handeln** lassen sich der Katalog und die verfügbaren Waren öffnen.
-5. Für den Test Minze bei Selma kaufen, dann Beutel und Münzen kontrollieren.
-   Ein Kauf entfernt nur den im Katalog gespeicherten Betrag und wird im
-   bestehenden Profil gesichert.
-
-Lokal geprüft werden Zutatenabdeckung, Marktpositionen, Bündelgrößen,
-Freischaltungen, Distanz, Inventar, Münzen, doppelte Anfragen und Profilrundlauf.
-Die Werkzeugmeshes wurden in Blender Frame für Frame gegen die Körper- und
-Kopfmeshes geprüft.
-In Roblox Studio stehen der GLB-Import mit der echten Roblox-Runtime,
-das Abspielen der Standanimationen, die Abstände an den Ständen und der Handel auf einem Touchgerät zur Prüfung aus.
+Im Place gemessen (Version 18): fünf Figuren mit je sieben texturierten Teilen, Füße auf dem Boden,
+Höhen wie in Blender; die Schleifendaten ergeben dort Handwege von 0,7 bis 4,8 Studs pro Durchlauf.
+Nicht gesehen: die laufende Animation und das Aussehen auf einem Gerät.
