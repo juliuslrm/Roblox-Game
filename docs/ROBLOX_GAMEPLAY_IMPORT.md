@@ -73,3 +73,20 @@ Abweichungen bitte mit der Nummer aus `docs/BLOCKERS_STUDIO.md` zurückmelden.
 | HUD zeigt „nicht gespeichert" | API-Zugriff in Studio aus |
 | Marker schweben oder stecken im Boden | Dorf noch nicht aufgebaut, als der Server startete (Raycast traf nichts) |
 | Maschine erscheint gedreht zum Ghost | Vorzeichen der Drehung in `WorkshopWorld.entityModel` anpassen (Blocker 7) |
+
+## Upload ohne Studio (Open Cloud)
+
+Die Place-Datei lässt sich ohne Roblox Studio direkt in ein bestehendes Spiel hochladen
+(API-Key mit System `universe-places`, Operation Write):
+
+```bash
+curl -X POST "https://apis.roblox.com/universes/v1/<universeId>/places/<placeId>/versions?versionType=Published" \
+  -H "x-api-key: <key>" -H "Content-Type: application/xml" \
+  --data-binary @exports/roblox/ArcaneVillage.rbxlx
+```
+
+- Tatsächlich geprüft (2026-11-16): Antwort `HTTP 200 {"versionNumber":…}`.
+- Die Datei muss exakt mit `</roblox>` enden. Schon ein Zeilenumbruch danach führt zu
+  `400 Invalid Content stream` (`scripts/build_place.py` und der Test stellen das sicher).
+- `versionType=Saved` speichert nur, ohne zu veröffentlichen.
+- Der Key gehört nicht ins Repository.

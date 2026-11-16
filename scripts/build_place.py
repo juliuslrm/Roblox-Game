@@ -73,7 +73,9 @@ def main():
                  item("StarterPlayerScripts", "StarterPlayerScripts", folder_of("roblox/gameplay/client", "ArcaneClient")))
     xml = ('<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
            'xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">\n'
-           '<External>null</External>\n<External>nil</External>\n' + body + '</roblox>\n')
+           '<External>null</External>\n<External>nil</External>\n' + body + '</roblox>')
+    # No trailing newline: the Open Cloud place publishing endpoint answers
+    # 400 "Invalid Content stream" if anything follows </roblox>.
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         fh.write(xml)

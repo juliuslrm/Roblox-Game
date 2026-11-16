@@ -19,7 +19,11 @@ from test_roblox_builder import HELPERS, expected_bounds, read  # noqa: E402
 
 def check_place():
     subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "build_place.py")], check=True, stdout=subprocess.DEVNULL)
-    tree = ET.parse(os.path.join(ROOT, "exports", "roblox", "ArcaneVillage.rbxlx"))
+    place_path = os.path.join(ROOT, "exports", "roblox", "ArcaneVillage.rbxlx")
+    with open(place_path, "rb") as fh:
+        # Roblox Open Cloud rejects the upload if anything follows </roblox>.
+        assert fh.read().endswith(b"</roblox>"), "place file must end exactly with </roblox>"
+    tree = ET.parse(place_path)
     root = tree.getroot()
     assert root.tag == "roblox" and root.get("version") == "4"
 
