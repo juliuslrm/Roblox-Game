@@ -3670,9 +3670,11 @@ function Auto.refineGround(opts)
 				CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
 				RenderFidelity = Enum.RenderFidelity.Precise,
 			})
-			local size, cframe = part.Size, part.CFrame
+			-- ApplyMesh also takes over the (empty) texture of the new part: seen in the game as
+			-- ground chunks turning grey one after the other.  Keep the original texture.
+			local size, cframe, texture = part.Size, part.CFrame, part.TextureID
 			part:ApplyMesh(precise)
-			part.Size, part.CFrame = size, cframe
+			part.Size, part.CFrame, part.TextureID = size, cframe, texture
 			precise:Destroy()
 		end)
 		if not ok then

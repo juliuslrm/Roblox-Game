@@ -33,11 +33,12 @@ p("workspace: %s", table.concat(names, ", "))
 local market = workspace:FindFirstChild("ArcaneMarket")
 p("market folders: %d", market and #market:GetChildren() or 0)
 do
-	local fid, total = {}, 0
+	local fid, total, untextured = {}, 0, 0
 	for _, g in ipairs({ "terrain", "roads", "water" }) do
 		for _, d in ipairs(workspace.Village[g]:GetDescendants()) do
 			if d:IsA("MeshPart") then
 				total = total + 1
+				if d.TextureID == "" then untextured = untextured + 1 end
 				local key = d.RenderFidelity.Name .. "/" .. d.CollisionFidelity.Name
 				fid[key] = (fid[key] or 0) + 1
 			end
@@ -46,6 +47,7 @@ do
 	local s = {}
 	for k, v in pairs(fid) do s[#s + 1] = k .. "=" .. v end
 	p("ground mesh fidelity (render/collision) of %d parts: %s", total, table.concat(s, " "))
+	p("ground parts without texture: %d of %d", untextured, total)
 end
 
 local ServerStorage = game:GetService("ServerStorage")

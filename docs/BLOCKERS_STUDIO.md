@@ -106,3 +106,15 @@ auf Distanz durch gröbere Stufen.
 - Ergebnis im Place: 0 von 36 481 Punkten ohne Boden, mittlere Abweichung 0,26 Studs, 322 Punkte
   (0,9 %) über 1,5 Studs, größte 24 (Ursache offen, vermutlich Bachufer/Weltrand).
 - Offen: ob die per `ApplyMesh` gesetzte Kollision und Darstellung auch auf dem Client ankommen.
+
+## Nachtrag 2026-11-16 (5): graue Geländestücke – eigentliche Ursache
+
+Der Spielerbericht aus Nachtrag (4) meinte etwas anderes: Geländestücke verlieren beim Laufen ihre
+Farbe und werden grau. Die Deutung „Detailstufen" war falsch.
+
+- Ursache (im Place bestätigt): `MeshPart:ApplyMesh` übernimmt auch die leere `TextureID` des mit
+  `CreateMeshPartAsync` erzeugten Teils. Die Hintergrund-Verfeinerung (seit Place-Version 8) hat so
+  ein Geländestück nach dem anderen entfärbt.
+- Behoben in Version 13: `Auto.refineGround` sichert die Textur vor `ApplyMesh` und setzt sie
+  danach wieder. Gemessen: 0 von 54 Bodenteilen ohne Textur.
+- Die Änderungen aus (4) bleiben (exakte Darstellung, exakte Kollision, geschlossene Löcher).
