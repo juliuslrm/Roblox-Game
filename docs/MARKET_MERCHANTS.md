@@ -42,23 +42,25 @@ Die 14 verkaufbaren Produkte verdienen Münzen im Spielerregal und in Aufträgen
 Kaufbündel haben feste Startpreise. Die Freischaltungen der 14 Rohwaren
 entsprechen ihren Sammelpunkten.
 
-## Figuren (Fassung vom 2026-11-16)
+## Figuren (Fassung vom 2026-11-17, realistisch)
 
-Die Händler sind Gliederfiguren im Stil des Dorfs: großer Kopf, klares Gesicht, sieben starre Teile
-je Figur, die sich in Kugelgelenken drehen (kein Skelett, kein Skinning):
+Die Händler haben realistische Proportionen (rund 7,5 Kopfhöhen, 6,3–6,9 Studs groß) und bestehen
+weiterhin aus sieben starren Teilen je Figur, die sich in Kugelgelenken drehen (kein Skelett, kein
+Skinning). Jede Figur hat rund 16 600–18 500 Dreiecke, kein Teil mehr als 9 500:
 
 | Teil | Inhalt | Gelenk |
 |---|---|---|
-| `lower` | Beine, Stiefel, Rock bzw. Mantelschoß | fest |
-| `torso` | Oberkörper, Schürze, Gürtel, Hals | Taille |
-| `head` | Gesicht, Haare, Kopfbedeckung | Hals |
-| `upper_l`, `upper_r` | Oberarm mit Schulterkappe | Schulter |
+| `lower` | Hüfte, Beine, Stiefel mit Sohle, Absatz und Schnürung bzw. Schnalle; Rock mit Falten bzw. Hose, Tunika, Kniebschurz | fest |
+| `torso` | Oberkörper mit Kragen, Knopfleiste, Gürtel, Tasche; Schürzenlatz, Weste, Schnürung, Umhang je Rolle | Taille |
+| `head` | modellierter Schädel mit Nase, Brauenbogen, Augenhöhlen, Wangen, Lippen und Kinn; Ohren, Haare, Hut, Kapuze, Bart | Hals |
+| `upper_l`, `upper_r` | Oberarm mit Schultermuskel, Ärmel (bei Aron hochgekrempelt) | Schulter |
 | `fore_l`, `fore_r` | Unterarm, Hand, Werkzeug | Ellbogen |
 
-- **Gesicht:** Augen mit Iris, Pupille, Glanzpunkt und Lid, Brauen mit eigenem Ausdruck je Figur,
-  Nase, geschwungener Mund, Ohren; Haare und Kopfbedeckung je Rolle.
-- **Hände:** Greifhand als Faust um den Werkzeuggriff (Handrücken, vier gefaltete Finger, Daumen
-  quer) oder offene Hand mit einzelnen Fingern.
+- **Gesicht:** Augäpfel mit Iris, Pupille, Glanzpunkt und Lidern, Brauen mit eigenem Ausdruck,
+  Lippen als eigene Wülste mit Mundlinie, Ohren mit Muschel; Frauen- und Männerkopf unterscheiden
+  sich in Kiefer, Brauenbogen und Lippen.
+- **Hände:** Handfläche, vier Finger mit je drei Gliedern und Nägeln, Daumen; um den Werkzeuggriff
+  gekrümmt. Werkzeuge sind auf Handgröße skaliert.
 - **In der Hand:** Selma Kräuterzweig und Korb, Nyra Kristall und Laterne, Lio Phiole und Poliertuch,
   Aron Hammer und Erzbrocken, Esme Axt und Zollstock. Korb und Laterne hängen bei vorgestrecktem
   Unterarm senkrecht.
@@ -80,7 +82,7 @@ je Figur, die sich in Kugelgelenken drehen (kein Skelett, kein Skinning):
   `roblox/gameplay/client/MarketIdle.client.lua` spielt die Schleife auf jedem Client ab:
   `Teil = Standpunkt * Rahmen(t) * CFrame.new(-Gelenk) * Ruhelage`.
 
-Prüfungen beim Bauen: Katalog gegen Spieldaten, Dreiecksbudget (≤ 6 000 je Figur), Rückseiten-Audit,
+Prüfungen beim Bauen: Katalog gegen Spieldaten, Dreiecksbudget (≤ 32 000 je Figur, ≤ 9 500 je Teil), Rückseiten-Audit,
 Schleifen ohne Sprung, und die exportierten Roblox-Rahmen ergeben dieselben Posen wie Blender
 (Abweichung 0,0001 Studs).
 
@@ -90,6 +92,6 @@ Die Bibliothek `arcane_market.fbx` ist als Asset hochgeladen (ID in `roblox/Vill
 wird beim Serverstart nach `ServerStorage.ArcaneMarketAssets` geladen. Fehlt ein Teil, erscheint eine
 einfache Ersatzfigur.
 
-Im Place gemessen (Version 18): fünf Figuren mit je sieben texturierten Teilen, Füße auf dem Boden,
+Im Place gemessen (Version 28, neue Figuren): fünf Figuren mit je sieben texturierten Teilen, Füße auf dem Boden,
 Höhen wie in Blender; die Schleifendaten ergeben dort Handwege von 0,7 bis 4,8 Studs pro Durchlauf.
 Nicht gesehen: die laufende Animation und das Aussehen auf einem Gerät.

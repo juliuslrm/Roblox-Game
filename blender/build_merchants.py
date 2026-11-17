@@ -35,7 +35,8 @@ from village import merchants as M  # noqa: E402
 from village import scene as sc  # noqa: E402
 from village.meshkit import MeshBuilder  # noqa: E402
 
-FIGURE_TRIANGLES = 6000
+FIGURE_TRIANGLES = 32000      # whole figure (seven parts)
+PART_TRIANGLES = 9500         # one part = one MeshPart; Roblox imports at most 10 000 triangles per mesh
 FPS = 8
 # Blender (x, y, z) -> Roblox (x, z, -y)
 TO_ROBLOX = Matrix(((1, 0, 0), (0, 0, 1), (0, -1, 0)))
@@ -207,6 +208,8 @@ def main():
             bounds = coords.bounds_to_roblox(*mb.bounds())
             parts[part] = {"center": bounds["center"], "size": bounds["size"], "joint": coords.to_roblox(joints[part])}
             triangles += mb.tri_count()
+            if mb.tri_count() > PART_TRIANGLES:
+                problems.append(f"{name}: {mb.tri_count()} triangles > {PART_TRIANGLES}")
             manifest[name] = {"role": role, "part": part, "triangles": mb.tri_count(), "bounds_roblox": bounds,
                               "glb": f"exports/glb/market/{name}.glb"}
             built.append((name, mb, (index * 12.0, 0.0, 0.0)))
