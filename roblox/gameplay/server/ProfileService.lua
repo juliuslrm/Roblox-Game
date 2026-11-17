@@ -111,7 +111,10 @@ function Profile.load(data, userId)
 					if type(b[key]) == "table" then nb[key] = b[key] cleanStore(nb[key], e.uid) end
 				end
 				if cleanInt(b.fuel, 0) then nb.fuel = b.fuel end
-				if type(b.item) == "string" and Items[b.item] then nb.item = b.item nb.t = 0 end
+				if type(b.item) == "string" and Items[b.item] then
+					nb.item, nb.t = b.item, 0
+					if cleanInt(b.inDir, 0) and b.inDir <= 3 then nb.inDir = b.inDir end
+				end
 				if type(b.job) == "table" and Recipes[b.job.recipe] and Util.isFinite(b.job.remaining) then
 					nb.job = { recipe = b.job.recipe, remaining = math.max(0, b.job.remaining), auto = b.job.auto == true,
 						inputs = Util.deepCopy(Recipes[b.job.recipe].inputs) }

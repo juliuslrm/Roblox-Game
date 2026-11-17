@@ -213,3 +213,20 @@ mehreren Blickrichtungen, Sichtbarkeit der Marken, Zustand nach Wiederbeitritt.
 Offen: Die Ware springt von Feld zu Feld (ein Schritt je Bandtakt); eine gleitende Bewegung wäre
 ein Client-Effekt und ist nicht umgesetzt. Bilder im Beutel und in den Listen nutzen noch Text.
 Aussehen am Gerät ungeprüft.
+
+## Nachtrag 2026-11-17: Ware gleitet über die Bänder
+
+- Server: `Game.goodsView` + `WorkshopWorld:syncGoods` veröffentlichen 5×/s je Förderteil
+  `GoodsItem`, `GoodsAt`, `GoodsIn` (nur Änderungen); statisch `GoodsRoom`, `GoodsCell`,
+  `GoodsSurface`, `GoodsOut`, `GoodsPeriod`. Die Item-Modelle werden nach `ReplicatedStorage.
+  ArcaneItemModels` kopiert. Die Laufrichtung beim Auflegen (`inDir`) merkt sich `LogisticsService`.
+- Simulation: volle Bänder rücken jetzt im selben Takt vor (D17).
+- Client: `GoodsAnimator.client.lua` zeichnet je Ware ein Modell, Positionen aus `GoodsMotion`.
+- Lokal gemessen (`spec_goods`: echte Simulation, Updates alle 0,2 s mit 80–200 ms Verzögerung,
+  60 Bilder/s): volle Linie mit Kurve 40 s lang – größter Schritt 0,022 Studs je Bild bei
+  0,0167 Sollwert, 0 von 8 396 Messpunkten im fahrenden Abschnitt stehend, nie mehr Modelle als
+  Ware; blockiert: Schlange steht still, 9 Modelle = 9 Waren; freigegeben: fährt ohne Sprung an.
+- Im Place gemessen (Version 23): Attribute korrekt, Auflagehöhe = Bandoberfläche (3,21),
+  45 Modelle in ReplicatedStorage, keine servergezeichnete Ware mehr.
+- Offen: Aufzug und Magisches Tor übergeben über Etagen bzw. Entfernung – dort verschwindet die
+  Ware und taucht am Ziel neu auf. Aussehen am Gerät ungeprüft.

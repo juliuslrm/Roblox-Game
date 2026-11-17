@@ -176,7 +176,7 @@ for i, plot in ipairs(plots) do
 	local view = { owner = 100 + i, cells = cells, floors = floors, version = 1, entities = {
 		{ uid = "k" .. i, machine = "kettle", gx = 2, gz = 2, floor = 1, rot = 0, inv = {}, fluids = {} },
 		{ uid = "g" .. i, machine = "grinder", gx = 8, gz = 4, floor = 1, rot = 1, inSide = 2, outSide = 1, outAuto = false, inv = {}, fluids = {} },
-		{ uid = "b" .. i, machine = "wooden_belt", gx = 12, gz = 4, floor = 1, rot = 1, inv = {}, fluids = {}, item = "herb_mint" },
+		{ uid = "b" .. i, machine = "wooden_belt", gx = 12, gz = 4, floor = 1, rot = 1, inv = {}, fluids = {} },
 		{ uid = "t" .. i, machine = "belt_turn", gx = 12, gz = 8, floor = 1, rot = 0, inv = {}, fluids = {} } } }
 	local room = ww:sync(view, "Werkstatt von Test " .. i)
 	if i == 1 then
@@ -199,22 +199,22 @@ for i, plot in ipairs(plots) do
 			if d:IsA("BasePart") and d:GetAttribute("ArcanePortMark") and d.Transparency == 1 then hidden = hidden + 1 end
 			if d:IsA("BillboardGui") and d.Name == "PortLabel" and not d.Enabled then labels = labels + 1 end
 		end
-		do -- goods on the belt: the model of the item, textured, standing on the belt; swapped when the item changes
-			local goods = belt:FindFirstChild("Goods")
+		do -- goods: the server publishes them as attributes; clients draw them (GoodsAnimator)
+			local now = workspace:GetServerTimeNow()
+			ww:syncGoods(101, { b1 = { item = "herb_mint", age = 0.5, inDir = 1 } }, now)
+			local surface = belt:GetAttribute("GoodsSurface")
 			local top = belt.Position.Y + belt.Size.Y / 2
-			local line = goods and string.format("%s textured=%s, base %.2f above the belt top, %.1f studs wide",
-				tostring(goods:GetAttribute("ArcaneItem")), tostring(goods.TextureID ~= ""), goods.Position.Y - goods.Size.Y / 2 - top,
-				math.max(goods.Size.X, goods.Size.Z)) or "missing"
-			view.entities[3].item = "tonic_minor"
-			ww:sync(view)
-			local second = belt:FindFirstChild("Goods")
-			view.entities[3].item = nil
-			ww:sync(view)
-			p("goods on belt: %s; after change: %s; after leaving: %s", line, second and tostring(second:GetAttribute("ArcaneItem")) or "missing",
-				belt:FindFirstChild("Goods") and "still there" or "gone")
+			local first = string.format("item=%s at=%.2f s ago in=%s out=%s period=%s cell=%s surface %.2f vs belt top %.2f",
+				tostring(belt:GetAttribute("GoodsItem")), now - (belt:GetAttribute("GoodsAt") or 0), tostring(belt:GetAttribute("GoodsIn")),
+				tostring(belt:GetAttribute("GoodsOut")), tostring(belt:GetAttribute("GoodsPeriod")), tostring(belt:GetAttribute("GoodsCell")),
+				surface and surface.Y or -1, top)
+			ww:syncGoods(101, {}, now + 1)
+			local models = game:GetService("ReplicatedStorage"):FindFirstChild("ArcaneItemModels")
 			local n = 0
-			for _, d in ipairs(ServerStorage.ArcaneItemAssets:GetDescendants()) do if d:IsA("MeshPart") then n = n + 1 end end
-			p("item models loaded: %d", n)
+			for _, d in ipairs(models and models:GetDescendants() or {}) do if d:IsA("MeshPart") then n = n + 1 end end
+			p("goods attributes: %s; after leaving: item=%s; curve out=%s; mill has none=%s; item models for clients: %d, server-drawn goods: %s",
+				first, tostring(belt:GetAttribute("GoodsItem")), tostring(turn:GetAttribute("GoodsOut")),
+				tostring(mill:GetAttribute("GoodsOut") == nil), n, belt:FindFirstChild("Goods") and "yes" or "none")
 		end
 		p("directions: belt rot 1 arrow (%.1f, %.1f), curve rot 0 arrow (%.1f, %.1f), outlet mark away %.2f, inlet mark away %.2f, %d hidden mark parts, %d hidden labels, outlet label '%s'",
 			fb.X, fb.Z, ft.X, ft.Z, away(outMark), away(inMark), hidden, labels, outMark.PortLabel:FindFirstChildOfClass("TextLabel").Text)

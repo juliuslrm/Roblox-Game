@@ -10,7 +10,7 @@ local CARRIER = { belt = true, splitter = true, merger = true, sorter = true, li
 L.CARRIER = CARRIER
 
 function L.build(P)
-	local G = { ents = {}, order = {}, solid = {}, hopperSrc = {}, comps = {} }
+	local G = { ents = {}, order = {}, solid = {}, solidDir = {}, hopperSrc = {}, comps = {} }
 	local ground, pipe = Place.occupancy(P)
 	G.ground, G.pipe = ground, pipe
 	for _, e in ipairs(P.workshop.layout) do
@@ -78,12 +78,12 @@ function L.build(P)
 			local c = comp(find(e.uid))
 			c.tanks[#c.tanks + 1] = e.uid
 		end
-		local outs = {}
+		local outs, dirs = {}, {}           -- dirs[i]: direction goods travel when they leave through outs[i]
 		if def.kind == "machine" then
 			-- production machines hand solid goods over at their current outlet side
 			local _, outSide = Ports.sides(def, e)
 			local px, pz, dir = Ports.cell(def, e, outSide)
-			outs[1] = solidTarget(e.floor, px + Grid.DX[dir], pz + Grid.DZ[dir], dir)
+			outs[1], dirs[1] = solidTarget(e.floor, px + Grid.DX[dir], pz + Grid.DZ[dir], dir), dir
 		end
 		for _, p in ipairs(def.ports) do
 			local px, pz, dir = Grid.port(def, p, e.gx, e.gz, e.rot)
@@ -98,11 +98,14 @@ function L.build(P)
 					if partner and Machines[partner.machine].kind == "gate" and partner.uid ~= e.uid then
 						local qx, qz, qdir = Grid.port(def, p, partner.gx, partner.gz, partner.rot)
 						outs[#outs + 1] = solidTarget(partner.floor, qx + Grid.DX[qdir], qz + Grid.DZ[qdir], qdir)
+						dirs[#outs] = qdir
 					else
 						outs[#outs + 1] = false
+						dirs[#outs] = dir
 					end
 				else
 					outs[#outs + 1] = solidTarget(floor, nx, nz, dir)
+					dirs[#outs] = dir
 				end
 			elseif p.type == "fluid" then
 				local k = Grid.key(e.floor, nx, nz)
@@ -126,7 +129,7 @@ function L.build(P)
 				end
 			end
 		end
-		G.solid[e.uid] = outs
+		G.solid[e.uid], G.solidDir[e.uid] = outs, dirs
 		if def.kind == "hopper" then
 			local front = e.rot % 4
 			local src = entAt(e.floor, e.gx - Grid.DX[front], e.gz - Grid.DZ[front])
@@ -136,6 +139,36 @@ function L.build(P)
 			end
 		end
 	end
+	-- Transfer order: parts closest to the end of a line first.  A full belt then moves forward in
+	-- one tick (the front item leaves, every item behind follows at once) instead of each item
+	-- waiting one tick for the one in front.  Parts at the same distance share one group, inside
+	-- which the start rotates every tick (fair merging).
+	local depth = {}
+	for _, uid in ipairs(G.order) do depth[uid] = 0 end
+	for _ = 1, #G.order do
+		local changed = false
+		for _, uid in ipairs(G.order) do
+			local best = 0
+			for _, t in ipairs(G.solid[uid] or {}) do
+				if t and CARRIER[Machines[G.ents[t].machine].kind] then
+					local d = depth[t] + 1
+					if best == 0 or d < best then best = d end
+				end
+			end
+			if best ~= depth[uid] and best <= #G.order then depth[uid], changed = best, true end
+		end
+		if not changed then break end
+	end
+	local groups, levels = {}, {}
+	for _, uid in ipairs(G.order) do
+		local d = depth[uid]
+		if not groups[d] then groups[d] = {} levels[#levels + 1] = d end
+		local g = groups[d]
+		g[#g + 1] = uid
+	end
+	table.sort(levels)
+	G.groups = {}
+	for _, d in ipairs(levels) do G.groups[#G.groups + 1] = groups[d] end
 	return G
 end
 
@@ -163,10 +196,11 @@ function L.accepts(P, G, uid, item)
 	return nil
 end
 
-function L.give(P, uid, slot, item, viaLogistics)
+-- dir: direction the item travelled into `uid` (only kept for conveyors: where it is drawn entering)
+function L.give(P, uid, slot, item, viaLogistics, dir)
 	local b = P.workshop.buffers[uid]
 	if slot == "item" then
-		b.item, b.t = item, 0
+		b.item, b.t, b.inDir = item, 0, dir
 	elseif slot == "fuel" then
 		b.fuel = b.fuel + 1
 	else
@@ -196,9 +230,14 @@ function L.stepSolids(P, G, dt, tickIndex)
 		b.t = math.min((b.t or 0) + dt, 60)
 	end
 	local moved = 0
-	local start = tickIndex % n
+	local sequence = {}
+	for _, group in ipairs(G.groups) do
+		local m = #group
+		local start = tickIndex % m
+		for i = 1, m do sequence[#sequence + 1] = group[((start + i - 1) % m) + 1] end
+	end
 	for i = 1, n do
-		local uid = G.order[((start + i - 1) % n) + 1]
+		local uid = sequence[i]
 		local e, b = G.ents[uid], buffers[uid]
 		local kind = Machines[e.machine].kind
 		local outs = G.solid[uid]
@@ -209,7 +248,7 @@ function L.stepSolids(P, G, dt, tickIndex)
 					local slot = L.accepts(P, G, target, item)
 					if slot then
 						takeOne(b.out, item)
-						L.give(P, target, slot, item, true)
+						L.give(P, target, slot, item, true, G.solidDir[uid][1])
 						b.t, moved = 0, moved + 1
 						break
 					end
@@ -225,7 +264,7 @@ function L.stepSolids(P, G, dt, tickIndex)
 						local slot = L.accepts(P, G, target, item)
 						if slot then
 							takeOne(store, item)
-							L.give(P, target, slot, item, true)
+							L.give(P, target, slot, item, true, G.solidDir[uid][1])
 							b.t, moved = 0, moved + 1
 							break
 						end
@@ -238,27 +277,28 @@ function L.stepSolids(P, G, dt, tickIndex)
 			elseif kind == "lift" then period = sim.liftSecondsPerItem
 			elseif kind == "gate" then period = sim.gateSecondsPerItem end
 			if b.t >= period then
-				local target
+				local target, index = nil, 1
 				if kind == "splitter" then
 					local count = #outs
 					for k = 0, count - 1 do
 						local idx = ((b.rr or 0) + k) % count + 1
 						if outs[idx] and L.accepts(P, G, outs[idx], b.item) then
-							target = outs[idx]
+							target, index = outs[idx], idx
 							b.rr = idx % count
 							break
 						end
 					end
 				elseif kind == "sorter" then
-					target = inFilter(e, b.item) and outs[1] or outs[2]
+					index = inFilter(e, b.item) and 1 or 2
+					target = outs[index]
 				else
 					target = outs[1]
 				end
 				local slot = target and L.accepts(P, G, target, b.item)
 				if slot then
 					local item = b.item
-					b.item = nil
-					L.give(P, target, slot, item, true)
+					b.item, b.inDir = nil, nil
+					L.give(P, target, slot, item, true, G.solidDir[uid][index])
 					moved = moved + 1
 				end
 			end

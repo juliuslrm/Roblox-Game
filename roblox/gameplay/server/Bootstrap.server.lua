@@ -116,7 +116,16 @@ if layout and layout.workshopPlots then
 end
 local walkable = #plotPositions > 0
 local workshops = WorkshopWorld.new(workspace, ServerStorage:FindFirstChild("ArcaneAssets"), plotPositions,
-	layout and layout.workshopPlots and layout.workshopPlots.half, ServerStorage:FindFirstChild("ArcaneItemAssets"))
+	layout and layout.workshopPlots and layout.workshopPlots.half)
+-- The item models are drawn by every client (GoodsAnimator), so they must be visible to clients.
+do
+	local items = ServerStorage:FindFirstChild("ArcaneItemAssets")
+	if items and not ReplicatedStorage:FindFirstChild("ArcaneItemModels") then
+		local copy = items:Clone()
+		copy.Name = "ArcaneItemModels"
+		copy.Parent = ReplicatedStorage
+	end
+end
 if walkable then world.plotPresence = {} end
 
 -- ---- persistence ----
@@ -366,7 +375,7 @@ game:BindToClose(function()
 end)
 
 -- ---- main loop: fixed simulation tick, 1 s position / snapshot / visuals, periodic autosave ----
-local simAcc, slowAcc, saveAcc, presenceAcc = 0, 0, 0, 0
+local simAcc, slowAcc, saveAcc, presenceAcc, goodsAcc = 0, 0, 0, 0, 0
 RunService.Heartbeat:Connect(function(dt)
 	simAcc = simAcc + math.min(dt, 1)
 	local guard = 0
@@ -423,6 +432,18 @@ RunService.Heartbeat:Connect(function(dt)
 					if result.ok then changed = true else session.rt.enterRetry = now + 3 end
 				end
 				if changed then push(player) end
+			end
+		end
+	end
+	-- goods on the conveyors, several times a second, so clients can let them glide without stops
+	goodsAcc = goodsAcc + dt
+	if goodsAcc >= 0.2 then
+		goodsAcc = 0
+		local now = workspace:GetServerTimeNow()
+		for _, player in ipairs(Players:GetPlayers()) do
+			local session = world.sessions[player.UserId]
+			if session and not session.safeMode then
+				workshops:syncGoods(player.UserId, Game.goodsView(world, player.UserId), now)
 			end
 		end
 	end

@@ -118,6 +118,23 @@ function Game.workshopView(world, ownerId)
 		stock = Shop.stock(P), demand = P.shop.demand, nextCustomerIn = P.shop.nextIn }
 end
 
+-- What lies on the conveyors of a workshop: uid -> { item, age (seconds on this part), inDir }.
+-- Small and cheap; the server publishes it several times a second so clients can animate the goods.
+local CARRIER = { belt = true, splitter = true, merger = true, sorter = true, lift = true, gate = true }
+function Game.goodsView(world, ownerId)
+	local s = world.sessions[ownerId]
+	if not s then return nil end
+	local P = s.profile
+	local out = {}
+	for _, e in ipairs(P.workshop.layout) do
+		local b = P.workshop.buffers[e.uid]
+		if b and b.item and CARRIER[Machines[e.machine].kind] then
+			out[e.uid] = { item = b.item, age = b.t or 0, inDir = b.inDir }
+		end
+	end
+	return out
+end
+
 -- Everything the owning client may know. Built from server state only.
 function Game.snapshot(world, session)
 	local P = session.profile

@@ -447,7 +447,7 @@ def check_item_art():
     """Every item has a model (bounds) and a cell on the icon sheet; nothing is left over."""
     lua = LuaRuntime(unpack_returned_tuples=True)
     items = set(lua.execute(read("roblox", "gameplay", "shared", "Items.lua")).keys())
-    art = lua.execute(read("roblox", "gameplay", "server", "ItemArt.lua"))
+    art = lua.execute(read("roblox", "gameplay", "shared", "ItemArt.lua"))
     sheet = lua.execute(read("roblox", "gameplay", "shared", "ItemIconSheet.lua"))
     manifest = json.loads(read("world", "item_asset_manifest.json"))["assets"]
     assert {"item_" + i for i in items} == set(art.keys()) == set(manifest), "one model per item"

@@ -7,9 +7,11 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 local Architecture = require(Shared.WorkshopArchitecture)
 local Models = require(Shared.WorkshopModels)
 local Ports = require(Shared.MachinePorts)
-local ItemArt = require(script.Parent.ItemArt)
 local WW = {}
 WW.__index = WW
+
+local CARRIER = { belt = true, splitter = true, merger = true, sorter = true, lift = true, gate = true }
+local PERIOD = { belt = "beltSecondsPerItem", lift = "liftSecondsPerItem", gate = "gateSecondsPerItem" }
 
 local COLORS = {
 	machine = Color3.fromRGB(134, 87, 58), storage = Color3.fromRGB(181, 133, 86), transport = Color3.fromRGB(110, 106, 102),
@@ -32,10 +34,8 @@ end
 -- plots: optional list of world positions (Vector3, ground level) of the building plots in the
 --   village.  With plots the workshops are open buildings that players simply walk into; without
 --   them (no level plan) they are closed interiors far away, entered by teleport as before.
--- itemTemplates: optional Folder with the item models ("item_<id>"), shown on conveyors
-function WW.new(parent, templates, plots, plotHalf, itemTemplates)
-	local self = setmetatable({ rooms = {}, slots = {}, templates = templates, plots = plots, plotHalf = plotHalf or 42,
-		itemTemplates = itemTemplates }, WW)
+function WW.new(parent, templates, plots, plotHalf)
+	local self = setmetatable({ rooms = {}, slots = {}, templates = templates, plots = plots, plotHalf = plotHalf or 42 }, WW)
 	if plots and #plots == 0 then self.plots = nil end
 	self.root = Instance.new("Folder")
 	self.root.Name = "ArcaneWorkshops"
@@ -319,44 +319,42 @@ local function entityModel(self, room, e)
 		if def.layer ~= "pipe" then
 			flatArrow(body, "Arrow", base + Vector3.new(0, height / 2 + 0.08, 0) + flow * 0.7, flow, Color3.fromRGB(201, 154, 60), 1.4, false)
 		end
-		local token = part({ Name = "Token", Size = Vector3.new(0.9, 0.9, 0.9), Position = base + Vector3.new(0, height / 2 + 0.6, 0),
-			Color = Color3.fromRGB(95, 163, 67), Transparency = 1, CanCollide = false, Shape = Enum.PartType.Ball }, body)
-		token.Name = "Token"
+		if CARRIER[def.kind] then
+			-- what every client needs to draw the goods gliding over this part (GoodsAnimator)
+			local multi = 0
+			for _, p in ipairs(def.ports or {}) do if p.mode == "out" then multi = multi + 1 end end
+			body:SetAttribute("GoodsRoom", room.owner)
+			body:SetAttribute("GoodsCell", Vector3.new(e.gx, e.floor, e.gz))
+			-- top of the belt surface (the belt model sits a little below its nominal height)
+			body:SetAttribute("GoodsSurface", base + Vector3.new(0, height / 2 - 0.11, 0))
+			body:SetAttribute("GoodsOut", multi == 1 and outDir or -1)       -- splitters decide per item
+			body:SetAttribute("GoodsPeriod", PERIOD[def.kind] and Config.sim[PERIOD[def.kind]] or 0.5)
+		end
 	end
 	body.Parent = room.entityFolder
 	return body
 end
 
--- The thing lying on a conveyor: the model of that item, standing on the token's spot and turned
--- a little differently from piece to piece.  Without the model library a small ball in the item's
--- stead (the token itself) is shown.
-local function showGoods(self, cur, item)
-	if cur.goodsItem == item then return end
-	cur.goodsItem = item
-	if cur.goods then cur.goods:Destroy() cur.goods = nil end
-	local token = cur.body:FindFirstChild("Token")
-	if not token then return end
-	if not item then token.Transparency = 1 return end
-	local name = "item_" .. item
-	local template = self.itemTemplates and self.itemTemplates:FindFirstChild(name, true)
-	local shape = ItemArt[name]
-	if not (template and shape and template:IsA("BasePart")) then
-		token.Transparency = 0
-		return
+-- Publishes what lies on the conveyors of a room (Game.goodsView) as attributes of the conveyor
+-- parts: GoodsItem, GoodsAt (server time the item arrived), GoodsIn (direction it came in).  Only
+-- changes are written, so this can run several times a second.
+function WW:syncGoods(ownerId, goods, now)
+	local room = self.rooms[ownerId]
+	if not room or not goods then return end
+	for uid, cur in pairs(room.entities) do
+		local body = cur.body
+		if body and body.Parent and body:GetAttribute("GoodsOut") ~= nil then
+			local g = goods[uid]
+			local item = g and g.item or nil
+			local at = g and (now - g.age) or nil
+			if item ~= cur.goodsItem or (item and math.abs(at - cur.goodsAt) > 0.25) then
+				cur.goodsItem, cur.goodsAt = item, at
+				body:SetAttribute("GoodsItem", item)
+				body:SetAttribute("GoodsAt", at)
+				body:SetAttribute("GoodsIn", g and g.inDir or nil)
+			end
+		end
 	end
-	token.Transparency = 1
-	local mesh = template:Clone()
-	mesh.Name = "Goods"
-	mesh.Size = Vector3.new(table.unpack(shape.size))
-	local turn = 0
-	for i = 1, #item do turn = (turn * 31 + string.byte(item, i)) % 360 end
-	local foot = CFrame.new(token.Position - Vector3.new(0, token.Size.Y / 2 + 0.26, 0))   -- top of the belt * CFrame.Angles(0, math.rad(turn), 0)
-	-- keep the template's rotation: the asset loader stores the import correction there
-	mesh.CFrame = foot * CFrame.new(table.unpack(shape.center)) * (template.CFrame - template.CFrame.Position)
-	mesh.Anchored, mesh.CanCollide, mesh.CanQuery, mesh.CanTouch, mesh.CastShadow = true, false, false, false, false
-	mesh:SetAttribute("ArcaneItem", item)
-	mesh.Parent = cur.body
-	cur.goods = mesh
 end
 
 -- Mirrors a workshop view (Game.workshopView) into Instances. Cheap when nothing changed.
@@ -401,7 +399,7 @@ function WW:sync(view, label)
 				end
 				label.Text.Text = line
 			end
-			showGoods(self, cur, e.item)
+
 		end
 	end
 	return room

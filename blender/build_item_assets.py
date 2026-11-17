@@ -3,7 +3,7 @@
     python blender/build_item_assets.py [--no-render]
 
 Outputs: assets/items/*.blend, exports/glb/items/*.glb, exports/library/arcane_items.{glb,fbx},
-world/item_asset_manifest.json, roblox/gameplay/server/ItemArt.lua (bounds),
+world/item_asset_manifest.json, roblox/gameplay/shared/ItemArt.lua (bounds),
 exports/textures/item_icons.png (all items on one sheet), previews/assets/items.png.
 The icon sheet layout (cell size, column and row of every item) is written into
 roblox/gameplay/shared/ItemIconSheet.lua; the image id is added after the upload.
@@ -159,7 +159,7 @@ def main():
         lines.append(f"\t{name} = {{ center = {{{b['center'][0]:g}, {b['center'][1]:g}, {b['center'][2]:g}}}, "
                      f"size = {{{b['size'][0]:g}, {b['size'][1]:g}, {b['size'][2]:g}}} }},")
     lines += ["}", ""]
-    with open(sc.path("roblox", "gameplay", "server", "ItemArt.lua"), "w", encoding="utf-8") as fh:
+    with open(sc.path("roblox", "gameplay", "shared", "ItemArt.lua"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))
 
     tris = [e["triangles"] for e in manifest.values()]
