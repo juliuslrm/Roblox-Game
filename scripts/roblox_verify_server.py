@@ -232,6 +232,31 @@ for i, plot in ipairs(plots) do
 				first, tostring(belt:GetAttribute("GoodsItem")), tostring(turn:GetAttribute("GoodsOut")),
 				tostring(mill:GetAttribute("GoodsOut") == nil), n, belt:FindFirstChild("Goods") and "yes" or "none")
 		end
+		do -- build hologram (client module) against the built parts: same place, turn and size
+			local Hologram = require(game:GetService("StarterPlayer").StarterPlayerScripts.ArcaneClient.Hologram)
+			local centerOf = Hologram.cellCenter({ x = room.origin.X, y = room.origin.Y, z = room.origin.Z }, cells)
+			local worst, models, rows = 0, 0, {}
+			for _, e in ipairs(view.entities) do
+				local built = room.entityFolder:FindFirstChild(e.uid)
+				local holo = Hologram.body(e.machine)
+				Hologram.place(holo, e, centerOf)
+				local dp = (holo.part.Position - built.Position).Magnitude
+				local dr = (holo.part.CFrame.LookVector - built.CFrame.LookVector).Magnitude + (holo.part.CFrame.UpVector - built.CFrame.UpVector).Magnitude
+				local ds = (holo.part.Size - built.Size).Magnitude
+				worst = math.max(worst, dp, dr, ds)
+				if holo.template then models = models + 1 end
+				rows[#rows + 1] = string.format("%s %.3f/%.3f/%.3f", e.machine, dp, dr, ds)
+				holo.part:Destroy()
+			end
+			local plate = Hologram.plate()
+			Hologram.placePlate(plate, "grinder", view.entities[2], centerOf)
+			local grid = Hologram.grid({ x = room.origin.X, y = room.origin.Y, z = room.origin.Z }, cells, 1)
+			p("hologram vs built: %d parts (%d real models, white=%s), worst difference %.4f [%s]; plate %.1f x %.1f; grid parts %d",
+				#view.entities, models, tostring(Hologram.body("grinder").part.TextureID == ""), worst, table.concat(rows, ", "),
+				plate.Size.X, plate.Size.Z, #grid:GetChildren())
+			grid:Destroy()
+			plate:Destroy()
+		end
 		p("directions: outlet mark away %.2f, inlet mark away %.2f, %d hidden mark parts, %d hidden labels, outlet label '%s'",
 			away(outMark), away(inMark), hidden, labels, outMark.PortLabel:FindFirstChildOfClass("TextLabel").Text)
 	end

@@ -3,7 +3,7 @@
 <External>nil</External>
 <Item class="Workspace" referent="RBX000009"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item>
 <Item class="Lighting" referent="RBX000010"><Properties><string name="Name">Lighting</string><float name="ClockTime">15.2</float><float name="Brightness">2</float></Properties></Item>
-<Item class="ReplicatedStorage" referent="RBX000033"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000032"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">BeltPath</string><ProtectedString name="Source"><![CDATA[-- Conveyor lines: the cells and directions of a belt run from a start to an end cell, and the
+<Item class="ReplicatedStorage" referent="RBX000034"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000033"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">BeltPath</string><ProtectedString name="Source"><![CDATA[-- Conveyor lines: the cells and directions of a belt run from a start to an end cell, and the
 -- reserved cells of a workshop.  Pure data logic, shared by the build preview and the server.
 local BeltPath = {}
 BeltPath.MAX = 64                      -- belts in one line
@@ -1091,7 +1091,57 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000024"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
+<Item class="ModuleScript" referent="RBX000024"><Properties><string name="Name">PlacementPose</string><ProtectedString name="Source"><![CDATA[-- Where and how the model of a workshop part sits: used by the server to build the part and by the
+-- build preview to show the white hologram in exactly the same place (one rule for both).
+local Config = require(script.Parent.Config)
+local Grid = require(script.Parent.GridMath)
+local Pose = {}
+
+-- Centre of the footprint at the part's nominal middle height, and that height.
+-- cellCenter(floor, x, z) -> Vector3: floor-level centre of a grid cell.
+function Pose.base(def, e, cellCenter)
+	local w, d = Grid.size(def, e.rot)
+	local cs = Config.cellSize
+	local height = (def.category == "transport") and 0.8 or (def.kind == "shelf") and 6 or 4
+	if def.layer == "pipe" then height = 0.5 end
+	local base = cellCenter(e.floor, e.gx, e.gz)
+		+ Vector3.new((w - 1) * cs / 2, height / 2 + (def.layer == "pipe" and 0.05 or 0), (d - 1) * cs / 2)
+	return base, height
+end
+
+-- Sizes and turns `body`, a clone of `template`, for entity e (base and height from Pose.base).
+-- Models: WorkshopModels (bounds of single uploaded models).  Returns the light specs of the model
+-- and the offset of the model centre from its ground pivot (both only for single models).
+function Pose.place(body, template, def, e, base, height, Models)
+	local cs = Config.cellSize
+	local turn = CFrame.Angles(0, math.rad(90 * e.rot), 0)
+	if template:GetAttribute("PublishedMachineLibrary") then
+		-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
+		local k = math.max(template.Size.X, template.Size.Z) / (math.max(def.w, def.d) * cs)
+		body.Size = (k > 1.05 or k < 0.6) and template.Size / k or template.Size
+		-- keep the template's own rotation (the asset loader corrects the import orientation there)
+		-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
+		local floorY = base.Y - height / 2
+		body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * turn * (template.CFrame - template.CFrame.Position)
+		return nil
+	end
+	local pivot = CFrame.new(base - Vector3.new(0, height / 2, 0)) * turn
+	local mesh = Models[def.modelAssetId]
+	if mesh then
+		-- imported MeshParts are centred on the geometry bounds: recover the grid-centred,
+		-- ground-level pivot before turning
+		local offset = Vector3.new(table.unpack(mesh.center))
+		body.Size = Vector3.new(table.unpack(mesh.size))
+		body.CFrame = pivot * CFrame.new(offset)
+		return mesh.lights, offset
+	end
+	body.CFrame = pivot
+	return nil
+end
+
+return Pose
+]]></ProtectedString></Properties></Item>
+<Item class="ModuleScript" referent="RBX000025"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
 -- "id" (short string), "ids" (array of ids), "cells" (array of { gx, gz, rot } integers).
 -- A field name ending in "?" is optional.
 local P = {}
@@ -1138,7 +1188,7 @@ P.messages = {
 }
 return P
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000025"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
+<Item class="ModuleScript" referent="RBX000026"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
 --   enter_workshop | craft{item,count,auto?} | sell{count} | deliver{items,at} | visit{at}
 --   research{id} | place{machine} | piped{ml} | floors{count} | lines{count,windowSec} | rate{perMin,windowSec}
 -- rewards: coins, knowledge, rep, flag
@@ -1237,7 +1287,7 @@ Q.projects = {
 }
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000026"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
+<Item class="ModuleScript" referent="RBX000027"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
 local W = 1000
 local R = {}
 local function add(id, tier, machine, inputs, outputs, t, research, extra)
@@ -1285,7 +1335,7 @@ add("d02", 3, "quarry_drill", {}, { ore_copper = 1 }, 30, "licensed_mining", { k
 add("d03", 3, "quarry_drill", {}, { ore_iron = 1 }, 30, "licensed_mining", { knowledgeRewardFirstCraft = 0, supply = true, fuelUnits = 1, source = true })
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000027"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
+<Item class="ModuleScript" referent="RBX000028"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
 local T = {}
 local function node(id, tier, cost, prereqs, unlocks, name)
 	T[id] = { id = id, tier = tier, cost = cost, prereqs = prereqs, unlocks = unlocks, name = name }
@@ -1320,7 +1370,7 @@ node("portal_logistics", 5, 200, { "arcane_depths", "smart_sorting" }, { "magica
 node("master_blueprints", 5, 130, { "multi_floor", "flow_control" }, { "blueprint_slots_20" }, "Meisterbaupläne")
 return T
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000028"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
+<Item class="ModuleScript" referent="RBX000029"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
 local Util = {}
 function Util.isInt(v)
 	return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge and math.floor(v) == v
@@ -1356,7 +1406,7 @@ function Util.nextRandom(state)
 end
 return Util
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000029"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
+<Item class="ModuleScript" referent="RBX000030"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
 local Validator = {}
 function Validator.run(D)
 	local errs = {}
@@ -1493,7 +1543,7 @@ function Validator.run(D)
 end
 return Validator
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000030"><Properties><string name="Name">WorkshopArchitecture</string><ProtectedString name="Source"><![CDATA[-- Shared room geometry for Roblox and the Blender workshop generator.
+<Item class="ModuleScript" referent="RBX000031"><Properties><string name="Name">WorkshopArchitecture</string><ProtectedString name="Source"><![CDATA[-- Shared room geometry for Roblox and the Blender workshop generator.
 -- Positions are part centres in room-local Roblox coordinates.
 local Architecture = {}
 
@@ -1657,7 +1707,7 @@ end
 
 return Architecture
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000031"><Properties><string name="Name">WorkshopModels</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_workshop.py.
+<Item class="ModuleScript" referent="RBX000032"><Properties><string name="Name">WorkshopModels</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_workshop.py.
 return {
 	mach_kettle = {
 		size = {3.77, 5.4712, 3.71},
@@ -1788,7 +1838,7 @@ return {
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="ServerStorage" referent="RBX000036"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000034"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
+<Item class="ServerStorage" referent="RBX000037"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000035"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
 	VillageWorldBuilder  (ModuleScript)
 
 	Assembles the village from imported meshes and the generated WorldLayout
@@ -4842,14 +4892,14 @@ return {
 }
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ModuleScript" referent="RBX000035"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
+<Item class="ModuleScript" referent="RBX000036"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
 -- Without imported meshes the village appears as placeholder blocks on voxel terrain.
 -- To get the real models import exports/library/village_assets.glb and village_terrain.glb into
 -- ServerStorage.VillageAssets and exports/library/arcane_machines.glb into ServerStorage.ArcaneAssets.
 return {}
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ServerScriptService" referent="RBX000064"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000037"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
+<Item class="ServerScriptService" referent="RBX000065"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000038"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
 -- Characters are held back until the ground exists, so nobody falls into the void.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
@@ -4962,7 +5012,7 @@ Players.PlayerAdded:Connect(function(player)
 	if not player.Character then player:LoadCharacter() end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="Folder" referent="RBX000063"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000038"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
+<Item class="Folder" referent="RBX000064"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000039"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
 -- handle(world, session, action, payload, ctx) -> { ok, code, version, payload }
 -- ctx = { now = seconds (server clock) }.  The client never supplies positions, prices or amounts of money.
 local D = require(script.Parent.Data)
@@ -5497,7 +5547,7 @@ end
 Actions.handlers = H
 return Actions
 ]]></ProtectedString></Properties></Item>
-<Item class="Script" referent="RBX000039"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
+<Item class="Script" referent="RBX000040"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
 -- and the DataStore.  Place under ServerScriptService.ArcaneServer (see default.project.json).
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -5616,12 +5666,13 @@ end
 local walkable = #plotPositions > 0
 local workshops = WorkshopWorld.new(workspace, ServerStorage:FindFirstChild("ArcaneAssets"), plotPositions,
 	layout and layout.workshopPlots and layout.workshopPlots.half)
--- The item models are drawn by every client (GoodsAnimator), so they must be visible to clients.
-do
-	local items = ServerStorage:FindFirstChild("ArcaneItemAssets")
-	if items and not ReplicatedStorage:FindFirstChild("ArcaneItemModels") then
-		local copy = items:Clone()
-		copy.Name = "ArcaneItemModels"
+-- Models every client needs: the items (goods on the belts, GoodsAnimator) and the machines (white
+-- hologram of the build preview).
+for from, to in pairs({ ArcaneItemAssets = "ArcaneItemModels", ArcaneAssets = "ArcaneMachineModels" }) do
+	local source = ServerStorage:FindFirstChild(from)
+	if source and not ReplicatedStorage:FindFirstChild(to) then
+		local copy = source:Clone()
+		copy.Name = to
 		copy.Parent = ReplicatedStorage
 	end
 end
@@ -5964,7 +6015,7 @@ workspace.DescendantAdded:Connect(function(inst)
 end)
 print("[Arcane] server ready - persistent saves: " .. tostring(persistent))
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000040"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
+<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
 local Co = {}
 Co.RANK = { visitor = 1, operator = 2, builder = 3, owner = 4 }
 function Co.role(world, ownerId, userId)
@@ -5991,7 +6042,7 @@ end
 function Co.clearOwner(world, ownerId) world.coop[ownerId] = nil end
 return Co
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
+<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 return {
 	Market = require(Shared.MarketCatalog), Config = require(Shared.Config), Items = require(Shared.Items), Recipes = require(Shared.Recipes),
@@ -6000,7 +6051,7 @@ return {
 	Util = require(Shared.Util), Validator = require(Shared.Validator), MachinePorts = require(Shared.MachinePorts), BeltPath = require(Shared.BeltPath),
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
+<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
 local D = require(script.Parent.Data)
 local Config, Util = D.Config, D.Util
 local Eco = {}
@@ -6041,7 +6092,7 @@ function Eco.priceFor(P, itemId, baseSell)
 end
 return Eco
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
+<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
 -- Pure Lua; the Roblox adapters (Bootstrap) feed positions, time and network into it.
 local D = require(script.Parent.Data)
 local Profile = require(script.Parent.ProfileService)
@@ -6232,7 +6283,7 @@ function Game.snapshot(world, session)
 end
 return Game
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
+<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
 -- Player inventory: limited slots for solids, capacity per liquid. Containers: slot limited.
 local D = require(script.Parent.Data)
 local Items, Config, Util = D.Items, D.Config, D.Util
@@ -6309,7 +6360,7 @@ function Inv.total(store)
 end
 return Inv
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
+<Item class="ModuleScript" referent="RBX000046"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
 -- Tokens are data only; nothing here creates Roblox instances.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
@@ -6679,7 +6730,7 @@ function L.stepFluids(P, G, dt, emit)
 end
 return L
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000046"><Properties><string name="Name">MarketArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000047"><Properties><string name="Name">MarketArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
 -- Bounds (Roblox axes, relative to the ground point) of the stalls and of every figure part;
 -- joint = the point a part turns around.
 return {
@@ -6767,7 +6818,7 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000047"><Properties><string name="Name">MarketWorld</string><ProtectedString name="Source"><![CDATA[-- Places the five merchants at the planned stalls. Art is optional in the base place.
+<Item class="ModuleScript" referent="RBX000048"><Properties><string name="Name">MarketWorld</string><ProtectedString name="Source"><![CDATA[-- Places the five merchants at the planned stalls. Art is optional in the base place.
 local Market = require(script.Parent.Data).Market
 local Art = require(script.Parent.MarketArt)
 local World = {}
@@ -6907,7 +6958,7 @@ end
 
 return World
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000048"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
+<Item class="ModuleScript" referent="RBX000049"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
 local D = require(script.Parent.Data)
 local Config, Items = D.Config, D.Items
 local Metrics = {}
@@ -6969,7 +7020,7 @@ function Metrics.perItem(stats, clock, windowSec)
 end
 return Metrics
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000049"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
+<Item class="ModuleScript" referent="RBX000050"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Eco = require(script.Parent.EconomyService)
@@ -7276,7 +7327,7 @@ function Place.placeBlueprint(P, slot, gx, gz, floor)
 end
 return Place
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000050"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
+<Item class="ModuleScript" referent="RBX000051"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
 local D = require(script.Parent.Data)
 local Config, Machines, Recipes, Items, Util = D.Config, D.Machines, D.Recipes, D.Items, D.Util
 local Prod = {}
@@ -7359,7 +7410,7 @@ function Prod.step(P, G, dt, emit)
 end
 return Prod
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000051"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
+<Item class="ModuleScript" referent="RBX000052"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
 local Inv = require(script.Parent.InventoryService)
@@ -7504,7 +7555,7 @@ function Profile.load(data, userId)
 end
 return Profile
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000052"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
+<Item class="ModuleScript" referent="RBX000053"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
 -- GlobalDataStore; tests inject a mock.  Rules (spec §13):
 --   * a failed load never yields a fresh default profile that could overwrite the real one
 --   * saves go through UpdateAsync, refuse to overwrite a newer revision and keep a session lock
@@ -7600,7 +7651,7 @@ function Store:save(userId, P, release)
 end
 return Store
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000053"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
+<Item class="ModuleScript" referent="RBX000054"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Inv = require(script.Parent.InventoryService)
@@ -7792,7 +7843,7 @@ end
 Q.templateById = templateById
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000054"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
+<Item class="ModuleScript" referent="RBX000055"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Research = D.Research
@@ -7816,7 +7867,7 @@ function R.unlock(P, id)
 end
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000055"><Properties><string name="Name">ResourceArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_resource_assets.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000056"><Properties><string name="Name">ResourceArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_resource_assets.py. Do not edit.
 -- Bounds of the resource models in Roblox axes, relative to the ground point of the node.
 return {
 	res_herb_mint = { center = {0.1508, 0.6968, 0}, size = {4.4362, 1.8936, 4.3332} },
@@ -7836,7 +7887,7 @@ return {
 	res_fuel_charcoal = { center = {0.1291, 1.14, -0.3817}, size = {5.046, 2.68, 3.6634} },
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000056"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
+<Item class="ModuleScript" referent="RBX000057"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Locations = D.Locations
@@ -7873,7 +7924,7 @@ function Res.gather(nodes, P, nodeId)
 end
 return Res
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000057"><Properties><string name="Name">ResourceWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: puts a model of the resource at every resource node and lets players harvest it
+<Item class="ModuleScript" referent="RBX000058"><Properties><string name="Name">ResourceWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: puts a model of the resource at every resource node and lets players harvest it
 -- by interacting with that model.  Game rules stay in ResourceService; this module only mirrors
 -- the node state (available / used up) into the world.
 local D = require(script.Parent.Data)
@@ -7971,7 +8022,7 @@ end
 
 return World
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000058"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
+<Item class="ModuleScript" referent="RBX000059"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
 local D = require(script.Parent.Data)
 local Config, Protocol, Util = D.Config, D.Protocol, D.Util
 local Sec = {}
@@ -8071,7 +8122,7 @@ function Sec.remember(session, actionId, result)
 end
 return Sec
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000059"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
+<Item class="ModuleScript" referent="RBX000060"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Config, Machines, Items, Util = D.Config, D.Machines, D.Items, D.Util
@@ -8162,7 +8213,7 @@ function Shop.step(P, dt, emit)
 end
 return Shop
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000060"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
+<Item class="ModuleScript" referent="RBX000061"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
 -- computeAnchors() is pure: it derives every interaction point from WorldLayout (asset id of the
 -- unique building instance), so anchors follow the buildings when the world is regenerated.
 local D = require(script.Parent.Data)
@@ -8205,7 +8256,7 @@ function Adapter.computeAnchors(layout)
 end
 return Adapter
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000061"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
+<Item class="ModuleScript" referent="RBX000062"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
 local D = require(script.Parent.Data)
 local Logistics = require(script.Parent.LogisticsService)
 local Production = require(script.Parent.ProductionService)
@@ -8247,7 +8298,7 @@ function Sim.step(P, rt, dt)
 end
 return Sim
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000062"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: builds the walkable workshops (open buildings on plots in the village) and the visible
+<Item class="ModuleScript" referent="RBX000063"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: builds the walkable workshops (open buildings on plots in the village) and the visible
 -- representation of every placed entity.  All game rules live in the pure services; this module only
 -- mirrors server state into Instances.
 local D = require(script.Parent.Data)
@@ -8257,6 +8308,7 @@ local Architecture = require(Shared.WorkshopArchitecture)
 local Models = require(Shared.WorkshopModels)
 local Ports = require(Shared.MachinePorts)
 local GoodsMotion = require(Shared.GoodsMotion)
+local Pose = require(Shared.PlacementPose)
 local WW = {}
 WW.__index = WW
 
@@ -8500,45 +8552,21 @@ local function entityModel(self, room, e, byUid)
 	local def = Machines[e.machine]
 	local w, d = Grid.size(def, e.rot)
 	local cs = Config.cellSize
-	local height = (def.category == "transport") and 0.8 or (def.kind == "shelf") and 6 or 4
-	if def.layer == "pipe" then height = 0.5 end
-	local base = WW.cellCenter(self, room, e.floor, e.gx, e.gz) + Vector3.new((w - 1) * cs / 2, height / 2 + (def.layer == "pipe" and 0.05 or 0), (d - 1) * cs / 2)
+	local base, height = Pose.base(def, e, function(floor, x, z) return WW.cellCenter(self, room, floor, x, z) end)
 	local template = self.templates and self.templates:FindFirstChild(def.modelAssetId, true)
 	local body
 	if template and template:IsA("BasePart") then
 		body = template:Clone()
 		body.Anchored = true
-		if template:GetAttribute("PublishedMachineLibrary") then
-			-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
-			local k = math.max(body.Size.X, body.Size.Z) / (math.max(def.w, def.d) * cs)
-			if k > 1.05 or k < 0.6 then body.Size = body.Size / k end
-			-- keep the template's own rotation (the asset loader corrects the import orientation there)
-			-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
-			local floorY = base.Y - height / 2
-			body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(90 * e.rot), 0)
-				* (template.CFrame - template.CFrame.Position)
-		else
-			local pivot = CFrame.new(base - Vector3.new(0, height / 2, 0))
-				* CFrame.Angles(0, math.rad(90 * e.rot), 0)
-			local mesh = Models[def.modelAssetId]
-			if mesh then
-				-- Imported MeshParts are centred on the geometry bounds. Recover the
-				-- original grid-centred, ground-level pivot before applying rotation.
-				local offset = Vector3.new(table.unpack(mesh.center))
-				body.Size = Vector3.new(table.unpack(mesh.size))
-				body.CFrame = pivot * CFrame.new(offset)
-				for _, spec in ipairs(mesh.lights or {}) do
-					local attachment = Instance.new("Attachment")
-					attachment.Position = Vector3.new(table.unpack(spec.position)) - offset
-					attachment.Parent = body
-					local light = Instance.new("PointLight")
-					light.Color = Color3.new(table.unpack(spec.color))
-					light.Brightness, light.Range = spec.brightness, spec.range
-					light.Parent = attachment
-				end
-			else
-				body.CFrame = pivot
-			end
+		local lights, offset = Pose.place(body, template, def, e, base, height, Models)
+		for _, spec in ipairs(lights or {}) do
+			local attachment = Instance.new("Attachment")
+			attachment.Position = Vector3.new(table.unpack(spec.position)) - offset
+			attachment.Parent = body
+			local light = Instance.new("PointLight")
+			light.Color = Color3.new(table.unpack(spec.color))
+			light.Brightness, light.Range = spec.brightness, spec.range
+			light.Parent = attachment
 		end
 	else
 		body = part({ Size = Vector3.new(w * cs - 0.2, height, d * cs - 0.2), Position = base,
@@ -8685,7 +8713,7 @@ return WW
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="StarterPlayer" referent="RBX000072"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000071"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000070"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000065"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
+<Item class="StarterPlayer" referent="RBX000074"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000073"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000072"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000066"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
 -- Mobile first: large touch targets, one panel at a time, everything reachable without a keyboard.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8706,6 +8734,7 @@ local Net = require(script.Parent:WaitForChild("NetworkClient"))
 local MachineWindow = require(script.Parent:WaitForChild("MachineWindow"))
 local Ports = require(Shared.MachinePorts)
 local BeltPath = require(Shared.BeltPath)
+local Hologram = require(script.Parent:WaitForChild("Hologram"))
 local player = Players.LocalPlayer
 
 local C = { cream = Color3.fromRGB(241, 235, 221), ink = Color3.fromRGB(35, 32, 31), brass = Color3.fromRGB(201, 154, 60),
@@ -9071,10 +9100,20 @@ workspace.DescendantAdded:Connect(function(d)
 end)
 
 local clearLine                                   -- defined with the line building below
+-- removes the hologram of a single part (its glowing group and its arrows)
+local function dropGhost()
+	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	if Build.arrowFolder then Build.arrowFolder:Destroy() Build.arrowFolder = nil end
+	Build.body, Build.plate, Build.ghostFor, Build.shown = nil, nil, nil, nil
+end
+local function dropGrid()
+	if Build.grid then Build.grid:Destroy() Build.grid, Build.gridKey = nil, nil end
+end
 local function stopBuild()
 	if clearLine then clearLine() end
 	Build.machine, Build.pointer, Build.cell = nil, nil, nil
-	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	dropGhost()
+	dropGrid()
 	confirm.Visible = false
 	showPortMarks(machineWindow ~= nil and machineWindow.isOpen())
 end
@@ -9108,7 +9147,7 @@ startBuild = function(id)
 	local conveyor = def.category == "transport" and def.layer ~= "pipe"
 	Build.machine, Build.pointer, Build.cell = id, nil, nil
 	Build.rot = conveyor and rightOfView() or 0
-	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	dropGhost()
 	showPortMarks(true)
 end
 
@@ -9126,7 +9165,7 @@ end
 local function floorUnder(pos)
 	local cam = workspace.CurrentCamera
 	local ray = cam:ViewportPointToRay(pos.X, pos.Y)
-	local ignore = { Build.ghost, player.Character }
+	local ignore = { player.Character }                -- holograms, grid and arrows do not take part in queries
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local from = ray.Origin
@@ -9143,7 +9182,8 @@ end
 -- ghost: footprint box plus arrows that show exactly what the placed part will do
 local GHOST_IN, GHOST_OUT = Color3.fromRGB(63, 138, 106), Color3.fromRGB(201, 154, 60)
 local function ghostArrow(name, color, text)
-	local folder = make("Folder", { Name = name }, Build.ghost)
+	if not Build.arrowFolder then Build.arrowFolder = make("Folder", { Name = "ArcaneGhostArrows" }, workspace) end
+	local folder = make("Folder", { Name = name }, Build.arrowFolder)
 	local pieces = {}
 	for i = 1, 3 do
 		pieces[i] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
@@ -9179,20 +9219,29 @@ local function cellAt(s, hit)
 end
 clearLine = function()
 	if Line.folder then Line.folder:Destroy() end
-	Line.folder, Line.pool, Line.label, Line.plan, Line.start, Line.flip = nil, {}, nil, nil, nil, false
+	for _, group in pairs(Line.groups or {}) do group:Destroy() end
+	Line.folder, Line.pool, Line.label, Line.plan, Line.start, Line.flip, Line.groups = nil, {}, nil, nil, nil, false, nil
+end
+-- holograms of the belts of a line: free cells glow white, taken ones red
+local function lineGroups()
+	if not Line.groups then
+		Line.groups = { ok = Hologram.group("ArcaneLineGhost", Hologram.WHITE), bad = Hologram.group("ArcaneLineGhostBlocked", Hologram.RED) }
+	end
+	return Line.groups
 end
 local function lineGhost(i)
 	local g = Line.pool[i]
 	if g then return g end
-	if not Line.folder then Line.folder = make("Folder", { Name = "ArcaneLineGhost" }, workspace) end
-	local box = make("Part", { Name = "Cell", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
-		Material = Enum.Material.SmoothPlastic, Transparency = 0.5, Size = Vector3.new(Config.cellSize - 0.15, 0.7, Config.cellSize - 0.15) }, Line.folder)
+	if not Line.folder then Line.folder = make("Folder", { Name = "ArcaneLineArrows" }, workspace) end
+	local body = Hologram.body(Build.machine)
+	body.part.Parent = lineGroups().ok
+	local box = body.part
 	local arrow = {}
 	for k = 1, 3 do
 		arrow[k] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
 			Material = Enum.Material.SmoothPlastic, Color = C.cream, Size = (k == 1) and Vector3.new(0.22, 0.1, 0.9) or Vector3.new(0.22, 0.1, 0.55) }, Line.folder)
 	end
-	g = { box = box, arrow = arrow }
+	g = { box = box, body = body, arrow = arrow }
 	Line.pool[i] = g
 	return g
 end
@@ -9272,7 +9321,11 @@ local function lineFrame(s)
 			or BeltPath.reserved(s.workshop.cells, Config.door.width, Config.door.depth, plan.floor, c.gx, c.gz)
 		if bad then blocked = blocked + 1 end
 		local centre = Vector3.new(s.room.x - half + (c.gx + 0.5) * cs, floorY + 0.35, s.room.z - half + (c.gz + 0.5) * cs)
-		g.box.CFrame, g.box.Color, g.box.Transparency = CFrame.new(centre), bad and C.bad or C.ok, 0.5
+		-- the belt model where and how it will sit
+		Hologram.place(g.body, { gx = c.gx, gz = c.gz, floor = plan.floor, rot = c.rot }, Hologram.cellCenter(s.room, s.workshop.cells))
+		local group = bad and lineGroups().bad or lineGroups().ok
+		if g.box.Parent ~= group then g.box.Parent = group end
+		g.box.Color, g.box.Transparency = bad and Hologram.RED or Hologram.WHITE, 0.15
 		local dir = Vector3.new(Grid.DX[c.rot], 0, Grid.DZ[c.rot])
 		local tip = centre + Vector3.new(0, 0.4, 0) + dir * 0.55
 		local look = CFrame.lookAt(tip, tip + dir)
@@ -9283,11 +9336,12 @@ local function lineFrame(s)
 	end
 	for i = #cells + 1, #Line.pool do
 		local g = Line.pool[i]
-		g.box.Transparency = 1
+		g.box.Parent = nil                           -- unused holograms stay out of the glowing groups
 		for _, a in ipairs(g.arrow) do a.Transparency = 1 end
 	end
 	-- label over the last belt: count, price, what it connects
 	local last = Line.pool[#cells].box
+	if not last.Parent then last.Parent = lineGroups().ok end
 	if not Line.label then
 		Line.label = make("BillboardGui", { Size = UDim2.new(0, 230, 0, 64), StudsOffset = Vector3.new(0, 3, 0), AlwaysOnTop = true }, last)
 		local t = make("TextLabel", { Name = "Text", Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.ink, BackgroundTransparency = 0.15,
@@ -9344,8 +9398,15 @@ RunService.RenderStepped:Connect(function()
 		return
 	end
 	confirm.Visible = true
+	-- grid on the floor that is being built on
+	local gridFloor = (Line.start and Line.start.floor) or (Line.hover and Line.hover.floor) or (Build.cell and Build.cell.floor) or 1
+	local key = s.room.x .. ":" .. s.room.z .. ":" .. s.workshop.cells .. ":" .. gridFloor
+	if Build.gridKey ~= key then
+		dropGrid()
+		Build.grid, Build.gridKey = Hologram.grid(s.room, s.workshop.cells, gridFloor), key
+	end
 	if lineCapable(Build.machine) then
-		if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+		if Build.ghost then dropGhost() end
 		lineFrame(s)
 		return
 	elseif Line.folder then
@@ -9362,10 +9423,14 @@ RunService.RenderStepped:Connect(function()
 	local floor = hit.Instance:GetAttribute("ArcaneFloor")
 	Build.cell = { gx = gx, gz = gz, floor = floor }
 	if not Build.ghost or Build.ghostFor ~= Build.machine then
-		if Build.ghost then Build.ghost:Destroy() end
-		Build.ghost = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, Transparency = 0.55, Material = Enum.Material.SmoothPlastic,
-			Color = C.ok, Name = "ArcaneGhost" }, workspace)
-		Build.ghostFor, Build.arrows = Build.machine, {}
+		dropGhost()
+		-- the real model of the part, in white
+		Build.ghost = Hologram.group("ArcaneBuildGhost", Hologram.WHITE)
+		Build.body = Hologram.body(Build.machine)
+		Build.body.part.Parent = Build.ghost
+		Build.plate = Hologram.plate()
+		Build.plate.Parent = Build.ghost
+		Build.ghostFor, Build.arrows, Build.blocked = Build.machine, {}, false
 		if Ports.isMachine(def) then
 			Build.arrows.inlet = ghostArrow("In", GHOST_IN, "Einlauf")
 			Build.arrows.outlet = ghostArrow("Out", GHOST_OUT, "Auslauf")
@@ -9377,8 +9442,18 @@ RunService.RenderStepped:Connect(function()
 	local function cellCentre(x, z)
 		return Vector3.new(s.room.x - half + (x + 0.5) * cs, floorY, s.room.z - half + (z + 0.5) * cs)
 	end
-	Build.ghost.Size = Vector3.new(w * cs, 3, d * cs)
-	Build.ghost.Position = Vector3.new(s.room.x - half + gx * cs + w * cs / 2, floorY + 1.5, s.room.z - half + gz * cs + d * cs / 2)
+	-- exactly where the built part would sit (same rule as the server), then a short glide there
+	local centerOf = Hologram.cellCenter(s.room, s.workshop.cells)
+	local target = { gx = gx, gz = gz, rot = Build.rot, floor = floor }
+	Hologram.place(Build.body, target, centerOf)
+	Hologram.placePlate(Build.plate, Build.machine, target, centerOf)
+	local goal = Build.body.part.Position
+	Build.shown = Build.shown and Build.shown:Lerp(goal, 0.35) or goal
+	local shift = Build.shown - goal
+	if shift.Magnitude > 0.001 then
+		Build.body.part.CFrame = Build.body.part.CFrame + shift
+		Build.plate.CFrame = Build.plate.CFrame + shift
+	end
 	local ghostEntity = { gx = gx, gz = gz, rot = Build.rot, floor = floor }
 	if Build.arrows.inlet then
 		-- a new machine starts with the definition's sides: inlet at the back, outlet at the front
@@ -9406,7 +9481,10 @@ RunService.RenderStepped:Connect(function()
 			blocked = true
 		end
 	end
-	Build.ghost.Color = blocked and C.bad or C.ok
+	if blocked ~= Build.blocked then
+		Build.blocked = blocked
+		Hologram.tint(Build.ghost, blocked and Hologram.RED or Hologram.WHITE)
+	end
 end)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed or not Build.machine then return end
@@ -9563,7 +9641,7 @@ Net.onSnapshot(function(s)
 end)
 Net.send("RequestSnapshot")
 ]]></ProtectedString></Properties></Item>
-<Item class="LocalScript" referent="RBX000066"><Properties><string name="Name">GoodsAnimator</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: draws the goods gliding over the conveyors.
+<Item class="LocalScript" referent="RBX000067"><Properties><string name="Name">GoodsAnimator</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: draws the goods gliding over the conveyors.
 -- The server publishes per conveyor part which item lies on it and since when (attributes Goods*,
 -- see WorkshopWorld:syncGoods); GoodsMotion turns that into smooth positions; this script only
 -- keeps one model per moving item and sets its CFrame every frame.  Nothing here is replicated.
@@ -9753,7 +9831,154 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000067"><Properties><string name="Name">MachineWindow</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: the window of one production machine - its own little workplace.
+<Item class="ModuleScript" referent="RBX000068"><Properties><string name="Name">Hologram</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: the white holograms of the build mode and the grid on the workshop floor.
+-- A hologram is the real model of the part (the same model the server builds), drawn in bright
+-- white with a glowing outline, placed by the same rule as the built part (PlacementPose) - so it
+-- shows exactly how the part will sit.  Red means: this place is taken.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = ReplicatedStorage:WaitForChild("ArcaneShared")
+local Config = require(Shared.Config)
+local Machines = require(Shared.Machines)
+local Grid = require(Shared.GridMath)
+local Pose = require(Shared.PlacementPose)
+local Models = require(Shared.WorkshopModels)
+local BeltPath = require(Shared.BeltPath)
+
+local H = {}
+H.WHITE = Color3.fromRGB(242, 247, 255)
+H.RED = Color3.fromRGB(255, 104, 92)
+local templates                          -- ReplicatedStorage.ArcaneMachineModels (copied there by the server)
+
+local function template(id)
+	templates = templates or ReplicatedStorage:FindFirstChild("ArcaneMachineModels")
+	local t = templates and templates:FindFirstChild(Machines[id].modelAssetId, true)
+	return (t and t:IsA("BasePart")) and t or nil
+end
+
+local function quiet(part)
+	part.Anchored, part.CanCollide, part.CanQuery, part.CanTouch, part.CastShadow = true, false, false, false, false
+end
+
+-- A group of hologram parts that glow together: a Model with one Highlight.
+function H.group(name, color)
+	local model = Instance.new("Model")
+	model.Name = name
+	-- a light fill only: a strong fill would flatten the model into a white blob; the bright
+	-- outline and the shaded white model keep its shape readable
+	local glow = Instance.new("Highlight")
+	glow.FillColor, glow.FillTransparency = color, 0.82
+	glow.OutlineColor, glow.OutlineTransparency = color, 0
+	glow.DepthMode = Enum.HighlightDepthMode.Occluded
+	glow.Parent = model
+	model.Parent = workspace
+	return model
+end
+
+function H.tint(group, color)
+	local glow = group:FindFirstChildOfClass("Highlight")
+	if glow then glow.FillColor, glow.OutlineColor = color, color end
+	for _, d in ipairs(group:GetDescendants()) do
+		if d:IsA("BasePart") then d.Color = color end
+	end
+end
+
+-- The hologram body of a part: the real model in white, or a box of its footprint without models.
+-- Returns { part, template, id }.
+function H.body(id, color)
+	local t = template(id)
+	local part
+	if t then
+		part = t:Clone()
+		if part:IsA("MeshPart") then part.TextureID = "" end
+		for _, d in ipairs(part:GetChildren()) do d:Destroy() end
+	else
+		local def = Machines[id]
+		part = Instance.new("Part")
+		part.Size = Vector3.new(def.w * Config.cellSize - 0.2, 2, def.d * Config.cellSize - 0.2)
+	end
+	quiet(part)
+	part.Name = "Hologram"
+	part.Material, part.Color, part.Transparency = Enum.Material.SmoothPlastic, color or H.WHITE, 0.15
+	return { part = part, template = t, id = id }
+end
+
+-- room: { x, y, z } (origin, from the snapshot) and cells: side length of the workshop in cells
+function H.cellCenter(room, cells)
+	local cs, half = Config.cellSize, cells * Config.cellSize / 2
+	return function(floor, x, z)
+		return Vector3.new(room.x + x * cs - half + cs / 2, room.y + (floor - 1) * Config.floorHeight, room.z + z * cs - half + cs / 2)
+	end
+end
+
+-- Puts a hologram body where entity e = { gx, gz, floor, rot } of its part would sit.
+function H.place(body, e, cellCenter)
+	local def = Machines[body.id]
+	local base, height = Pose.base(def, e, cellCenter)
+	if body.template then
+		Pose.place(body.part, body.template, def, e, base, height, Models)
+	else
+		local w, d = Grid.size(def, e.rot)
+		body.part.Size = Vector3.new(w * Config.cellSize - 0.2, math.min(height, 2), d * Config.cellSize - 0.2)
+		body.part.CFrame = CFrame.new(base.X, base.Y - height / 2 + body.part.Size.Y / 2, base.Z)
+	end
+end
+
+-- Flat plate on the cells a part will take.
+function H.plate(color)
+	local p = Instance.new("Part")
+	p.Name = "Footprint"
+	quiet(p)
+	p.Material, p.Color, p.Transparency = Enum.Material.SmoothPlastic, color or H.WHITE, 0.55
+	return p
+end
+
+function H.placePlate(plate, id, e, cellCenter)
+	local def = Machines[id]
+	local w, d = Grid.size(def, e.rot)
+	local cs = Config.cellSize
+	local c = cellCenter(e.floor, e.gx, e.gz)
+	plate.Size = Vector3.new(w * cs - 0.1, 0.06, d * cs - 0.1)
+	plate.CFrame = CFrame.new(c.X + (w - 1) * cs / 2, c.Y + 0.04, c.Z + (d - 1) * cs / 2)
+end
+
+-- Grid on one floor of the workshop: a line on every cell border, the reserved cells (entrance,
+-- staircase) shaded red.
+function H.grid(room, cells, floor)
+	local folder = Instance.new("Folder")
+	folder.Name = "ArcaneBuildGrid"
+	local cs, half = Config.cellSize, cells * Config.cellSize / 2
+	local y = room.y + (floor - 1) * Config.floorHeight + 0.03
+	local function line(size, pos)
+		local p = Instance.new("Part")
+		quiet(p)
+		p.Material, p.Color, p.Transparency = Enum.Material.SmoothPlastic, H.WHITE, 0.72
+		p.Size, p.Position = size, pos
+		p.Parent = folder
+	end
+	for i = 0, cells do
+		local o = -half + i * cs
+		line(Vector3.new(0.06, 0.02, cells * cs), Vector3.new(room.x + o, y, room.z))
+		line(Vector3.new(cells * cs, 0.02, 0.06), Vector3.new(room.x, y, room.z + o))
+	end
+	for x = 0, cells - 1 do
+		for z = 0, cells - 1 do
+			if BeltPath.reserved(cells, Config.door.width, Config.door.depth, floor, x, z) then
+				local p = Instance.new("Part")
+				quiet(p)
+				p.Material, p.Color, p.Transparency = Enum.Material.SmoothPlastic, H.RED, 0.8
+				p.Size = Vector3.new(cs - 0.1, 0.02, cs - 0.1)
+				p.Position = Vector3.new(room.x - half + (x + 0.5) * cs, y, room.z - half + (z + 0.5) * cs)
+				p.Parent = folder
+			end
+		end
+	end
+	folder.Parent = workspace
+	return folder
+end
+
+return H
+]]></ProtectedString></Properties></Item>
+<Item class="ModuleScript" referent="RBX000069"><Properties><string name="Name">MachineWindow</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: the window of one production machine - its own little workplace.
 --
 --   +---------------------------------------------------------------+
 --   | Kräutermühle                                   läuft      [X] |
@@ -10175,7 +10400,7 @@ end
 
 return Window
 ]]></ProtectedString></Properties></Item>
-<Item class="LocalScript" referent="RBX000068"><Properties><string name="Name">MarketIdle</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: plays the idle loops of the market traders.
+<Item class="LocalScript" referent="RBX000070"><Properties><string name="Name">MarketIdle</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: plays the idle loops of the market traders.
 -- A trader is a folder "Figure" of seven anchored MeshParts that the server placed in the rest
 -- pose.  MarketMotion holds, per part, the joint frame for every sample of the loop; a part moves
 -- with  pivot * frame(t) * CFrame.new(-joint) * restLocal.  Only this client sees the motion, the
@@ -10260,7 +10485,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000069"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
+<Item class="ModuleScript" referent="RBX000071"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
 -- the UI comes from server snapshots; the client never computes money, items or unlocks itself.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("ArcaneShared")

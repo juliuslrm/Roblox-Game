@@ -117,12 +117,13 @@ end
 local walkable = #plotPositions > 0
 local workshops = WorkshopWorld.new(workspace, ServerStorage:FindFirstChild("ArcaneAssets"), plotPositions,
 	layout and layout.workshopPlots and layout.workshopPlots.half)
--- The item models are drawn by every client (GoodsAnimator), so they must be visible to clients.
-do
-	local items = ServerStorage:FindFirstChild("ArcaneItemAssets")
-	if items and not ReplicatedStorage:FindFirstChild("ArcaneItemModels") then
-		local copy = items:Clone()
-		copy.Name = "ArcaneItemModels"
+-- Models every client needs: the items (goods on the belts, GoodsAnimator) and the machines (white
+-- hologram of the build preview).
+for from, to in pairs({ ArcaneItemAssets = "ArcaneItemModels", ArcaneAssets = "ArcaneMachineModels" }) do
+	local source = ServerStorage:FindFirstChild(from)
+	if source and not ReplicatedStorage:FindFirstChild(to) then
+		local copy = source:Clone()
+		copy.Name = to
 		copy.Parent = ReplicatedStorage
 	end
 end

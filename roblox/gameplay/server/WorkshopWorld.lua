@@ -8,6 +8,7 @@ local Architecture = require(Shared.WorkshopArchitecture)
 local Models = require(Shared.WorkshopModels)
 local Ports = require(Shared.MachinePorts)
 local GoodsMotion = require(Shared.GoodsMotion)
+local Pose = require(Shared.PlacementPose)
 local WW = {}
 WW.__index = WW
 
@@ -251,45 +252,21 @@ local function entityModel(self, room, e, byUid)
 	local def = Machines[e.machine]
 	local w, d = Grid.size(def, e.rot)
 	local cs = Config.cellSize
-	local height = (def.category == "transport") and 0.8 or (def.kind == "shelf") and 6 or 4
-	if def.layer == "pipe" then height = 0.5 end
-	local base = WW.cellCenter(self, room, e.floor, e.gx, e.gz) + Vector3.new((w - 1) * cs / 2, height / 2 + (def.layer == "pipe" and 0.05 or 0), (d - 1) * cs / 2)
+	local base, height = Pose.base(def, e, function(floor, x, z) return WW.cellCenter(self, room, floor, x, z) end)
 	local template = self.templates and self.templates:FindFirstChild(def.modelAssetId, true)
 	local body
 	if template and template:IsA("BasePart") then
 		body = template:Clone()
 		body.Anchored = true
-		if template:GetAttribute("PublishedMachineLibrary") then
-			-- undo whatever scale the importer applied: the mesh was designed to fill its footprint
-			local k = math.max(body.Size.X, body.Size.Z) / (math.max(def.w, def.d) * cs)
-			if k > 1.05 or k < 0.6 then body.Size = body.Size / k end
-			-- keep the template's own rotation (the asset loader corrects the import orientation there)
-			-- and stand the mesh on the floor: a MeshPart's CFrame is the centre of its bounding box
-			local floorY = base.Y - height / 2
-			body.CFrame = CFrame.new(base.X, floorY + body.Size.Y / 2, base.Z) * CFrame.Angles(0, math.rad(90 * e.rot), 0)
-				* (template.CFrame - template.CFrame.Position)
-		else
-			local pivot = CFrame.new(base - Vector3.new(0, height / 2, 0))
-				* CFrame.Angles(0, math.rad(90 * e.rot), 0)
-			local mesh = Models[def.modelAssetId]
-			if mesh then
-				-- Imported MeshParts are centred on the geometry bounds. Recover the
-				-- original grid-centred, ground-level pivot before applying rotation.
-				local offset = Vector3.new(table.unpack(mesh.center))
-				body.Size = Vector3.new(table.unpack(mesh.size))
-				body.CFrame = pivot * CFrame.new(offset)
-				for _, spec in ipairs(mesh.lights or {}) do
-					local attachment = Instance.new("Attachment")
-					attachment.Position = Vector3.new(table.unpack(spec.position)) - offset
-					attachment.Parent = body
-					local light = Instance.new("PointLight")
-					light.Color = Color3.new(table.unpack(spec.color))
-					light.Brightness, light.Range = spec.brightness, spec.range
-					light.Parent = attachment
-				end
-			else
-				body.CFrame = pivot
-			end
+		local lights, offset = Pose.place(body, template, def, e, base, height, Models)
+		for _, spec in ipairs(lights or {}) do
+			local attachment = Instance.new("Attachment")
+			attachment.Position = Vector3.new(table.unpack(spec.position)) - offset
+			attachment.Parent = body
+			local light = Instance.new("PointLight")
+			light.Color = Color3.new(table.unpack(spec.color))
+			light.Brightness, light.Range = spec.brightness, spec.range
+			light.Parent = attachment
 		end
 	else
 		body = part({ Size = Vector3.new(w * cs - 0.2, height, d * cs - 0.2), Position = base,

@@ -19,6 +19,7 @@ local Net = require(script.Parent:WaitForChild("NetworkClient"))
 local MachineWindow = require(script.Parent:WaitForChild("MachineWindow"))
 local Ports = require(Shared.MachinePorts)
 local BeltPath = require(Shared.BeltPath)
+local Hologram = require(script.Parent:WaitForChild("Hologram"))
 local player = Players.LocalPlayer
 
 local C = { cream = Color3.fromRGB(241, 235, 221), ink = Color3.fromRGB(35, 32, 31), brass = Color3.fromRGB(201, 154, 60),
@@ -384,10 +385,20 @@ workspace.DescendantAdded:Connect(function(d)
 end)
 
 local clearLine                                   -- defined with the line building below
+-- removes the hologram of a single part (its glowing group and its arrows)
+local function dropGhost()
+	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	if Build.arrowFolder then Build.arrowFolder:Destroy() Build.arrowFolder = nil end
+	Build.body, Build.plate, Build.ghostFor, Build.shown = nil, nil, nil, nil
+end
+local function dropGrid()
+	if Build.grid then Build.grid:Destroy() Build.grid, Build.gridKey = nil, nil end
+end
 local function stopBuild()
 	if clearLine then clearLine() end
 	Build.machine, Build.pointer, Build.cell = nil, nil, nil
-	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	dropGhost()
+	dropGrid()
 	confirm.Visible = false
 	showPortMarks(machineWindow ~= nil and machineWindow.isOpen())
 end
@@ -421,7 +432,7 @@ startBuild = function(id)
 	local conveyor = def.category == "transport" and def.layer ~= "pipe"
 	Build.machine, Build.pointer, Build.cell = id, nil, nil
 	Build.rot = conveyor and rightOfView() or 0
-	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+	dropGhost()
 	showPortMarks(true)
 end
 
@@ -439,7 +450,7 @@ end
 local function floorUnder(pos)
 	local cam = workspace.CurrentCamera
 	local ray = cam:ViewportPointToRay(pos.X, pos.Y)
-	local ignore = { Build.ghost, player.Character }
+	local ignore = { player.Character }                -- holograms, grid and arrows do not take part in queries
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local from = ray.Origin
@@ -456,7 +467,8 @@ end
 -- ghost: footprint box plus arrows that show exactly what the placed part will do
 local GHOST_IN, GHOST_OUT = Color3.fromRGB(63, 138, 106), Color3.fromRGB(201, 154, 60)
 local function ghostArrow(name, color, text)
-	local folder = make("Folder", { Name = name }, Build.ghost)
+	if not Build.arrowFolder then Build.arrowFolder = make("Folder", { Name = "ArcaneGhostArrows" }, workspace) end
+	local folder = make("Folder", { Name = name }, Build.arrowFolder)
 	local pieces = {}
 	for i = 1, 3 do
 		pieces[i] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
@@ -492,20 +504,29 @@ local function cellAt(s, hit)
 end
 clearLine = function()
 	if Line.folder then Line.folder:Destroy() end
-	Line.folder, Line.pool, Line.label, Line.plan, Line.start, Line.flip = nil, {}, nil, nil, nil, false
+	for _, group in pairs(Line.groups or {}) do group:Destroy() end
+	Line.folder, Line.pool, Line.label, Line.plan, Line.start, Line.flip, Line.groups = nil, {}, nil, nil, nil, false, nil
+end
+-- holograms of the belts of a line: free cells glow white, taken ones red
+local function lineGroups()
+	if not Line.groups then
+		Line.groups = { ok = Hologram.group("ArcaneLineGhost", Hologram.WHITE), bad = Hologram.group("ArcaneLineGhostBlocked", Hologram.RED) }
+	end
+	return Line.groups
 end
 local function lineGhost(i)
 	local g = Line.pool[i]
 	if g then return g end
-	if not Line.folder then Line.folder = make("Folder", { Name = "ArcaneLineGhost" }, workspace) end
-	local box = make("Part", { Name = "Cell", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
-		Material = Enum.Material.SmoothPlastic, Transparency = 0.5, Size = Vector3.new(Config.cellSize - 0.15, 0.7, Config.cellSize - 0.15) }, Line.folder)
+	if not Line.folder then Line.folder = make("Folder", { Name = "ArcaneLineArrows" }, workspace) end
+	local body = Hologram.body(Build.machine)
+	body.part.Parent = lineGroups().ok
+	local box = body.part
 	local arrow = {}
 	for k = 1, 3 do
 		arrow[k] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
 			Material = Enum.Material.SmoothPlastic, Color = C.cream, Size = (k == 1) and Vector3.new(0.22, 0.1, 0.9) or Vector3.new(0.22, 0.1, 0.55) }, Line.folder)
 	end
-	g = { box = box, arrow = arrow }
+	g = { box = box, body = body, arrow = arrow }
 	Line.pool[i] = g
 	return g
 end
@@ -585,7 +606,11 @@ local function lineFrame(s)
 			or BeltPath.reserved(s.workshop.cells, Config.door.width, Config.door.depth, plan.floor, c.gx, c.gz)
 		if bad then blocked = blocked + 1 end
 		local centre = Vector3.new(s.room.x - half + (c.gx + 0.5) * cs, floorY + 0.35, s.room.z - half + (c.gz + 0.5) * cs)
-		g.box.CFrame, g.box.Color, g.box.Transparency = CFrame.new(centre), bad and C.bad or C.ok, 0.5
+		-- the belt model where and how it will sit
+		Hologram.place(g.body, { gx = c.gx, gz = c.gz, floor = plan.floor, rot = c.rot }, Hologram.cellCenter(s.room, s.workshop.cells))
+		local group = bad and lineGroups().bad or lineGroups().ok
+		if g.box.Parent ~= group then g.box.Parent = group end
+		g.box.Color, g.box.Transparency = bad and Hologram.RED or Hologram.WHITE, 0.15
 		local dir = Vector3.new(Grid.DX[c.rot], 0, Grid.DZ[c.rot])
 		local tip = centre + Vector3.new(0, 0.4, 0) + dir * 0.55
 		local look = CFrame.lookAt(tip, tip + dir)
@@ -596,11 +621,12 @@ local function lineFrame(s)
 	end
 	for i = #cells + 1, #Line.pool do
 		local g = Line.pool[i]
-		g.box.Transparency = 1
+		g.box.Parent = nil                           -- unused holograms stay out of the glowing groups
 		for _, a in ipairs(g.arrow) do a.Transparency = 1 end
 	end
 	-- label over the last belt: count, price, what it connects
 	local last = Line.pool[#cells].box
+	if not last.Parent then last.Parent = lineGroups().ok end
 	if not Line.label then
 		Line.label = make("BillboardGui", { Size = UDim2.new(0, 230, 0, 64), StudsOffset = Vector3.new(0, 3, 0), AlwaysOnTop = true }, last)
 		local t = make("TextLabel", { Name = "Text", Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.ink, BackgroundTransparency = 0.15,
@@ -657,8 +683,15 @@ RunService.RenderStepped:Connect(function()
 		return
 	end
 	confirm.Visible = true
+	-- grid on the floor that is being built on
+	local gridFloor = (Line.start and Line.start.floor) or (Line.hover and Line.hover.floor) or (Build.cell and Build.cell.floor) or 1
+	local key = s.room.x .. ":" .. s.room.z .. ":" .. s.workshop.cells .. ":" .. gridFloor
+	if Build.gridKey ~= key then
+		dropGrid()
+		Build.grid, Build.gridKey = Hologram.grid(s.room, s.workshop.cells, gridFloor), key
+	end
 	if lineCapable(Build.machine) then
-		if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+		if Build.ghost then dropGhost() end
 		lineFrame(s)
 		return
 	elseif Line.folder then
@@ -675,10 +708,14 @@ RunService.RenderStepped:Connect(function()
 	local floor = hit.Instance:GetAttribute("ArcaneFloor")
 	Build.cell = { gx = gx, gz = gz, floor = floor }
 	if not Build.ghost or Build.ghostFor ~= Build.machine then
-		if Build.ghost then Build.ghost:Destroy() end
-		Build.ghost = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, Transparency = 0.55, Material = Enum.Material.SmoothPlastic,
-			Color = C.ok, Name = "ArcaneGhost" }, workspace)
-		Build.ghostFor, Build.arrows = Build.machine, {}
+		dropGhost()
+		-- the real model of the part, in white
+		Build.ghost = Hologram.group("ArcaneBuildGhost", Hologram.WHITE)
+		Build.body = Hologram.body(Build.machine)
+		Build.body.part.Parent = Build.ghost
+		Build.plate = Hologram.plate()
+		Build.plate.Parent = Build.ghost
+		Build.ghostFor, Build.arrows, Build.blocked = Build.machine, {}, false
 		if Ports.isMachine(def) then
 			Build.arrows.inlet = ghostArrow("In", GHOST_IN, "Einlauf")
 			Build.arrows.outlet = ghostArrow("Out", GHOST_OUT, "Auslauf")
@@ -690,8 +727,18 @@ RunService.RenderStepped:Connect(function()
 	local function cellCentre(x, z)
 		return Vector3.new(s.room.x - half + (x + 0.5) * cs, floorY, s.room.z - half + (z + 0.5) * cs)
 	end
-	Build.ghost.Size = Vector3.new(w * cs, 3, d * cs)
-	Build.ghost.Position = Vector3.new(s.room.x - half + gx * cs + w * cs / 2, floorY + 1.5, s.room.z - half + gz * cs + d * cs / 2)
+	-- exactly where the built part would sit (same rule as the server), then a short glide there
+	local centerOf = Hologram.cellCenter(s.room, s.workshop.cells)
+	local target = { gx = gx, gz = gz, rot = Build.rot, floor = floor }
+	Hologram.place(Build.body, target, centerOf)
+	Hologram.placePlate(Build.plate, Build.machine, target, centerOf)
+	local goal = Build.body.part.Position
+	Build.shown = Build.shown and Build.shown:Lerp(goal, 0.35) or goal
+	local shift = Build.shown - goal
+	if shift.Magnitude > 0.001 then
+		Build.body.part.CFrame = Build.body.part.CFrame + shift
+		Build.plate.CFrame = Build.plate.CFrame + shift
+	end
 	local ghostEntity = { gx = gx, gz = gz, rot = Build.rot, floor = floor }
 	if Build.arrows.inlet then
 		-- a new machine starts with the definition's sides: inlet at the back, outlet at the front
@@ -719,7 +766,10 @@ RunService.RenderStepped:Connect(function()
 			blocked = true
 		end
 	end
-	Build.ghost.Color = blocked and C.bad or C.ok
+	if blocked ~= Build.blocked then
+		Build.blocked = blocked
+		Hologram.tint(Build.ghost, blocked and Hologram.RED or Hologram.WHITE)
+	end
 end)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed or not Build.machine then return end

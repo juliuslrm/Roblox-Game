@@ -274,3 +274,20 @@ Platzieren (`BeltPath.lua`, Aktion `PlaceBelts`):
 - Behoben vor Auslieferung: zwei Client-Funktionen wurden vor ihrer Definition benutzt (hätten zur
   Laufzeit „nil" gesehen); gefunden mit einer Prüfung auf Namensreihenfolge.
 - Am Gerät ungeprüft: Bedienung (Ziehen, Tippen), Aussehen der Querstege, Leistung.
+
+## Nachtrag 2026-11-17 (4): Baumodus mit weißem Hologramm
+
+- Vorschau zeigt das echte Modell des Geräts in Weiß (Textur entfernt, SmoothPlastic, leicht
+  durchscheinend) mit leuchtendem Umriss (`Highlight`, schwache Füllung, damit die Form lesbar
+  bleibt); rot, wenn der Platz belegt, außerhalb oder reserviert ist. Bodenplatte auf den belegten
+  Feldern, kurzes Nachgleiten beim Feldwechsel. Ein- und Auslaufpfeile bzw. Flusspfeil bleiben.
+- Bandstrecken: jedes Band der Strecke als weißes Hologramm in seiner Richtung, blockierte rot.
+- Raster auf dem Boden der aktuellen Etage während des Bauens, reservierte Felder (Eingang, Treppe)
+  rot schattiert.
+- Eine Regel für beide: `PlacementPose.lua` (Server baut damit, Hologramm stellt sich damit auf).
+  Maschinenmodelle werden dafür nach `ReplicatedStorage.ArcaneMachineModels` kopiert.
+- Im Place gemessen (Version 26/27): Hologramm und gebautes Teil für Kessel, Mühle, Band, Kurve und
+  zwei Tore deckungsgleich (größte Abweichung 0,0000 in Lage, Drehung, Größe); alle sechs mit echtem
+  Modell, Textur entfernt; Raster 58 Teile auf 32 × 32 Studs.
+- Am Gerät ungeprüft: wie der Leuchteffekt auf dem Handy wirkt. `previews/assets/build_hologram_mockup.png`
+  ist eine Annäherung aus Blender, kein Roblox-Bild.
