@@ -12,7 +12,7 @@ return {
 		},
 		ArcaneAssets = {
 			137911422416588, -- mach_kettle.glb (replaces the kettle of the machine library)
-			89059240299616,  -- arcane_machines.fbx
+			100548175724336, -- arcane_machines.fbx (new conveyors, 2026-11-17)
 		},
 		ArcaneMarketAssets = { 97858872631115 }, -- arcane_market.fbx: traders (seven parts each) and stalls
 		ArcaneResourceAssets = { 119763588026096 }, -- arcane_resources.fbx: one model per raw item

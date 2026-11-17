@@ -190,7 +190,7 @@ def check_autobuild():
         return { rep.loaded, #rep.failed, rep.meshParts, rep.retextured, again.loaded,
             storage.VillageAssets:FindFirstChild("house_121417351385239", true).TextureID,
             storage.VillageAssets:FindFirstChild("kept_121417351385239", true).TextureID,
-            storage.ArcaneAssets:FindFirstChild("house_89059240299616", true):GetAttribute("PublishedMachineLibrary"),
+            storage.ArcaneAssets:FindFirstChild("house_100548175724336", true):GetAttribute("PublishedMachineLibrary"),
             storage.ArcaneMarketAssets ~= nil,
             storage.VillageAssets:FindFirstChild("dup", true).TextureID }
     end)()""")

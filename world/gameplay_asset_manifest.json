@@ -6,8 +6,8 @@
    "category": "machines",
    "blend": "assets/machines/mach_kettle.blend",
    "glb": "exports/glb/machines/mach_kettle.glb",
-   "triangles": 1510,
-   "vertices": 915,
+   "triangles": 1710,
+   "vertices": 1035,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
@@ -1117,41 +1117,41 @@
    "category": "machines",
    "blend": "assets/machines/logi_wooden_belt.blend",
    "glb": "exports/glb/machines/logi_wooden_belt.glb",
-   "triangles": 214,
-   "vertices": 141,
+   "triangles": 264,
+   "vertices": 172,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.95,
+     -0.99,
      -1.0,
      0.0
     ],
     "max": [
-     0.95,
+     0.99,
      1.0,
-     0.69
+     0.8
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.95,
+     -0.99,
      0.0,
      -1.0
     ],
     "max": [
-     0.95,
-     0.69,
+     0.99,
+     0.8,
      1.0
     ],
     "size": [
-     1.9,
-     0.69,
+     1.98,
+     0.8,
      2.0
     ],
     "center": [
      0.0,
-     0.345,
+     0.4,
      0.0
     ]
    },
@@ -1168,42 +1168,42 @@
    "category": "machines",
    "blend": "assets/machines/logi_belt_turn.blend",
    "glb": "exports/glb/machines/logi_belt_turn.glb",
-   "triangles": 146,
-   "vertices": 97,
+   "triangles": 316,
+   "vertices": 178,
    "collision": "proxy",
    "cast_shadow": true,
    "bounds_blender": {
     "min": [
-     -0.95,
-     -0.95,
+     -1.02,
+     -0.9142,
      0.0
     ],
     "max": [
-     0.95,
-     0.95,
-     0.9
+     0.9142,
+     1.0,
+     1.02
     ]
    },
    "bounds_roblox": {
     "min": [
-     -0.95,
+     -1.02,
      0.0,
-     -0.95
+     -1.0
     ],
     "max": [
-     0.95,
-     0.9,
-     0.95
+     0.9142,
+     1.02,
+     0.9142
     ],
     "size": [
-     1.9,
-     0.9,
-     1.9
+     1.9342,
+     1.02,
+     1.9142
     ],
     "center": [
-     0.0,
-     0.45,
-     0.0
+     -0.0529,
+     0.51,
+     -0.0429
     ]
    },
    "colliders": [],
@@ -1213,7 +1213,7 @@
     1,
     1
    ],
-   "backface_pixels": 2
+   "backface_pixels": 0
   },
   "logi_input_hopper": {
    "category": "machines",

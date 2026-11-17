@@ -112,6 +112,19 @@ function H.PlaceMachine(world, session, p)
 	return ok({ uid = e.uid })
 end
 
+-- A conveyor line in one go (all or nothing).
+function H.PlaceBelts(world, session, p)
+	local P, owner, code = workshop(world, session, "builder")
+	if not P then return fail(code) end
+	local uids, why, index = Place.placeLine(P, p.machine, p.floor, p.cells)
+	if not uids then return fail(why, { index = index }) end
+	touched(owner, true)
+	local events = {}
+	for _ in ipairs(uids) do events[#events + 1] = { type = "place", machine = p.machine } end
+	afterChange(world, owner, events)
+	return ok({ uids = uids })
+end
+
 function H.RemoveMachine(world, session, p)
 	local P, owner, code = workshop(world, session, "builder")
 	if not P then return fail(code) end

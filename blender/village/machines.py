@@ -832,38 +832,64 @@ def well_pump(mb):
 
 
 # ====================================================================== logistics
-def _belt_frame(mb):
-    for sx in (-1, 1):
-        mb.box(0.2, 2.0, 0.55, "wood_dark", pos=(sx * 0.8, 0, 0))
-        for y in (-0.7, 0.7):
-            mb.box(0.3, 0.26, 0.12, "iron", pos=(sx * 0.8, y, 0.55))
+# ---- conveyors -------------------------------------------------------------------------------------
+# The running surface of every conveyor lies at exactly BELT_TOP above the floor: the game puts the
+# goods there (WorkshopWorld: GoodsSurface).  The surface itself is plain; the moving cleats are
+# drawn by the client (GoodsAnimator), so the eye sees the belt run in its real direction.
+BELT_TOP = 0.69
+BELT_HALF = 0.73              # half width of the running surface
+
+
+def _belt_side(mb, sx):
+    """One side of a straight conveyor: wooden stringer, raised guard rail, brass bolts, a foot."""
+    x = sx * 0.86
+    mb.box(0.2, 1.98, 0.6, "wood_dark", pos=(x, 0, 0.02), tone=mb.jitter(0.04))
+    mb.box(0.16, 1.98, 0.14, "wood_mid", pos=(sx * 0.82, 0, 0.66))                  # guard rail above the belt
+    for y in (-0.62, 0.0, 0.62):
+        mb.box(0.03, 0.12, 0.12, "brass", pos=(sx * 0.975, y, 0.32))
+    for y in (-0.8, 0.8):
+        mb.box(0.26, 0.26, 0.08, "iron", pos=(x, y, 0.0))
+    # direction mark on the outside of the stringer: a small brass chevron pointing to the front (-Y)
+    with mb.at(T(sx * 0.965, 0.25, 0.42), R("Y", sx * 90)):
+        mb.poly([(-0.16, 0.14, 0), (0.0, -0.14, 0), (0.16, 0.14, 0)], "brass", double=True)
 
 
 def wooden_belt(mb):
-    _belt_frame(mb)
-    for i in range(6):                                                                                        # slats
-        mb.box(1.36, 0.28, 0.1, "wood_light", pos=(0, -0.83 + i * 0.333, 0.52), tone=mb.jitter(0.08))
-    for y in (-0.78, 0.78):                                                                                   # end rollers
-        with mb.at(T(0, y, 0.36), R("Y", 90)):
-            mb.cyl(0.2, 0.2, 1.4, "wood_mid", pos=(0, 0, -0.7), segs=6)
     for sx in (-1, 1):
-        mb.box(0.1, 1.9, 0.08, "iron", pos=(sx * 0.5, 0, 0.44))
-    mb.lathe([(0.0, 0.0), (0.26, 0.03), (0.0, 0.06)], "brass", segs=3, pos=(0, -0.2, 0.63), phase=-math.pi / 2, smooth=False)
+        _belt_side(mb, sx)
+    mb.box(1.52, 1.98, 0.12, "iron", pos=(0, 0, 0.2))                                 # cross brace
+    mb.box(1.5, 1.98, 0.1, "roof_slate", pos=(0, 0, BELT_TOP - 0.1), tone=-0.05)      # running surface (canvas)
+    for y in (-0.89, 0.89):                                                           # end rollers
+        with mb.at(T(0, y, BELT_TOP - 0.12), R("Y", 90)):
+            mb.cyl(0.11, 0.11, 1.5, "brass", pos=(0, 0, -0.75), segs=8)
+
+
+def _sector(mb, pivot, r0, r1, z0, z1, a0, a1, color, steps=8, **kw):
+    """Solid ring sector around `pivot` (x, y) from angle a0 to a1 (degrees), radii r0..r1."""
+    rings = []
+    for k in range(steps + 1):
+        a = math.radians(a0 + (a1 - a0) * k / steps)
+        c, s = math.cos(a), math.sin(a)
+        rings.append([(pivot[0] + r * c, pivot[1] + r * s, z) for r, z in ((r0, z0), (r1, z0), (r1, z1), (r0, z1))])
+    mb.loft(rings, color, **kw)
 
 
 def belt_turn(mb):
-    mb.box(1.9, 1.9, 0.5, "wood_dark")
-    for i in range(5):                                                                                        # fanned slats: back (+Y) to left (-X)
-        a = math.radians(i * 22.5)
-        with mb.at(T(-0.78, 0.78, 0.5), R("Z", -90 + i * 22.5)):
-            mb.box(1.35, 0.3, 0.1, "wood_light", pos=(0.9, 0, 0.02), tone=mb.jitter(0.08), taper=(1.0, 1.0))
-    mb.cyl(0.14, 0.14, 0.5, "iron", pos=(-0.78, 0.78, 0.4), segs=6, smooth=False)
-    for k in range(4):                                                                                        # outer guide rail
-        a0, a1 = math.radians(-90 + k * 22.5), math.radians(-90 + (k + 1) * 22.5)
-        mb.beam((-0.8 + 1.62 * math.cos(a0), 0.8 + 1.62 * math.sin(a0), 0.75), (-0.8 + 1.62 * math.cos(a1), 0.8 + 1.62 * math.sin(a1), 0.75),
-                0.12, 0.3, "wood_mid")
-    with mb.at(T(-0.35, 0.3, 0.63), R("Z", 90)):
-        mb.lathe([(0.0, 0.0), (0.24, 0.03), (0.0, 0.06)], "brass", segs=3, phase=-math.pi / 2, smooth=False)
+    # goods come in at the back (+Y) and leave to the left (-X): a quarter circle around the
+    # back-left corner, radius 1 in the middle of the running surface
+    pivot = (-1.0, 1.0)
+    _sector(mb, pivot, 1.0 - BELT_HALF, 1.0 + BELT_HALF, 0.02, BELT_TOP - 0.1, -90, 0, "wood_dark", tone=-0.04)   # body
+    _sector(mb, pivot, 1.0 - BELT_HALF, 1.0 + BELT_HALF, BELT_TOP - 0.1, BELT_TOP, -90, 0, "roof_slate", tone=-0.05)
+    _sector(mb, pivot, 1.0 + BELT_HALF, 1.0 + BELT_HALF + 0.18, 0.02, 0.8, -90, 0, "wood_mid")                     # outer guard
+    _sector(mb, pivot, 0.08, 1.0 - BELT_HALF, 0.02, 0.8, -90, 0, "wood_mid", steps=4)                              # inner guard
+    mb.cyl(0.12, 0.12, 0.88, "iron", pos=(pivot[0] + 0.14, pivot[1] - 0.14, 0.0), segs=6)                          # pivot post
+    mb.lathe([(0.0, 0.88), (0.16, 0.9), (0.0, 1.02)], "brass", segs=6, pos=(pivot[0] + 0.14, pivot[1] - 0.14, 0), smooth=False)
+    for a in (-75, -45, -15):                                                                                      # bolts on the guard
+        x, y = pivot[0] + 1.93 * math.cos(math.radians(a)), pivot[1] + 1.93 * math.sin(math.radians(a))
+        mb.box(0.1, 0.1, 0.1, "brass", pos=(x, y, 0.5))
+    with mb.at(T(pivot[0] + 1.93 * math.cos(math.radians(-45)) + 0.02, pivot[1] + 1.93 * math.sin(math.radians(-45)) - 0.02, 0.32),
+               R("Z", 45), R("Y", 90)):                                                                           # direction mark
+        mb.poly([(-0.16, -0.14, 0), (0.0, 0.14, 0), (0.16, -0.14, 0)], "brass", double=True)
 
 
 def input_hopper(mb):

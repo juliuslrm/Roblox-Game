@@ -19,6 +19,59 @@ holder.Name = "ArcaneGoods"
 holder.Parent = workspace
 local templates = ReplicatedStorage:WaitForChild("ArcaneItemModels", 20)
 
+-- ---- moving cleats on the running surface of the belts ----------------------------------------
+-- Each belt in view gets CLEATS thin ridges that run over its surface at the speed of the goods,
+-- on the same line (straight or around the curve).  All belts use the same clock, so the ridges
+-- of neighbouring belts line up.
+local CLEATS, CLEAT_NEAR, CLEAT_FAR = 4, 70, 90
+local CLEAT_COLOR = Color3.fromRGB(176, 140, 96)
+local belts = {}                                    -- belt part -> { c = carrier data, cleats = { parts } | nil }
+local function addBelt(body, c)
+	if body:GetAttribute("BeltIn") ~= nil and c.out >= 0 then
+		belts[body] = { c = c, inDir = body:GetAttribute("BeltIn") }
+	end
+end
+local function dropCleats(b)
+	if b.cleats then
+		for _, part in ipairs(b.cleats) do part:Destroy() end
+		b.cleats = nil
+	end
+end
+local function moveCleats(now, eye)
+	local h = Config.cellSize / 2
+	for body, b in pairs(belts) do
+		if not body.Parent then
+			dropCleats(b)
+			belts[body] = nil
+		else
+			local c = b.c
+			local dist = (Vector3.new(c.x, c.y, c.z) - eye).Magnitude
+			if dist > CLEAT_FAR then
+				dropCleats(b)
+			elseif dist < CLEAT_NEAR or b.cleats then
+				if not b.cleats then
+					b.cleats = {}
+					for i = 1, CLEATS do
+						local part = Instance.new("Part")
+						part.Name = "Cleat"
+						part.Size = Vector3.new(1.36, 0.05, 0.12)
+						part.Color, part.Material = CLEAT_COLOR, Enum.Material.Wood
+						part.Anchored, part.CanCollide, part.CanQuery, part.CanTouch, part.CastShadow = true, false, false, false, false
+						part.Parent = holder
+						b.cleats[i] = part
+					end
+				end
+				local phase = now / c.period
+				for i, part in ipairs(b.cleats) do
+					local f = (phase + (i - 1) / CLEATS) % 1
+					local x, z, yaw = GoodsMotion.pathPoint(c.x, c.z, h, b.inDir, c.out, f)
+					part.CFrame = CFrame.new(x, c.y + 0.025, z) * CFrame.Angles(0, yaw, 0)
+				end
+			end
+		end
+	end
+end
+
 local function readStatic(body)
 	local cell, surface = body:GetAttribute("GoodsCell"), body:GetAttribute("GoodsSurface")
 	if typeof(cell) ~= "Vector3" or typeof(surface) ~= "Vector3" then return nil end
@@ -40,6 +93,7 @@ local function add(body)
 	if not c then return end
 	bodies[body] = true
 	motion:setCarrier(body, c)
+	addBelt(body, c)
 	readState(body)
 	for _, name in ipairs({ "GoodsItem", "GoodsAt", "GoodsIn" }) do
 		body:GetAttributeChangedSignal(name):Connect(function() readState(body) end)
@@ -102,6 +156,7 @@ end
 RunService.RenderStepped:Connect(function(dt)
 	local camera = workspace.CurrentCamera
 	if not camera then return end
+	moveCleats(workspace:GetServerTimeNow(), camera.CFrame.Position)
 	motion:step(workspace:GetServerTimeNow(), dt)
 	local eye = camera.CFrame.Position
 	local alive = {}

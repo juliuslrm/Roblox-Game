@@ -1,10 +1,8 @@
 -- Smooth motion of the goods on conveyors, as each client draws it.  Pure Lua, no Roblox API.
 --
 -- The server only says, per conveyor part, which item lies on it, since when (server time) and in
--- which direction it came in.  An item crosses a part on this path, in exactly the time the server
--- needs to pass it on:
---
---   entry edge  --(first half of the period)-->  cell centre  --(second half)-->  exit edge
+-- which direction it came in.  An item crosses a part from the entry edge to the exit edge - straight,
+-- or on a quarter circle where it turns - in exactly the time the server needs to pass it on.
 --
 -- The goods are drawn DELAY seconds in the past.  By then the server update that tells where an
 -- item went has arrived, so a hand-over from part to part is known before it is drawn: the item
@@ -161,57 +159,79 @@ function GoodsMotion:_reconcile(now)
 	end
 end
 
--- Pose on the path of part `c` at progress p (0 = entry edge, 0.5 = centre, 1 = exit edge):
--- x, y, z, travel direction, scale, spin (extra turn in radians).  outDir overrides the exit
+-- Point on the way across one cell (centre cx, cz, half width h) from the entry edge to the exit
+-- edge at fraction f (0..1): straight through, or a quarter circle around the inner corner when
+-- the goods turn.  Returns x, z and the travel heading (yaw, radians).  Shared with the moving
+-- cleats of the belt surface (GoodsAnimator), so goods and belt run on the same line.
+function GoodsMotion.pathPoint(cx, cz, h, inDir, outDir, f)
+	local ix, iz, ox, oz = DX[inDir], DZ[inDir], DX[outDir], DZ[outDir]
+	if ix * ox + iz * oz == 0 then
+		-- turn: pivot in the inner corner, radius = half a cell
+		local px, pz = cx + (ox - ix) * h, cz + (oz - iz) * h
+		local a = f * math.pi / 2
+		local ex, ez = cx - ix * h - px, cz - iz * h - pz          -- pivot -> entry
+		local qx, qz = cx + ox * h - px, cz + oz * h - pz          -- pivot -> exit
+		local x = px + ex * math.cos(a) + qx * math.sin(a)
+		local z = pz + ez * math.cos(a) + qz * math.sin(a)
+		local tx, tz = -ex * math.sin(a) + qx * math.cos(a), -ez * math.sin(a) + qz * math.cos(a)
+		return x, z, atan2(tx, tz)
+	end
+	if ix * ox + iz * oz < 0 then outDir, ox, oz = inDir, ix, iz end   -- (cannot happen on a conveyor)
+	if f <= 0.5 then
+		local k = f / 0.5 - 1
+		return cx + ix * h * k, cz + iz * h * k, atan2(ix, iz)
+	end
+	local k = (f - 0.5) / 0.5
+	return cx + ox * h * k, cz + oz * h * k, atan2(ox, oz)
+end
+
+-- Pose on the path of part `c` at progress p (0 = entry edge, 1 = exit edge):
+-- x, y, z, heading (yaw), scale, spin (extra turn in radians).  outDir overrides the exit
 -- (splitters decide per item).
 --   lift: into the shaft, up one floor, out at the top
 --   gate: into the portal (shrinks and swirls), out of the partner gate (grows), on to its exit
 function GoodsMotion:_pose(c, inDir, outDir, p)
 	local h = self.cs / 2
-	local function edge(x, y, z, dir, k) return x + DX[dir] * h * k, y, z + DZ[dir] * h * k end
+	local function edge(x, y, z, dir, k) return x + DX[dir] * h * k, y, z + DZ[dir] * h * k, atan2(DX[dir], DZ[dir]) end
 	if c.rise and c.rise ~= 0 then
 		if p <= 0.3 then
-			local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.3 - 1)
-			return x, y, z, inDir, 1, 0
+			local x, y, z, yaw = edge(c.x, c.y, c.z, inDir, p / 0.3 - 1)
+			return x, y, z, yaw, 1, 0
 		elseif p <= 0.8 then
 			local k = (p - 0.3) / 0.5
 			k = k * k * (3 - 2 * k)                                  -- eases in and out of the climb
-			return c.x, c.y + c.rise * k, c.z, inDir, 1, k * math.pi
+			return c.x, c.y + c.rise * k, c.z, atan2(DX[inDir], DZ[inDir]), 1, k * math.pi
 		end
-		local x, y, z = edge(c.x, c.y + c.rise, c.z, outDir, (p - 0.8) / 0.2)
-		return x, y, z, outDir, 1, 0
+		local x, y, z, yaw = edge(c.x, c.y + c.rise, c.z, outDir, (p - 0.8) / 0.2)
+		return x, y, z, yaw, 1, 0
 	end
 	if c.warp then
 		local w = c.warp
 		if p <= 0.5 then
-			local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
-			return x, y, z, inDir, 1, 0
+			local x, y, z, yaw = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
+			return x, y, z, yaw, 1, 0
 		elseif p <= 0.72 then                                         -- swirls into the portal
 			local k = (p - 0.5) / 0.22
-			return c.x, c.y + 0.6 * k, c.z, inDir, 1 - k, k * 3 * math.pi
+			return c.x, c.y + 0.6 * k, c.z, atan2(DX[inDir], DZ[inDir]), 1 - k, k * 3 * math.pi
 		elseif p <= 0.86 then                                         -- and out of the partner
 			local k = (p - 0.72) / 0.14
-			return w.x, w.y + 0.6 * (1 - k), w.z, w.out, k, (1 - k) * 3 * math.pi
+			return w.x, w.y + 0.6 * (1 - k), w.z, atan2(DX[w.out], DZ[w.out]), k, (1 - k) * 3 * math.pi
 		end
-		local x, y, z = edge(w.x, w.y, w.z, w.out, (p - 0.86) / 0.14)
-		return x, y, z, w.out, 1, 0
+		local x, y, z, yaw = edge(w.x, w.y, w.z, w.out, (p - 0.86) / 0.14)
+		return x, y, z, yaw, 1, 0
 	end
-	if p <= 0.5 then
-		local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
-		return x, y, z, inDir, 1, 0
-	end
-	local x, y, z = edge(c.x, c.y, c.z, outDir, (p - 0.5) / 0.5)
-	return x, y, z, outDir, 1, 0
+	local x, z, yaw = GoodsMotion.pathPoint(c.x, c.z, h, inDir, outDir, p)
+	return x, c.y, z, yaw, 1, 0
 end
 
--- where a visual is at render time r: x, y, z, travel direction, scale, spin (nil = not drawn yet)
+-- where a visual is at render time r: x, y, z, heading, scale, spin (nil = not drawn yet)
 function GoodsMotion:_place(v, c, r)
 	if v.goneAt then
 		-- leaving into a machine or crate: to the exit at belt speed, on into the opening, then a small
 		-- hop and down - as if dropped into the funnel - shrinking and turning a little
 		local out = c.out >= 0 and c.out or (v.inDir or 0)
 		local p = math.min(1, (r - v.at) / c.period)
-		local x, y, z, dir, scale, spin = self:_pose(c, v.inDir or out, out, p)
+		local x, y, z, yaw, scale, spin = self:_pose(c, v.inDir or out, out, p)
 		if r > v.goneAt then
 			local k = math.min(1, (r - v.goneAt) / VANISH)
 			local slide = (math.min(r, v.goneAt + VANISH) - v.goneAt) / c.period * self.cs
@@ -219,7 +239,7 @@ function GoodsMotion:_place(v, c, r)
 			y = y + 0.35 * math.sin(k * math.pi) - 0.6 * k * k
 			scale, spin = scale * (1 - 0.85 * k), spin + k * 1.2
 		end
-		return x, y, z, dir, scale, spin
+		return x, y, z, yaw, scale, spin
 	end
 	if r < v.at then
 		local prev = v.prev and self.carriers[v.prev.carrier]
@@ -232,14 +252,14 @@ function GoodsMotion:_place(v, c, r)
 	local inDir = v.inDir or (c.out >= 0 and c.out or 0)
 	local p = math.max(0, (r - v.at) / c.period)
 	p = (c.out < 0) and math.min(p, 0.5) or math.min(p, 1)
-	local x, y, z, dir, scale, spin = self:_pose(c, inDir, c.out >= 0 and c.out or inDir, p)
+	local x, y, z, yaw, scale, spin = self:_pose(c, inDir, c.out >= 0 and c.out or inDir, p)
 	if v.emerge then
 		-- pushed out of the machine: rises out of the opening and grows to full size
 		local k = math.min(1, (r - v.at) / (c.period * 0.25))
 		if k >= 1 then v.emerge = nil end
 		y, scale = y - 0.5 * (1 - k), scale * (0.25 + 0.75 * k)
 	end
-	return x, y, z, dir, scale, spin
+	return x, y, z, yaw, scale, spin
 end
 
 function GoodsMotion:step(now, dt)
@@ -248,9 +268,8 @@ function GoodsMotion:step(now, dt)
 	local follow = 1 - math.exp(-SMOOTH * math.max(dt or 0, 0))
 	local seen = {}
 	local function draw(v, c)
-		local x, y, z, dir, scale, spin = self:_place(v, c, r)
+		local x, y, z, yaw, scale, spin = self:_place(v, c, r)
 		if not x then return end
-		local yaw = atan2(DX[dir], DZ[dir])
 		if not v.x then
 			v.x, v.y, v.z, v.yaw = x, y, z, yaw
 		else

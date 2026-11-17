@@ -256,4 +256,63 @@ test("ports", "the action is checked on the server and the view reports sides, p
 	eq(v.out.tonic_minor, 1) eq(v.state, "WaitingForInputs") eq(v.waiting ~= nil, true)
 end)
 
+local BeltPath = D.BeltPath
+test("belts", "a line runs along the longer axis first, every belt points to the next, one corner", function()
+	local cells = BeltPath.cells(2, 3, 7, 5, 1, false)
+	eq(#cells, 8)
+	eq(cells[1].gx, 2) eq(cells[1].gz, 3) eq(cells[1].rot, 1)
+	eq(cells[5].gx, 6) eq(cells[5].rot, 1)
+	eq(cells[6].gx, 7) eq(cells[6].gz, 3) eq(cells[6].rot, 0)          -- the corner turns to +z
+	eq(cells[8].gx, 7) eq(cells[8].gz, 5) eq(cells[8].rot, 0)
+	local back = BeltPath.cells(2, 3, 7, 5, 1, true)                   -- reversed flow
+	eq(back[1].gx, 7) eq(back[1].gz, 5) eq(back[1].rot, 2)
+	eq(back[8].gx, 2) eq(back[8].gz, 3) eq(back[8].rot, 3)
+	local one = BeltPath.cells(4, 4, 4, 4, 3, false)
+	eq(#one, 1) eq(one[1].rot, 3)
+	eq(BeltPath.cells(4, 4, 4, 4, 3, true)[1].rot, 1)
+	eq(BeltPath.cells(0, 0, 70, 0, 1, false), nil)                     -- longer than MAX
+end)
+
+test("belts", "a line is placed completely or not at all", function()
+	local P = workshop()
+	place(P, "storage_crate", 10, 6)                                    -- in the way of the line
+	local wallet, before = P.wallet, #P.workshop.layout
+	local uids, code, index = Place.placeLine(P, "wooden_belt", 1, BeltPath.cells(6, 6, 14, 6, 1, false))
+	eq(uids, nil) eq(code, "BLOCKED") eq(index, 5)
+	eq(P.wallet, wallet) eq(#P.workshop.layout, before)
+	uids = Place.placeLine(P, "wooden_belt", 1, BeltPath.cells(6, 8, 14, 8, 1, false))
+	eq(#uids, 9) eq(P.wallet, wallet - 9 * Machines.wooden_belt.cost)
+	eq(select(2, Place.placeLine(P, "grinder", 1, BeltPath.cells(6, 12, 8, 12, 1, false))), "BAD_REQUEST")
+end)
+
+test("belts", "goods run through a placed line with a corner, from a hopper into a crate", function()
+	local P = workshop()
+	local rt = Sim.newRuntime()
+	local source = place(P, "storage_crate", 2, 10)
+	P.workshop.buffers[source.uid].inv.herb_mint = 6
+	place(P, "input_hopper", 4, 10, 1)
+	assert(Place.placeLine(P, "wooden_belt", 1, BeltPath.cells(5, 10, 10, 14, 1, false)))
+	local target = place(P, "storage_crate", 10, 15)
+	run(P, rt, 120)
+	eq(P.workshop.buffers[target.uid].inv.herb_mint, 6)
+end)
+
+test("belts", "the line action is checked on the server", function()
+	local bot = Bot.new()
+	for id in pairs(D.Research) do bot.P.research[id] = true end
+	bot.P.wallet = 5000
+	bot:enter()
+	local r = bot:act("PlaceBelts", { machine = "wooden_belt", floor = 1, cells = BeltPath.cells(5, 10, 8, 10, 1, false) })
+	eq(#r.uids, 4)
+	eq(bot:try("PlaceBelts", { machine = "wooden_belt", floor = 1, cells = { { gx = 1, gz = 8, rot = 7 } } }).code, "BAD_REQUEST")
+	eq(bot:try("PlaceBelts", { machine = "wooden_belt", floor = 1, cells = {} }).code, "BAD_REQUEST")
+	eq(bot:try("PlaceBelts", { machine = "wooden_belt", floor = 1, cells = { { gx = 1, gz = 8 } } }).code, "BAD_REQUEST")
+	eq(bot:try("PlaceBelts", { machine = "wooden_belt", floor = 1, cells = "x" }).code, "BAD_REQUEST")
+	local guest = Bot.new(bot.world, 2002)
+	bot:act("InviteCoOp", { user = guest.userId, role = "visitor" })
+	guest:goTo("workshop_door")
+	guest:act("EnterWorkshop", { owner = bot.userId })
+	eq(guest:try("PlaceBelts", { machine = "wooden_belt", floor = 1, cells = BeltPath.cells(5, 12, 6, 12, 1, false) }).code, "FORBIDDEN")
+end)
+
 return results

@@ -182,14 +182,9 @@ for i, plot in ipairs(plots) do
 		{ uid = "gb" .. i, machine = "magical_gate", gx = 14, gz = 10, floor = 1, rot = 1, inv = {}, fluids = {} } } }
 	local room = ww:sync(view, "Werkstatt von Test " .. i)
 	if i == 1 then
-		-- directions: a belt with rot 1 conveys towards +X; a curve with rot 0 hands over to its left (-X);
+		-- directions: a curve with rot 0 hands over to its left (-X);
 		-- the mill's outlet mark points away from the machine, its inlet mark into it; marks start hidden
-		local function dirOf(body, name)
-			local shaft = body:FindFirstChild(name)
-			return shaft and shaft.CFrame.LookVector
-		end
 		local belt, turn, mill = room.entityFolder["b1"], room.entityFolder["t1"], room.entityFolder["g1"]
-		local fb, ft = dirOf(belt, "Arrow"), dirOf(turn, "Arrow")
 		local outMark, inMark = mill:FindFirstChild("PortOut"), mill:FindFirstChild("PortIn")
 		local centre = Vector3.new(mill.Position.X, 0, mill.Position.Z)
 		local function away(mark)
@@ -216,6 +211,19 @@ for i, plot in ipairs(plots) do
 			for _, d in ipairs(models and models:GetDescendants() or {}) do if d:IsA("MeshPart") then n = n + 1 end end
 			local ga, gb = room.entityFolder["ga1"], room.entityFolder["gb1"]
 			local warp = ga:GetAttribute("GoodsWarp")
+			do -- new conveyor models: direction shown by cleats (client), surface height matches the model
+				local rp = RaycastParams.new()
+				rp.FilterType = Enum.RaycastFilterType.Include
+				rp.FilterDescendantsInstances = { belt, turn }
+				local function top(part)
+					local hit = workspace:Raycast(part:GetAttribute("GoodsSurface") + Vector3.new(0, 3, 0), Vector3.new(0, -6, 0), rp)
+					return hit and (hit.Position.Y - part:GetAttribute("GoodsSurface").Y) or 99
+				end
+				p("conveyors: belt BeltIn=%s arrow=%s surface gap %.3f; curve BeltIn=%s out=%s surface gap %.3f; belt model %s size (%.2f, %.2f, %.2f)",
+					tostring(belt:GetAttribute("BeltIn")), belt:FindFirstChild("Arrow") and "yes" or "none", top(belt),
+					tostring(turn:GetAttribute("BeltIn")), tostring(turn:GetAttribute("GoodsOut")), top(turn), belt.ClassName,
+					belt.Size.X, belt.Size.Y, belt.Size.Z)
+			end
 			p("gate: next=%s warp at partner=%s (partner surface %.2f vs warp %.2f), warp out=%s, unlinked gate has warp=%s",
 				tostring(ga:GetAttribute("GoodsNext")), tostring(warp and (Vector3.new(warp.X, 0, warp.Z) - Vector3.new(gb.Position.X, 0, gb.Position.Z)).Magnitude < 0.6),
 				gb:GetAttribute("GoodsSurface") and gb:GetAttribute("GoodsSurface").Y or -1, warp and warp.Y or -1,
@@ -224,8 +232,8 @@ for i, plot in ipairs(plots) do
 				first, tostring(belt:GetAttribute("GoodsItem")), tostring(turn:GetAttribute("GoodsOut")),
 				tostring(mill:GetAttribute("GoodsOut") == nil), n, belt:FindFirstChild("Goods") and "yes" or "none")
 		end
-		p("directions: belt rot 1 arrow (%.1f, %.1f), curve rot 0 arrow (%.1f, %.1f), outlet mark away %.2f, inlet mark away %.2f, %d hidden mark parts, %d hidden labels, outlet label '%s'",
-			fb.X, fb.Z, ft.X, ft.Z, away(outMark), away(inMark), hidden, labels, outMark.PortLabel:FindFirstChildOfClass("TextLabel").Text)
+		p("directions: outlet mark away %.2f, inlet mark away %.2f, %d hidden mark parts, %d hidden labels, outlet label '%s'",
+			away(outMark), away(inMark), hidden, labels, outMark.PortLabel:FindFirstChildOfClass("TextLabel").Text)
 	end
 	local lo, hi, misses = math.huge, -math.huge, 0
 	for dx = -40, 40, 8 do

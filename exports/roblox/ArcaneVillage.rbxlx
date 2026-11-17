@@ -3,7 +3,70 @@
 <External>nil</External>
 <Item class="Workspace" referent="RBX000009"><Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties></Item>
 <Item class="Lighting" referent="RBX000010"><Properties><string name="Name">Lighting</string><float name="ClockTime">15.2</float><float name="Brightness">2</float></Properties></Item>
-<Item class="ReplicatedStorage" referent="RBX000032"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000031"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Global tuning values. Pure data (Lua 5.1 compatible).
+<Item class="ReplicatedStorage" referent="RBX000033"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX000032"><Properties><string name="Name">ArcaneShared</string></Properties><Item class="ModuleScript" referent="RBX000011"><Properties><string name="Name">BeltPath</string><ProtectedString name="Source"><![CDATA[-- Conveyor lines: the cells and directions of a belt run from a start to an end cell, and the
+-- reserved cells of a workshop.  Pure data logic, shared by the build preview and the server.
+local BeltPath = {}
+BeltPath.MAX = 64                      -- belts in one line
+
+local function dirOf(dx, dz)
+	if dz > 0 then return 0 elseif dx > 0 then return 1 elseif dz < 0 then return 2 end
+	return 3
+end
+BeltPath.dirOf = dirOf
+
+-- Cells from (sx, sz) to (ex, ez): first along the axis with the longer distance, then the other
+-- one (one corner at most).  Every belt points to the next cell; the corner belt takes the goods in
+-- from its side.  single: direction of a one-cell line.  flip: goods run from the end to the start.
+-- Returns { { gx, gz, rot }, ... } in the order the goods travel, or nil if longer than MAX.
+function BeltPath.cells(sx, sz, ex, ez, single, flip)
+	local dx, dz = ex - sx, ez - sz
+	local list = { { gx = sx, gz = sz } }
+	local x, z = sx, sz
+	local function walk(stepX, stepZ, count)
+		for _ = 1, count do
+			x, z = x + stepX, z + stepZ
+			list[#list + 1] = { gx = x, gz = z }
+		end
+	end
+	local sxn, szn = (dx > 0 and 1) or (dx < 0 and -1) or 0, (dz > 0 and 1) or (dz < 0 and -1) or 0
+	if math.abs(dx) >= math.abs(dz) then
+		walk(sxn, 0, math.abs(dx))
+		walk(0, szn, math.abs(dz))
+	else
+		walk(0, szn, math.abs(dz))
+		walk(sxn, 0, math.abs(dx))
+	end
+	if #list > BeltPath.MAX then return nil end
+	if flip then
+		local rev = {}
+		for i = #list, 1, -1 do rev[#rev + 1] = list[i] end
+		list = rev
+	end
+	if #list == 1 then
+		list[1].rot = flip and (single + 2) % 4 or single
+		return list
+	end
+	for i = 1, #list do
+		local a, b = list[i], list[i + 1] or list[i]
+		local p = list[i - 1]
+		if list[i + 1] then a.rot = dirOf(b.gx - a.gx, b.gz - a.gz)
+		else a.rot = dirOf(a.gx - p.gx, a.gz - p.gz) end
+	end
+	return list
+end
+
+-- Cells nobody may build on: the entrance (front edge, floor 1) and the staircase (back-left corner).
+function BeltPath.reserved(cells, doorWidth, doorDepth, floor, x, z)
+	if floor == 1 then
+		local x0 = math.floor(cells / 2) - math.floor(doorWidth / 2)
+		if x >= x0 and x < x0 + doorWidth and z < doorDepth then return true end
+	end
+	return x < 3 and z >= cells - 4
+end
+
+return BeltPath
+]]></ProtectedString></Properties></Item>
+<Item class="ModuleScript" referent="RBX000012"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Global tuning values. Pure data (Lua 5.1 compatible).
 return {
 	schemaVersion = 1,
 	cellSize = 2,                 -- studs per workshop grid cell
@@ -43,13 +106,11 @@ return {
 	maxPlayers = 4,
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000012"><Properties><string name="Name">GoodsMotion</string><ProtectedString name="Source"><![CDATA[-- Smooth motion of the goods on conveyors, as each client draws it.  Pure Lua, no Roblox API.
+<Item class="ModuleScript" referent="RBX000013"><Properties><string name="Name">GoodsMotion</string><ProtectedString name="Source"><![CDATA[-- Smooth motion of the goods on conveyors, as each client draws it.  Pure Lua, no Roblox API.
 --
 -- The server only says, per conveyor part, which item lies on it, since when (server time) and in
--- which direction it came in.  An item crosses a part on this path, in exactly the time the server
--- needs to pass it on:
---
---   entry edge  --(first half of the period)-->  cell centre  --(second half)-->  exit edge
+-- which direction it came in.  An item crosses a part from the entry edge to the exit edge - straight,
+-- or on a quarter circle where it turns - in exactly the time the server needs to pass it on.
 --
 -- The goods are drawn DELAY seconds in the past.  By then the server update that tells where an
 -- item went has arrived, so a hand-over from part to part is known before it is drawn: the item
@@ -206,57 +267,79 @@ function GoodsMotion:_reconcile(now)
 	end
 end
 
--- Pose on the path of part `c` at progress p (0 = entry edge, 0.5 = centre, 1 = exit edge):
--- x, y, z, travel direction, scale, spin (extra turn in radians).  outDir overrides the exit
+-- Point on the way across one cell (centre cx, cz, half width h) from the entry edge to the exit
+-- edge at fraction f (0..1): straight through, or a quarter circle around the inner corner when
+-- the goods turn.  Returns x, z and the travel heading (yaw, radians).  Shared with the moving
+-- cleats of the belt surface (GoodsAnimator), so goods and belt run on the same line.
+function GoodsMotion.pathPoint(cx, cz, h, inDir, outDir, f)
+	local ix, iz, ox, oz = DX[inDir], DZ[inDir], DX[outDir], DZ[outDir]
+	if ix * ox + iz * oz == 0 then
+		-- turn: pivot in the inner corner, radius = half a cell
+		local px, pz = cx + (ox - ix) * h, cz + (oz - iz) * h
+		local a = f * math.pi / 2
+		local ex, ez = cx - ix * h - px, cz - iz * h - pz          -- pivot -> entry
+		local qx, qz = cx + ox * h - px, cz + oz * h - pz          -- pivot -> exit
+		local x = px + ex * math.cos(a) + qx * math.sin(a)
+		local z = pz + ez * math.cos(a) + qz * math.sin(a)
+		local tx, tz = -ex * math.sin(a) + qx * math.cos(a), -ez * math.sin(a) + qz * math.cos(a)
+		return x, z, atan2(tx, tz)
+	end
+	if ix * ox + iz * oz < 0 then outDir, ox, oz = inDir, ix, iz end   -- (cannot happen on a conveyor)
+	if f <= 0.5 then
+		local k = f / 0.5 - 1
+		return cx + ix * h * k, cz + iz * h * k, atan2(ix, iz)
+	end
+	local k = (f - 0.5) / 0.5
+	return cx + ox * h * k, cz + oz * h * k, atan2(ox, oz)
+end
+
+-- Pose on the path of part `c` at progress p (0 = entry edge, 1 = exit edge):
+-- x, y, z, heading (yaw), scale, spin (extra turn in radians).  outDir overrides the exit
 -- (splitters decide per item).
 --   lift: into the shaft, up one floor, out at the top
 --   gate: into the portal (shrinks and swirls), out of the partner gate (grows), on to its exit
 function GoodsMotion:_pose(c, inDir, outDir, p)
 	local h = self.cs / 2
-	local function edge(x, y, z, dir, k) return x + DX[dir] * h * k, y, z + DZ[dir] * h * k end
+	local function edge(x, y, z, dir, k) return x + DX[dir] * h * k, y, z + DZ[dir] * h * k, atan2(DX[dir], DZ[dir]) end
 	if c.rise and c.rise ~= 0 then
 		if p <= 0.3 then
-			local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.3 - 1)
-			return x, y, z, inDir, 1, 0
+			local x, y, z, yaw = edge(c.x, c.y, c.z, inDir, p / 0.3 - 1)
+			return x, y, z, yaw, 1, 0
 		elseif p <= 0.8 then
 			local k = (p - 0.3) / 0.5
 			k = k * k * (3 - 2 * k)                                  -- eases in and out of the climb
-			return c.x, c.y + c.rise * k, c.z, inDir, 1, k * math.pi
+			return c.x, c.y + c.rise * k, c.z, atan2(DX[inDir], DZ[inDir]), 1, k * math.pi
 		end
-		local x, y, z = edge(c.x, c.y + c.rise, c.z, outDir, (p - 0.8) / 0.2)
-		return x, y, z, outDir, 1, 0
+		local x, y, z, yaw = edge(c.x, c.y + c.rise, c.z, outDir, (p - 0.8) / 0.2)
+		return x, y, z, yaw, 1, 0
 	end
 	if c.warp then
 		local w = c.warp
 		if p <= 0.5 then
-			local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
-			return x, y, z, inDir, 1, 0
+			local x, y, z, yaw = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
+			return x, y, z, yaw, 1, 0
 		elseif p <= 0.72 then                                         -- swirls into the portal
 			local k = (p - 0.5) / 0.22
-			return c.x, c.y + 0.6 * k, c.z, inDir, 1 - k, k * 3 * math.pi
+			return c.x, c.y + 0.6 * k, c.z, atan2(DX[inDir], DZ[inDir]), 1 - k, k * 3 * math.pi
 		elseif p <= 0.86 then                                         -- and out of the partner
 			local k = (p - 0.72) / 0.14
-			return w.x, w.y + 0.6 * (1 - k), w.z, w.out, k, (1 - k) * 3 * math.pi
+			return w.x, w.y + 0.6 * (1 - k), w.z, atan2(DX[w.out], DZ[w.out]), k, (1 - k) * 3 * math.pi
 		end
-		local x, y, z = edge(w.x, w.y, w.z, w.out, (p - 0.86) / 0.14)
-		return x, y, z, w.out, 1, 0
+		local x, y, z, yaw = edge(w.x, w.y, w.z, w.out, (p - 0.86) / 0.14)
+		return x, y, z, yaw, 1, 0
 	end
-	if p <= 0.5 then
-		local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
-		return x, y, z, inDir, 1, 0
-	end
-	local x, y, z = edge(c.x, c.y, c.z, outDir, (p - 0.5) / 0.5)
-	return x, y, z, outDir, 1, 0
+	local x, z, yaw = GoodsMotion.pathPoint(c.x, c.z, h, inDir, outDir, p)
+	return x, c.y, z, yaw, 1, 0
 end
 
--- where a visual is at render time r: x, y, z, travel direction, scale, spin (nil = not drawn yet)
+-- where a visual is at render time r: x, y, z, heading, scale, spin (nil = not drawn yet)
 function GoodsMotion:_place(v, c, r)
 	if v.goneAt then
 		-- leaving into a machine or crate: to the exit at belt speed, on into the opening, then a small
 		-- hop and down - as if dropped into the funnel - shrinking and turning a little
 		local out = c.out >= 0 and c.out or (v.inDir or 0)
 		local p = math.min(1, (r - v.at) / c.period)
-		local x, y, z, dir, scale, spin = self:_pose(c, v.inDir or out, out, p)
+		local x, y, z, yaw, scale, spin = self:_pose(c, v.inDir or out, out, p)
 		if r > v.goneAt then
 			local k = math.min(1, (r - v.goneAt) / VANISH)
 			local slide = (math.min(r, v.goneAt + VANISH) - v.goneAt) / c.period * self.cs
@@ -264,7 +347,7 @@ function GoodsMotion:_place(v, c, r)
 			y = y + 0.35 * math.sin(k * math.pi) - 0.6 * k * k
 			scale, spin = scale * (1 - 0.85 * k), spin + k * 1.2
 		end
-		return x, y, z, dir, scale, spin
+		return x, y, z, yaw, scale, spin
 	end
 	if r < v.at then
 		local prev = v.prev and self.carriers[v.prev.carrier]
@@ -277,14 +360,14 @@ function GoodsMotion:_place(v, c, r)
 	local inDir = v.inDir or (c.out >= 0 and c.out or 0)
 	local p = math.max(0, (r - v.at) / c.period)
 	p = (c.out < 0) and math.min(p, 0.5) or math.min(p, 1)
-	local x, y, z, dir, scale, spin = self:_pose(c, inDir, c.out >= 0 and c.out or inDir, p)
+	local x, y, z, yaw, scale, spin = self:_pose(c, inDir, c.out >= 0 and c.out or inDir, p)
 	if v.emerge then
 		-- pushed out of the machine: rises out of the opening and grows to full size
 		local k = math.min(1, (r - v.at) / (c.period * 0.25))
 		if k >= 1 then v.emerge = nil end
 		y, scale = y - 0.5 * (1 - k), scale * (0.25 + 0.75 * k)
 	end
-	return x, y, z, dir, scale, spin
+	return x, y, z, yaw, scale, spin
 end
 
 function GoodsMotion:step(now, dt)
@@ -293,9 +376,8 @@ function GoodsMotion:step(now, dt)
 	local follow = 1 - math.exp(-SMOOTH * math.max(dt or 0, 0))
 	local seen = {}
 	local function draw(v, c)
-		local x, y, z, dir, scale, spin = self:_place(v, c, r)
+		local x, y, z, yaw, scale, spin = self:_place(v, c, r)
 		if not x then return end
-		local yaw = atan2(DX[dir], DZ[dir])
 		if not v.x then
 			v.x, v.y, v.z, v.yaw = x, y, z, yaw
 		else
@@ -325,7 +407,7 @@ end
 
 return GoodsMotion
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000013"><Properties><string name="Name">GridMath</string><ProtectedString name="Source"><![CDATA[-- Grid geometry of the workshop. Cells are integers; direction 0=+z 1=+x 2=-z 3=-x.
+<Item class="ModuleScript" referent="RBX000014"><Properties><string name="Name">GridMath</string><ProtectedString name="Source"><![CDATA[-- Grid geometry of the workshop. Cells are integers; direction 0=+z 1=+x 2=-z 3=-x.
 local GridMath = {}
 GridMath.DX = { [0] = 0, [1] = 1, [2] = 0, [3] = -1 }
 GridMath.DZ = { [0] = 1, [1] = 0, [2] = -1, [3] = 0 }
@@ -363,7 +445,7 @@ function GridMath.opposite(dir)
 end
 return GridMath
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000014"><Properties><string name="Name">ItemArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_item_assets.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000015"><Properties><string name="Name">ItemArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_item_assets.py. Do not edit.
 -- Bounds of the item models in Roblox axes, relative to the point they stand on.
 return {
 	item_berry_mash = { center = {0, 0.48, 0}, size = {1.12, 0.96, 1.0652} },
@@ -413,7 +495,7 @@ return {
 	item_wood_log = { center = {0, 0.5222, 0.0098}, size = {1.4746, 1.0445, 0.955} },
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000015"><Properties><string name="Name">ItemIconSheet</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_item_assets.py. Do not edit (the image id is set by the upload step).
+<Item class="ModuleScript" referent="RBX000016"><Properties><string name="Name">ItemIconSheet</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_item_assets.py. Do not edit (the image id is set by the upload step).
 -- All item icons on one sheet (exports/textures/item_icons.png): cell size and cell of every item.
 -- An empty image id means the sheet has not been uploaded; the UI then falls back to symbol tiles.
 return {
@@ -470,7 +552,7 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000016"><Properties><string name="Name">ItemIcons</string><ProtectedString name="Source"><![CDATA[-- Symbol and tile colour of every item and a motif for every production machine.
+<Item class="ModuleScript" referent="RBX000017"><Properties><string name="Name">ItemIcons</string><ProtectedString name="Source"><![CDATA[-- Symbol and tile colour of every item and a motif for every production machine.
 -- There are no painted item images in the project yet (Items[id].icon only holds placeholder
 -- names); until there are, the UI draws a coloured tile with a symbol.  Pure data.
 local I = { items = {}, machines = {} }
@@ -535,7 +617,7 @@ function I.item(id) return I.items[id] or { symbol = "❔", color = { 150, 140, 
 function I.machine(id) return I.machines[id] or "⚙️" end
 return I
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000017"><Properties><string name="Name">Items</string><ProtectedString name="Source"><![CDATA[-- Item database. Liquids are counted in integer millilitres (unit = "ml").
+<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">Items</string><ProtectedString name="Source"><![CDATA[-- Item database. Liquids are counted in integer millilitres (unit = "ml").
 local Items = {}
 local function add(id, type_, name, sell, tier, extra)
 	local it = { id = id, type = type_, name = name, sellBase = sell or 0, unlockTier = tier or 0,
@@ -594,7 +676,7 @@ add("void_seed", "product", "Leerensaat", 450, 5, { rarity = "epic" })
 add("elixir_master", "product", "Meisterelixier", 850, 5, { rarity = "epic" })
 return Items
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000018"><Properties><string name="Name">Locations</string><ProtectedString name="Source"><![CDATA[-- Village locations and resource nodes. Positions are NOT stored here: VillageAdapter derives
+<Item class="ModuleScript" referent="RBX000019"><Properties><string name="Name">Locations</string><ProtectedString name="Source"><![CDATA[-- Village locations and resource nodes. Positions are NOT stored here: VillageAdapter derives
 -- every anchor from the generated WorldLayout (asset id of the unique building instance).
 -- unlock: nil (always) | { research = id } | { quest = id } | { rep = level }
 local L = { locations = {}, nodes = {} }
@@ -651,7 +733,7 @@ node("n_seed_mint_farm", "seed_mint", "farm", -12, 8, 1, 3, 60, { research = "fa
 node("n_seed_sun_farm", "seed_sunleaf", "farm", -16, 12, 1, 3, 60, { research = "farming" })
 return L
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000019"><Properties><string name="Name">MachinePorts</string><ProtectedString name="Source"><![CDATA[-- Inlet and outlet sides of production machines.  Pure data logic, shared by server and client.
+<Item class="ModuleScript" referent="RBX000020"><Properties><string name="Name">MachinePorts</string><ProtectedString name="Source"><![CDATA[-- Inlet and outlet sides of production machines.  Pure data logic, shared by server and client.
 --
 -- A side is a direction in the machine's own frame (0 = front +z, 1 = right +x, 2 = back -z,
 -- 3 = left -x); it turns with the machine.  The connection cell of a side is the middle cell of
@@ -743,7 +825,7 @@ end
 
 return MP
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000020"><Properties><string name="Name">Machines</string><ProtectedString name="Source"><![CDATA[-- Placeable workshop entities: machines, storage and logistics.
+<Item class="ModuleScript" referent="RBX000021"><Properties><string name="Name">Machines</string><ProtectedString name="Source"><![CDATA[-- Placeable workshop entities: machines, storage and logistics.
 -- Footprints are in grid cells (1 cell = 2 studs). Local frame: +z = front, +x = right.
 -- Directions: 0 = +z (front), 1 = +x (right), 2 = -z (back), 3 = -x (left).
 -- kind: machine | pump | crate | shelf | belt | turn | hopper | splitter | merger | sorter | pipe | tank | lift | gate
@@ -818,7 +900,7 @@ M.shop_shelf = { id = "shop_shelf", name = "Verkaufsregal", kind = "shelf", tier
 	modelAssetId = "logi_shop_shelf", category = "storage" }
 return M
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000021"><Properties><string name="Name">MarketCatalog</string><ProtectedString name="Source"><![CDATA[-- Market NPCs run the five existing stalls. Prices and bundle sizes are server-owned.
+<Item class="ModuleScript" referent="RBX000022"><Properties><string name="Name">MarketCatalog</string><ProtectedString name="Source"><![CDATA[-- Market NPCs run the five existing stalls. Prices and bundle sizes are server-owned.
 local Market = { order = { "selma", "nyra", "lio", "aron", "esme" }, radius = 12 }
 Market.merchants = {
 	selma = {
@@ -904,7 +986,7 @@ end
 
 return Market
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000022"><Properties><string name="Name">MarketMotion</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000023"><Properties><string name="Name">MarketMotion</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
 -- Idle loops of the traders: per part one joint frame per sample, { x, y, z, qx, qy, qz, qw }
 -- in Roblox axes relative to the figure's ground point; joints = rest position of each joint.
 -- A part moves with  frame(t) * CFrame.new(-joint).
@@ -1009,8 +1091,8 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000023"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
--- "id" (short string), "ids" (array of ids).
+<Item class="ModuleScript" referent="RBX000024"><Properties><string name="Name">Protocol</string><ProtectedString name="Source"><![CDATA[-- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
+-- "id" (short string), "ids" (array of ids), "cells" (array of { gx, gz, rot } integers).
 -- A field name ending in "?" is optional.
 local P = {}
 P.remoteName = "ArcaneRequest"
@@ -1024,6 +1106,7 @@ P.actions = {
 	RemoveMachine = { uid = "id" },
 	RotateMachine = { uid = "id" },
 	SetMachinePorts = { uid = "id", ["inSide?"] = "int", ["outSide?"] = "int", ["auto?"] = "bool" },
+	PlaceBelts = { machine = "id", floor = "int", cells = "cells" },
 	SetRecipe = { uid = "id", ["recipe?"] = "id" },
 	StartManualCraft = { uid = "id", recipe = "id" },
 	TransferStack = { from = "id", to = "id", item = "id", amount = "int", ["slot?"] = "id" },
@@ -1055,7 +1138,7 @@ P.messages = {
 }
 return P
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000024"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
+<Item class="ModuleScript" referent="RBX000025"><Properties><string name="Name">Quests</string><ProtectedString name="Source"><![CDATA[-- Quest data. Objective types:
 --   enter_workshop | craft{item,count,auto?} | sell{count} | deliver{items,at} | visit{at}
 --   research{id} | place{machine} | piped{ml} | floors{count} | lines{count,windowSec} | rate{perMin,windowSec}
 -- rewards: coins, knowledge, rep, flag
@@ -1154,7 +1237,7 @@ Q.projects = {
 }
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000025"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
+<Item class="ModuleScript" referent="RBX000026"><Properties><string name="Name">Recipes</string><ProtectedString name="Source"><![CDATA[-- Recipes. Liquid amounts are millilitres. `research` is the tech node that unlocks the recipe.
 local W = 1000
 local R = {}
 local function add(id, tier, machine, inputs, outputs, t, research, extra)
@@ -1202,7 +1285,7 @@ add("d02", 3, "quarry_drill", {}, { ore_copper = 1 }, 30, "licensed_mining", { k
 add("d03", 3, "quarry_drill", {}, { ore_iron = 1 }, 30, "licensed_mining", { knowledgeRewardFirstCraft = 0, supply = true, fuelUnits = 1, source = true })
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000026"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
+<Item class="ModuleScript" referent="RBX000027"><Properties><string name="Name">Research</string><ProtectedString name="Source"><![CDATA[-- Tech tree (DAG). cost = knowledge points. unlocks: machines / recipes / features.
 local T = {}
 local function node(id, tier, cost, prereqs, unlocks, name)
 	T[id] = { id = id, tier = tier, cost = cost, prereqs = prereqs, unlocks = unlocks, name = name }
@@ -1237,7 +1320,7 @@ node("portal_logistics", 5, 200, { "arcane_depths", "smart_sorting" }, { "magica
 node("master_blueprints", 5, 130, { "multi_floor", "flow_control" }, { "blueprint_slots_20" }, "Meisterbaupläne")
 return T
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000027"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
+<Item class="ModuleScript" referent="RBX000028"><Properties><string name="Name">Util</string><ProtectedString name="Source"><![CDATA[-- Small pure helpers (Lua 5.1 compatible, no Roblox API).
 local Util = {}
 function Util.isInt(v)
 	return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge and math.floor(v) == v
@@ -1273,7 +1356,7 @@ function Util.nextRandom(state)
 end
 return Util
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000028"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
+<Item class="ModuleScript" referent="RBX000029"><Properties><string name="Name">Validator</string><ProtectedString name="Source"><![CDATA[-- Referential integrity checks over all data tables. Returns a list of error strings (empty = valid).
 local Validator = {}
 function Validator.run(D)
 	local errs = {}
@@ -1410,7 +1493,7 @@ function Validator.run(D)
 end
 return Validator
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000029"><Properties><string name="Name">WorkshopArchitecture</string><ProtectedString name="Source"><![CDATA[-- Shared room geometry for Roblox and the Blender workshop generator.
+<Item class="ModuleScript" referent="RBX000030"><Properties><string name="Name">WorkshopArchitecture</string><ProtectedString name="Source"><![CDATA[-- Shared room geometry for Roblox and the Blender workshop generator.
 -- Positions are part centres in room-local Roblox coordinates.
 local Architecture = {}
 
@@ -1574,7 +1657,7 @@ end
 
 return Architecture
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000030"><Properties><string name="Name">WorkshopModels</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_workshop.py.
+<Item class="ModuleScript" referent="RBX000031"><Properties><string name="Name">WorkshopModels</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_workshop.py.
 return {
 	mach_kettle = {
 		size = {3.77, 5.4712, 3.71},
@@ -1705,7 +1788,7 @@ return {
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="ServerStorage" referent="RBX000035"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000033"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
+<Item class="ServerStorage" referent="RBX000036"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX000034"><Properties><string name="Name">VillageWorld</string></Properties><Item class="ModuleScript" referent="RBX000001"><Properties><string name="Name">VillageWorldBuilder</string><ProtectedString name="Source"><![CDATA[--[[
 	VillageWorldBuilder  (ModuleScript)
 
 	Assembles the village from imported meshes and the generated WorldLayout
@@ -2687,7 +2770,7 @@ return {
 		},
 		ArcaneAssets = {
 			137911422416588, -- mach_kettle.glb (replaces the kettle of the machine library)
-			89059240299616,  -- arcane_machines.fbx
+			100548175724336, -- arcane_machines.fbx (new conveyors, 2026-11-17)
 		},
 		ArcaneMarketAssets = { 97858872631115 }, -- arcane_market.fbx: traders (seven parts each) and stalls
 		ArcaneResourceAssets = { 119763588026096 }, -- arcane_resources.fbx: one model per raw item
@@ -4759,14 +4842,14 @@ return {
 }
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ModuleScript" referent="RBX000034"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
+<Item class="ModuleScript" referent="RBX000035"><Properties><string name="Name">README</string><ProtectedString name="Source"><![CDATA[-- Arcane Village: press Play.
 -- Without imported meshes the village appears as placeholder blocks on voxel terrain.
 -- To get the real models import exports/library/village_assets.glb and village_terrain.glb into
 -- ServerStorage.VillageAssets and exports/library/arcane_machines.glb into ServerStorage.ArcaneAssets.
 return {}
 ]]></ProtectedString></Properties></Item>
 </Item>
-<Item class="ServerScriptService" referent="RBX000063"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000036"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
+<Item class="ServerScriptService" referent="RBX000064"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX000037"><Properties><string name="Name">VillageAutoBuild</string><ProtectedString name="Source"><![CDATA[-- Runs VillageAutoBuild once when the server starts (UNVERIFIED_IN_STUDIO).
 -- Characters are held back until the ground exists, so nobody falls into the void.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
@@ -4879,7 +4962,7 @@ Players.PlayerAdded:Connect(function(player)
 	if not player.Character then player:LoadCharacter() end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="Folder" referent="RBX000062"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000037"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
+<Item class="Folder" referent="RBX000063"><Properties><string name="Name">ArcaneServer</string></Properties><Item class="ModuleScript" referent="RBX000038"><Properties><string name="Name">Actions</string><ProtectedString name="Source"><![CDATA[-- Single entry point for every client request (spec §12 protocol, §14 security).
 -- handle(world, session, action, payload, ctx) -> { ok, code, version, payload }
 -- ctx = { now = seconds (server clock) }.  The client never supplies positions, prices or amounts of money.
 local D = require(script.Parent.Data)
@@ -4991,6 +5074,19 @@ function H.PlaceMachine(world, session, p)
 	touched(owner, true)
 	afterChange(world, owner, { { type = "place", machine = p.machine } })
 	return ok({ uid = e.uid })
+end
+
+-- A conveyor line in one go (all or nothing).
+function H.PlaceBelts(world, session, p)
+	local P, owner, code = workshop(world, session, "builder")
+	if not P then return fail(code) end
+	local uids, why, index = Place.placeLine(P, p.machine, p.floor, p.cells)
+	if not uids then return fail(why, { index = index }) end
+	touched(owner, true)
+	local events = {}
+	for _ in ipairs(uids) do events[#events + 1] = { type = "place", machine = p.machine } end
+	afterChange(world, owner, events)
+	return ok({ uids = uids })
 end
 
 function H.RemoveMachine(world, session, p)
@@ -5401,7 +5497,7 @@ end
 Actions.handlers = H
 return Actions
 ]]></ProtectedString></Properties></Item>
-<Item class="Script" referent="RBX000038"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
+<Item class="Script" referent="RBX000039"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER (UNVERIFIED_IN_STUDIO): wires the pure game core to players, remotes, the village
 -- and the DataStore.  Place under ServerScriptService.ArcaneServer (see default.project.json).
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -5868,7 +5964,7 @@ workspace.DescendantAdded:Connect(function(inst)
 end)
 print("[Arcane] server ready - persistent saves: " .. tostring(persistent))
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000039"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
+<Item class="ModuleScript" referent="RBX000040"><Properties><string name="Name">CoOpPermissions</string><ProtectedString name="Source"><![CDATA[-- Session-scoped co-op rights. Nothing here is persisted (spec §4: no hosted factory without the owner).
 local Co = {}
 Co.RANK = { visitor = 1, operator = 2, builder = 3, owner = 4 }
 function Co.role(world, ownerId, userId)
@@ -5895,16 +5991,16 @@ end
 function Co.clearOwner(world, ownerId) world.coop[ownerId] = nil end
 return Co
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000040"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
+<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Loads the shared data tables once for all server modules.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 return {
 	Market = require(Shared.MarketCatalog), Config = require(Shared.Config), Items = require(Shared.Items), Recipes = require(Shared.Recipes),
 	Machines = require(Shared.Machines), Research = require(Shared.Research), Quests = require(Shared.Quests),
 	Locations = require(Shared.Locations), Protocol = require(Shared.Protocol), GridMath = require(Shared.GridMath),
-	Util = require(Shared.Util), Validator = require(Shared.Validator), MachinePorts = require(Shared.MachinePorts),
+	Util = require(Shared.Util), Validator = require(Shared.Validator), MachinePorts = require(Shared.MachinePorts), BeltPath = require(Shared.BeltPath),
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000041"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
+<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">EconomyService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of wallet, knowledge and reputation.
 local D = require(script.Parent.Data)
 local Config, Util = D.Config, D.Util
 local Eco = {}
@@ -5945,7 +6041,7 @@ function Eco.priceFor(P, itemId, baseSell)
 end
 return Eco
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000042"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
+<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">Game</string><ProtectedString name="Source"><![CDATA[-- World state of one server: sessions, shared nodes, village project, ticking and snapshots.
 -- Pure Lua; the Roblox adapters (Bootstrap) feed positions, time and network into it.
 local D = require(script.Parent.Data)
 local Profile = require(script.Parent.ProfileService)
@@ -6136,7 +6232,7 @@ function Game.snapshot(world, session)
 end
 return Game
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000043"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
+<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">InventoryService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of item stores. A store is a plain map itemId -> integer amount (pieces or ml).
 -- Player inventory: limited slots for solids, capacity per liquid. Containers: slot limited.
 local D = require(script.Parent.Data)
 local Items, Config, Util = D.Items, D.Config, D.Util
@@ -6213,7 +6309,7 @@ function Inv.total(store)
 end
 return Inv
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000044"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
+<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">LogisticsService</string><ProtectedString name="Source"><![CDATA[-- Transport graph (solids and fluids) of one workshop and its deterministic transfer step.
 -- Tokens are data only; nothing here creates Roblox instances.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
@@ -6583,7 +6679,7 @@ function L.stepFluids(P, G, dt, emit)
 end
 return L
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000045"><Properties><string name="Name">MarketArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000046"><Properties><string name="Name">MarketArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_merchants.py. Do not edit.
 -- Bounds (Roblox axes, relative to the ground point) of the stalls and of every figure part;
 -- joint = the point a part turns around.
 return {
@@ -6671,7 +6767,7 @@ return {
 	},
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000046"><Properties><string name="Name">MarketWorld</string><ProtectedString name="Source"><![CDATA[-- Places the five merchants at the planned stalls. Art is optional in the base place.
+<Item class="ModuleScript" referent="RBX000047"><Properties><string name="Name">MarketWorld</string><ProtectedString name="Source"><![CDATA[-- Places the five merchants at the planned stalls. Art is optional in the base place.
 local Market = require(script.Parent.Data).Market
 local Art = require(script.Parent.MarketArt)
 local World = {}
@@ -6811,7 +6907,7 @@ end
 
 return World
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000047"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
+<Item class="ModuleScript" referent="RBX000048"><Properties><string name="Name">MetricsService</string><ProtectedString name="Source"><![CDATA[-- Production statistics over sliding time windows (runtime only, not persisted).
 local D = require(script.Parent.Data)
 local Config, Items = D.Config, D.Items
 local Metrics = {}
@@ -6873,7 +6969,7 @@ function Metrics.perItem(stats, clock, windowSec)
 end
 return Metrics
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000048"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
+<Item class="ModuleScript" referent="RBX000049"><Properties><string name="Name">PlacementService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of the workshop layout: grid rules, placing, removing, rotating, blueprints.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Eco = require(script.Parent.EconomyService)
@@ -6885,13 +6981,7 @@ function Place.cells(P) return Config.plotTiers[P.workshop.sizeTier].cells end
 
 -- Reserved cells: entrance (front edge, floor 1) and staircase (back-left corner, all floors).
 function Place.reserved(P, floor, x, z)
-	local n = Place.cells(P)
-	if floor == 1 then
-		local x0 = math.floor(n / 2) - math.floor(Config.door.width / 2)
-		if x >= x0 and x < x0 + Config.door.width and z < Config.door.depth then return true end
-	end
-	if x < 3 and z >= n - 4 then return true end
-	return false
+	return D.BeltPath.reserved(Place.cells(P), Config.door.width, Config.door.depth, floor, x, z)
 end
 
 function Place.find(P, uid)
@@ -7101,6 +7191,35 @@ function Place.starter(P)
 	addEntity(P, "shop_shelf", mid + 3, 1, 1, 2)
 end
 
+-- A whole conveyor line at once: all parts are placed or none (cells from BeltPath.cells).
+-- Returns the new uids, or nil, code and the index of the first cell that failed.
+function Place.placeLine(P, machineId, floor, cells)
+	local def = Machines[machineId]
+	if not def then return nil, "NOT_FOUND" end
+	if def.category ~= "transport" or def.layer == "pipe" then return nil, "BAD_REQUEST" end
+	if #cells < 1 or #cells > D.BeltPath.MAX then return nil, "LIMIT" end
+	local seen = {}
+	for _, c in ipairs(cells) do
+		local k = Grid.key(floor, c.gx, c.gz)
+		if seen[k] then return nil, "BAD_REQUEST" end
+		seen[k] = true
+	end
+	local backup = { layout = Util.deepCopy(P.workshop.layout), buffers = Util.deepCopy(P.workshop.buffers),
+		nextUid = P.workshop.nextUid, wallet = P.wallet }
+	local placed = {}
+	for i, c in ipairs(cells) do
+		local e, code = Place.place(P, machineId, c.gx, c.gz, floor, c.rot)
+		if not e then
+			P.workshop.layout, P.workshop.buffers = backup.layout, backup.buffers
+			P.workshop.nextUid, P.wallet = backup.nextUid, backup.wallet
+			Place.refreshOutlets(P)
+			return nil, code, i
+		end
+		placed[#placed + 1] = e.uid
+	end
+	return placed
+end
+
 -- ---- blueprints ----
 function Place.saveBlueprint(P, slot, name, uids)
 	local maxSlots = P.research.master_blueprints and Config.limits.blueprintSlotsMaster or Config.limits.blueprintSlots
@@ -7157,7 +7276,7 @@ function Place.placeBlueprint(P, slot, gx, gz, floor)
 end
 return Place
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000049"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
+<Item class="ModuleScript" referent="RBX000050"><Properties><string name="Name">ProductionService</string><ProtectedString name="Source"><![CDATA[-- Machine jobs: the only code that consumes recipe inputs and creates outputs.
 local D = require(script.Parent.Data)
 local Config, Machines, Recipes, Items, Util = D.Config, D.Machines, D.Recipes, D.Items, D.Util
 local Prod = {}
@@ -7240,7 +7359,7 @@ function Prod.step(P, G, dt, emit)
 end
 return Prod
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000050"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
+<Item class="ModuleScript" referent="RBX000051"><Properties><string name="Name">ProfileService</string><ProtectedString name="Source"><![CDATA[-- Player profile: creation, (de)serialisation, schema migration and repair. Pure data, no DataStore here.
 local D = require(script.Parent.Data)
 local Place = require(script.Parent.PlacementService)
 local Inv = require(script.Parent.InventoryService)
@@ -7385,7 +7504,7 @@ function Profile.load(data, userId)
 end
 return Profile
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000051"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
+<Item class="ModuleScript" referent="RBX000052"><Properties><string name="Name">ProfileStore</string><ProtectedString name="Source"><![CDATA[-- Persistence adapter. `store` must offer GetAsync(key) and UpdateAsync(key, fn) like a Roblox
 -- GlobalDataStore; tests inject a mock.  Rules (spec §13):
 --   * a failed load never yields a fresh default profile that could overwrite the real one
 --   * saves go through UpdateAsync, refuse to overwrite a newer revision and keep a session lock
@@ -7481,7 +7600,7 @@ function Store:save(userId, P, release)
 end
 return Store
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000052"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
+<Item class="ModuleScript" referent="RBX000053"><Properties><string name="Name">QuestService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of quest state: main quests, NPC chains, repeatable orders.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Inv = require(script.Parent.InventoryService)
@@ -7673,7 +7792,7 @@ end
 Q.templateById = templateById
 return Q
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000053"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
+<Item class="ModuleScript" referent="RBX000054"><Properties><string name="Name">ResearchService</string><ProtectedString name="Source"><![CDATA[-- Sole writer of research unlocks.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Research = D.Research
@@ -7697,7 +7816,7 @@ function R.unlock(P, id)
 end
 return R
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000054"><Properties><string name="Name">ResourceArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_resource_assets.py. Do not edit.
+<Item class="ModuleScript" referent="RBX000055"><Properties><string name="Name">ResourceArt</string><ProtectedString name="Source"><![CDATA[-- Generated by blender/build_resource_assets.py. Do not edit.
 -- Bounds of the resource models in Roblox axes, relative to the ground point of the node.
 return {
 	res_herb_mint = { center = {0.1508, 0.6968, 0}, size = {4.4362, 1.8936, 4.3332} },
@@ -7717,7 +7836,7 @@ return {
 	res_fuel_charcoal = { center = {0.1291, 1.14, -0.3817}, size = {5.046, 2.68, 3.6634} },
 }
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000055"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
+<Item class="ModuleScript" referent="RBX000056"><Properties><string name="Name">ResourceService</string><ProtectedString name="Source"><![CDATA[-- Server-owned gathering nodes shared by all players of a server.
 local D = require(script.Parent.Data)
 local Inv = require(script.Parent.InventoryService)
 local Locations = D.Locations
@@ -7754,7 +7873,7 @@ function Res.gather(nodes, P, nodeId)
 end
 return Res
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000056"><Properties><string name="Name">ResourceWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: puts a model of the resource at every resource node and lets players harvest it
+<Item class="ModuleScript" referent="RBX000057"><Properties><string name="Name">ResourceWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: puts a model of the resource at every resource node and lets players harvest it
 -- by interacting with that model.  Game rules stay in ResourceService; this module only mirrors
 -- the node state (available / used up) into the world.
 local D = require(script.Parent.Data)
@@ -7852,7 +7971,7 @@ end
 
 return World
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000057"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
+<Item class="ModuleScript" referent="RBX000058"><Properties><string name="Name">SecurityService</string><ProtectedString name="Source"><![CDATA[-- Payload validation, rate limiting and replay protection for client requests.
 local D = require(script.Parent.Data)
 local Config, Protocol, Util = D.Config, D.Protocol, D.Util
 local Sec = {}
@@ -7879,6 +7998,16 @@ local function check(kind, v)
 			if not Util.isInt(k) or k < 1 or n > 128 or not validId(x) then return false end
 		end
 		return #v == n
+	elseif kind == "cells" then
+		if type(v) ~= "table" then return false end
+		local n = 0
+		for k, c in pairs(v) do
+			n = n + 1
+			if not Util.isInt(k) or k < 1 or n > 64 or type(c) ~= "table" then return false end
+			if not (Util.isInt(c.gx) and Util.isInt(c.gz) and Util.isInt(c.rot)) then return false end
+			if math.abs(c.gx) > 1000 or math.abs(c.gz) > 1000 or c.rot < 0 or c.rot > 3 then return false end
+		end
+		return n >= 1 and #v == n
 	end
 	return false
 end
@@ -7897,7 +8026,13 @@ function Sec.validate(action, payload)
 		elseif not check(kind, v) then
 			return nil
 		else
-			clean[name] = (kind == "ids") and Util.deepCopy(v) or v
+			if kind == "cells" then
+				local copy = {}
+				for i, c in ipairs(v) do copy[i] = { gx = c.gx, gz = c.gz, rot = c.rot } end
+				clean[name] = copy
+			else
+				clean[name] = (kind == "ids") and Util.deepCopy(v) or v
+			end
 		end
 	end
 	if payload.actionId ~= nil then
@@ -7936,7 +8071,7 @@ function Sec.remember(session, actionId, result)
 end
 return Sec
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000058"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
+<Item class="ModuleScript" referent="RBX000059"><Properties><string name="Name">ShopService</string><ProtectedString name="Source"><![CDATA[-- Customers buy real stock from the shop shelves of a workshop. Sole writer of shelf sales.
 local D = require(script.Parent.Data)
 local Eco = require(script.Parent.EconomyService)
 local Config, Machines, Items, Util = D.Config, D.Machines, D.Items, D.Util
@@ -8027,7 +8162,7 @@ function Shop.step(P, dt, emit)
 end
 return Shop
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000059"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
+<Item class="ModuleScript" referent="RBX000060"><Properties><string name="Name">VillageAdapter</string><ProtectedString name="Source"><![CDATA[-- Connects the gameplay to the generated village WITHOUT changing it.
 -- computeAnchors() is pure: it derives every interaction point from WorldLayout (asset id of the
 -- unique building instance), so anchors follow the buildings when the world is regenerated.
 local D = require(script.Parent.Data)
@@ -8070,7 +8205,7 @@ function Adapter.computeAnchors(layout)
 end
 return Adapter
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000060"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
+<Item class="ModuleScript" referent="RBX000061"><Properties><string name="Name">WorkshopSimulation</string><ProtectedString name="Source"><![CDATA[-- One deterministic simulation step of a workshop (spec §12 order of operations).
 local D = require(script.Parent.Data)
 local Logistics = require(script.Parent.LogisticsService)
 local Production = require(script.Parent.ProductionService)
@@ -8112,7 +8247,7 @@ function Sim.step(P, rt, dt)
 end
 return Sim
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000061"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: builds the walkable workshops (open buildings on plots in the village) and the visible
+<Item class="ModuleScript" referent="RBX000062"><Properties><string name="Name">WorkshopWorld</string><ProtectedString name="Source"><![CDATA[-- ROBLOX ADAPTER: builds the walkable workshops (open buildings on plots in the village) and the visible
 -- representation of every placed entity.  All game rules live in the pure services; this module only
 -- mirrors server state into Instances.
 local D = require(script.Parent.Data)
@@ -8432,7 +8567,10 @@ local function entityModel(self, room, e, byUid)
 			if p.mode == "out" then outDir = (p.dir + e.rot) % 4 break end
 		end
 		local flow = Vector3.new(Grid.DX[outDir], 0, Grid.DZ[outDir])
-		if def.layer ~= "pipe" then
+		if def.kind == "belt" then
+			-- belts show their direction by the moving cleats the client draws on the running surface
+			body:SetAttribute("BeltIn", e.rot % 4)
+		elseif def.layer ~= "pipe" then
 			flatArrow(body, "Arrow", base + Vector3.new(0, height / 2 + 0.08, 0) + flow * 0.7, flow, Color3.fromRGB(201, 154, 60), 1.4, false)
 		end
 		if CARRIER[def.kind] then
@@ -8547,7 +8685,7 @@ return WW
 ]]></ProtectedString></Properties></Item>
 </Item>
 </Item>
-<Item class="StarterPlayer" referent="RBX000071"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000070"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000069"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000064"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
+<Item class="StarterPlayer" referent="RBX000072"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX000071"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX000070"><Properties><string name="Name">ArcaneClient</string></Properties><Item class="LocalScript" referent="RBX000065"><Properties><string name="Name">Bootstrap</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): HUD, panels and build mode of Arcane Village.
 -- Mobile first: large touch targets, one panel at a time, everything reachable without a keyboard.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8567,6 +8705,7 @@ local Grid = require(Shared.GridMath)
 local Net = require(script.Parent:WaitForChild("NetworkClient"))
 local MachineWindow = require(script.Parent:WaitForChild("MachineWindow"))
 local Ports = require(Shared.MachinePorts)
+local BeltPath = require(Shared.BeltPath)
 local player = Players.LocalPlayer
 
 local C = { cream = Color3.fromRGB(241, 235, 221), ink = Color3.fromRGB(35, 32, 31), brass = Color3.fromRGB(201, 154, 60),
@@ -8798,7 +8937,11 @@ local function renderBuild(s)
 				row(def.name .. "  –  " .. def.cost .. " Münzen  (" .. def.w * 2 .. "×" .. def.d * 2 .. " Studs)", "Platzieren", function()
 					startBuild(id)
 					closePanel()
-					toast("Tippe auf den Werkstattboden, um den Platz zu wählen. ⟳ dreht, ✓ baut, X bricht ab.", C.wood)
+					if Machines[id].kind == "belt" and id ~= "belt_turn" then
+						toast("Bandstrecke: Anfang antippen, Ende antippen, ✓ baut. ⟳ kehrt die Richtung um. Am PC: ziehen.", C.wood)
+					else
+						toast("Tippe auf den Werkstattboden, um den Platz zu wählen. ⟳ dreht, ✓ baut, X bricht ab.", C.wood)
+					end
 				end)
 			else
 				row("🔒 " .. def.name .. "\nForschung: " .. Research[def.research].name, nil, nil, C.dim)
@@ -8927,7 +9070,9 @@ workspace.DescendantAdded:Connect(function(d)
 	end
 end)
 
+local clearLine                                   -- defined with the line building below
 local function stopBuild()
+	if clearLine then clearLine() end
 	Build.machine, Build.pointer, Build.cell = nil, nil, nil
 	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
 	confirm.Visible = false
@@ -8939,9 +9084,10 @@ local function placeGhost()
 	local result = send("PlaceMachine", { machine = Build.machine, gx = c.gx, gz = c.gz, floor = c.floor, rot = Build.rot })
 	if result.ok then toast(Machines[Build.machine].name .. " gebaut", C.ok) end
 end
-button("⟳", confirm, function() Build.rot = (Build.rot + 1) % 4 end).Size = UDim2.new(0, 64, 0, 52)
-button("✓", confirm, placeGhost, C.ok).Size = UDim2.new(0, 64, 0, 52)
-button("X", confirm, stopBuild, C.bad).Size = UDim2.new(0, 64, 0, 52)
+local onRotate, onConfirm, onCancel             -- defined with the line building below
+button("⟳", confirm, function() onRotate() end).Size = UDim2.new(0, 64, 0, 52)
+button("✓", confirm, function() onConfirm() end, C.ok).Size = UDim2.new(0, 64, 0, 52)
+button("X", confirm, function() onCancel() end, C.bad).Size = UDim2.new(0, 64, 0, 52)
 
 -- Grid direction (0 = +z, 1 = +x, 2 = -z, 3 = -x) that lies to the right of the current view.
 -- The workshop grid is aligned with the world axes.
@@ -8975,9 +9121,6 @@ local function pointerPosition()
 	end
 	return UserInputService:GetMouseLocation()
 end
-UserInputService.TouchTapInWorld:Connect(function(position, processed)
-	if Build.machine and not processed then Build.pointer = position end
-end)
 -- First workshop floor under a screen point.  The ray passes the own character (which stands in the
 -- middle of the screen on a phone), machines and walls.
 local function floorUnder(pos)
@@ -9021,13 +9164,193 @@ local function aimArrow(pieces, tip, dir)
 	pieces[3].CFrame = look * CFrame.Angles(0, math.rad(-140), 0) * CFrame.new(0, 0, -0.3)
 end
 
+-- ---------------------------------------------------------------- belt lines
+-- Belts are laid as whole lines: first cell, last cell, and the line runs between them (one corner
+-- at most, the corner belt takes the goods in from its side).  Mouse: press on the first cell, drag,
+-- release.  Touch: tap the first cell, tap the last cell (tap again to move it), then ✓.
+-- ⟳ reverses the flow of a line (a single belt turns), X drops the line (or leaves building).
+local function lineCapable(id) local def = Machines[id] return def and def.kind == "belt" and id ~= "belt_turn" end
+local Line = { start = nil, flip = false, pool = {}, folder = nil, label = nil, plan = nil, hover = nil }
+local function cellAt(s, hit)
+	local cs = Config.cellSize
+	local half = s.workshop.cells * cs / 2
+	return { gx = math.floor((hit.Position.X - s.room.x + half) / cs), gz = math.floor((hit.Position.Z - s.room.z + half) / cs),
+		floor = hit.Instance:GetAttribute("ArcaneFloor") }
+end
+clearLine = function()
+	if Line.folder then Line.folder:Destroy() end
+	Line.folder, Line.pool, Line.label, Line.plan, Line.start, Line.flip = nil, {}, nil, nil, nil, false
+end
+local function lineGhost(i)
+	local g = Line.pool[i]
+	if g then return g end
+	if not Line.folder then Line.folder = make("Folder", { Name = "ArcaneLineGhost" }, workspace) end
+	local box = make("Part", { Name = "Cell", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+		Material = Enum.Material.SmoothPlastic, Transparency = 0.5, Size = Vector3.new(Config.cellSize - 0.15, 0.7, Config.cellSize - 0.15) }, Line.folder)
+	local arrow = {}
+	for k = 1, 3 do
+		arrow[k] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+			Material = Enum.Material.SmoothPlastic, Color = C.cream, Size = (k == 1) and Vector3.new(0.22, 0.1, 0.9) or Vector3.new(0.22, 0.1, 0.55) }, Line.folder)
+	end
+	g = { box = box, arrow = arrow }
+	Line.pool[i] = g
+	return g
+end
+-- what the line connects to: text for the label, and whether the end really feeds something
+local function connections(s, plan)
+	local ents = s.workshop.entities
+	local function at(floor, x, z)
+		for _, e in ipairs(ents) do
+			local def = Machines[e.machine]
+			if e.floor == floor and def.layer ~= "pipe" then
+				local w, d = Grid.size(def, e.rot)
+				if x >= e.gx and x < e.gx + w and z >= e.gz and z < e.gz + d then return e, def end
+			end
+		end
+	end
+	local first, last = plan.cells[1], plan.cells[#plan.cells]
+	local floor = plan.floor
+	local text = {}
+	-- end: the cell the last belt hands to
+	local nx, nz = last.gx + Grid.DX[last.rot], last.gz + Grid.DZ[last.rot]
+	local e, def = at(floor, nx, nz)
+	if e then
+		if def.kind == "crate" or def.kind == "shelf" then
+			text[#text + 1] = "→ " .. def.name
+		elseif Ports.isMachine(def) then
+			local inSide = e.inSide or Ports.DEFAULT_IN
+			local px, pz, pdir = Ports.cell(def, e, inSide)
+			if px + Grid.DX[pdir] == last.gx and pz + Grid.DZ[pdir] == last.gz and (pdir + 2) % 4 == last.rot then
+				text[#text + 1] = "→ " .. def.name .. " · Einlauf ✓"
+			else
+				text[#text + 1] = "⚠ " .. def.name .. ": hier ist kein Einlauf"
+			end
+		elseif def.category == "transport" then
+			text[#text + 1] = "→ " .. def.name
+		end
+	end
+	-- start: something that feeds the first belt
+	for _, o in ipairs(ents) do
+		local odef = Machines[o.machine]
+		if o.floor == floor and Ports.isMachine(odef) then
+			local _, outSide = Ports.sides(odef, o)
+			local px, pz, pdir = Ports.cell(odef, o, outSide)
+			if px + Grid.DX[pdir] == first.gx and pz + Grid.DZ[pdir] == first.gz then
+				table.insert(text, 1, "← " .. odef.name .. " · Auslauf")
+			end
+		elseif o.floor == floor and odef.kind == "hopper" then
+			local f = o.rot % 4
+			if o.gx + Grid.DX[f] == first.gx and o.gz + Grid.DZ[f] == first.gz then table.insert(text, 1, "← " .. odef.name) end
+		end
+	end
+	return table.concat(text, "\n")
+end
+local function lineFrame(s)
+	local hit = floorUnder(pointerPosition())
+	if not hit then return end
+	local cell = cellAt(s, hit)
+	Line.hover = cell
+	local start = Line.start or cell
+	local cells = BeltPath.cells(start.gx, start.gz, cell.gx, cell.gz, Build.rot, Line.flip)
+	if not cells then return end
+	local plan = { floor = start.floor, cells = cells }
+	Line.plan = plan
+	local cs = Config.cellSize
+	local half = s.workshop.cells * cs / 2
+	local floorY = s.room.y + (plan.floor - 1) * Config.floorHeight
+	local taken = {}
+	for _, e in ipairs(s.workshop.entities) do
+		local def = Machines[e.machine]
+		if e.floor == plan.floor and def.layer ~= "pipe" then
+			for _, c in ipairs(Grid.cells(def, e.gx, e.gz, e.rot)) do taken[c[1] .. ":" .. c[2]] = true end
+		end
+	end
+	local blocked = 0
+	for i, c in ipairs(cells) do
+		local g = lineGhost(i)
+		local bad = c.gx < 0 or c.gz < 0 or c.gx >= s.workshop.cells or c.gz >= s.workshop.cells or taken[c.gx .. ":" .. c.gz]
+			or BeltPath.reserved(s.workshop.cells, Config.door.width, Config.door.depth, plan.floor, c.gx, c.gz)
+		if bad then blocked = blocked + 1 end
+		local centre = Vector3.new(s.room.x - half + (c.gx + 0.5) * cs, floorY + 0.35, s.room.z - half + (c.gz + 0.5) * cs)
+		g.box.CFrame, g.box.Color, g.box.Transparency = CFrame.new(centre), bad and C.bad or C.ok, 0.5
+		local dir = Vector3.new(Grid.DX[c.rot], 0, Grid.DZ[c.rot])
+		local tip = centre + Vector3.new(0, 0.4, 0) + dir * 0.55
+		local look = CFrame.lookAt(tip, tip + dir)
+		g.arrow[1].CFrame = look * CFrame.new(0, 0, 0.5)
+		g.arrow[2].CFrame = look * CFrame.Angles(0, math.rad(140), 0) * CFrame.new(0, 0, -0.22)
+		g.arrow[3].CFrame = look * CFrame.Angles(0, math.rad(-140), 0) * CFrame.new(0, 0, -0.22)
+		for _, a in ipairs(g.arrow) do a.Transparency = 0 end
+	end
+	for i = #cells + 1, #Line.pool do
+		local g = Line.pool[i]
+		g.box.Transparency = 1
+		for _, a in ipairs(g.arrow) do a.Transparency = 1 end
+	end
+	-- label over the last belt: count, price, what it connects
+	local last = Line.pool[#cells].box
+	if not Line.label then
+		Line.label = make("BillboardGui", { Size = UDim2.new(0, 230, 0, 64), StudsOffset = Vector3.new(0, 3, 0), AlwaysOnTop = true }, last)
+		local t = make("TextLabel", { Name = "Text", Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.ink, BackgroundTransparency = 0.15,
+			TextColor3 = C.cream, Font = Enum.Font.GothamBold, TextScaled = true, Text = "" }, Line.label)
+		corner(t, 8)
+		make("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) }, t)
+	end
+	Line.label.Adornee, Line.label.Parent = last, last
+	local cost = #cells * Machines[Build.machine].cost
+	local head = string.format("%d %s · %d Münzen", #cells, #cells == 1 and "Band" or "Bänder", cost)
+	if blocked > 0 then head = head .. " · " .. blocked .. " blockiert" end
+	if cost > s.wallet then head = head .. " · zu teuer" end
+	local info = connections(s, plan)
+	Line.label.Text.Text = (info ~= "") and (head .. "\n" .. info) or head
+	Line.label.Text.TextColor3 = (blocked > 0 or cost > s.wallet) and Color3.fromRGB(255, 190, 170) or C.cream
+end
+local function placeLine()
+	local plan = Line.plan
+	if not (Build.machine and plan) then return end
+	local result = send("PlaceBelts", { machine = Build.machine, floor = plan.floor, cells = plan.cells })
+	if result.ok then
+		toast(#plan.cells == 1 and "Band gebaut" or (#plan.cells .. " Bänder gebaut"), C.ok)
+		Line.start, Line.flip = nil, false
+	elseif result.payload and result.payload.index then
+		toast("Band " .. result.payload.index .. " der Strecke ist blockiert", C.bad)
+	end
+end
+onRotate = function()
+	if Build.machine and lineCapable(Build.machine) and Line.start then Line.flip = not Line.flip
+	else Build.rot = (Build.rot + 1) % 4 end
+end
+onConfirm = function()
+	if Build.machine and lineCapable(Build.machine) then placeLine() else placeGhost() end
+end
+onCancel = function()
+	if Line.start then Line.start, Line.flip = nil, false else clearLine() stopBuild() end
+end
+UserInputService.TouchTapInWorld:Connect(function(position, processed)
+	if not Build.machine or processed then return end
+	Build.pointer = position
+	-- belts: the first tap fixes the start of the line, every further tap moves its end
+	if lineCapable(Build.machine) and not Line.start then
+		local s = Net.snapshot
+		local hit = s and s.workshop and s.room and floorUnder(position)
+		if hit then Line.start = cellAt(s, hit) end
+	end
+end)
+
 RunService.RenderStepped:Connect(function()
 	local s = Net.snapshot
 	if not (Build.machine and s and s.workshop and s.room) then
 		if Build.machine or Build.ghost then stopBuild() end
+		if Line.folder then clearLine() end
 		return
 	end
 	confirm.Visible = true
+	if lineCapable(Build.machine) then
+		if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+		lineFrame(s)
+		return
+	elseif Line.folder then
+		clearLine()
+	end
 	local hit = floorUnder(pointerPosition())
 	if not hit then return end
 	local def = Machines[Build.machine]
@@ -9087,9 +9410,20 @@ RunService.RenderStepped:Connect(function()
 end)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed or not Build.machine then return end
-	if input.KeyCode == Enum.KeyCode.R then Build.rot = (Build.rot + 1) % 4
-	elseif input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.X then stopBuild()
-	elseif input.UserInputType == Enum.UserInputType.MouseButton1 then placeGhost() end
+	if input.KeyCode == Enum.KeyCode.R then onRotate()
+	elseif input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.X then onCancel()
+	elseif input.KeyCode == Enum.KeyCode.Return then onConfirm()
+	elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if lineCapable(Build.machine) then Line.start = Line.hover          -- press: first cell of the line
+		else placeGhost() end
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	-- release: last cell; the line is built at once
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and Build.machine and lineCapable(Build.machine) and Line.start then
+		placeLine()
+		Line.start = nil
+	end
 end)
 
 -- ---------------------------------------------------------------- prompts, snapshots, notifications
@@ -9229,7 +9563,7 @@ Net.onSnapshot(function(s)
 end)
 Net.send("RequestSnapshot")
 ]]></ProtectedString></Properties></Item>
-<Item class="LocalScript" referent="RBX000065"><Properties><string name="Name">GoodsAnimator</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: draws the goods gliding over the conveyors.
+<Item class="LocalScript" referent="RBX000066"><Properties><string name="Name">GoodsAnimator</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: draws the goods gliding over the conveyors.
 -- The server publishes per conveyor part which item lies on it and since when (attributes Goods*,
 -- see WorkshopWorld:syncGoods); GoodsMotion turns that into smooth positions; this script only
 -- keeps one model per moving item and sets its CFrame every frame.  Nothing here is replicated.
@@ -9249,6 +9583,59 @@ local holder = Instance.new("Folder")
 holder.Name = "ArcaneGoods"
 holder.Parent = workspace
 local templates = ReplicatedStorage:WaitForChild("ArcaneItemModels", 20)
+
+-- ---- moving cleats on the running surface of the belts ----------------------------------------
+-- Each belt in view gets CLEATS thin ridges that run over its surface at the speed of the goods,
+-- on the same line (straight or around the curve).  All belts use the same clock, so the ridges
+-- of neighbouring belts line up.
+local CLEATS, CLEAT_NEAR, CLEAT_FAR = 4, 70, 90
+local CLEAT_COLOR = Color3.fromRGB(176, 140, 96)
+local belts = {}                                    -- belt part -> { c = carrier data, cleats = { parts } | nil }
+local function addBelt(body, c)
+	if body:GetAttribute("BeltIn") ~= nil and c.out >= 0 then
+		belts[body] = { c = c, inDir = body:GetAttribute("BeltIn") }
+	end
+end
+local function dropCleats(b)
+	if b.cleats then
+		for _, part in ipairs(b.cleats) do part:Destroy() end
+		b.cleats = nil
+	end
+end
+local function moveCleats(now, eye)
+	local h = Config.cellSize / 2
+	for body, b in pairs(belts) do
+		if not body.Parent then
+			dropCleats(b)
+			belts[body] = nil
+		else
+			local c = b.c
+			local dist = (Vector3.new(c.x, c.y, c.z) - eye).Magnitude
+			if dist > CLEAT_FAR then
+				dropCleats(b)
+			elseif dist < CLEAT_NEAR or b.cleats then
+				if not b.cleats then
+					b.cleats = {}
+					for i = 1, CLEATS do
+						local part = Instance.new("Part")
+						part.Name = "Cleat"
+						part.Size = Vector3.new(1.36, 0.05, 0.12)
+						part.Color, part.Material = CLEAT_COLOR, Enum.Material.Wood
+						part.Anchored, part.CanCollide, part.CanQuery, part.CanTouch, part.CastShadow = true, false, false, false, false
+						part.Parent = holder
+						b.cleats[i] = part
+					end
+				end
+				local phase = now / c.period
+				for i, part in ipairs(b.cleats) do
+					local f = (phase + (i - 1) / CLEATS) % 1
+					local x, z, yaw = GoodsMotion.pathPoint(c.x, c.z, h, b.inDir, c.out, f)
+					part.CFrame = CFrame.new(x, c.y + 0.025, z) * CFrame.Angles(0, yaw, 0)
+				end
+			end
+		end
+	end
+end
 
 local function readStatic(body)
 	local cell, surface = body:GetAttribute("GoodsCell"), body:GetAttribute("GoodsSurface")
@@ -9271,6 +9658,7 @@ local function add(body)
 	if not c then return end
 	bodies[body] = true
 	motion:setCarrier(body, c)
+	addBelt(body, c)
 	readState(body)
 	for _, name in ipairs({ "GoodsItem", "GoodsAt", "GoodsIn" }) do
 		body:GetAttributeChangedSignal(name):Connect(function() readState(body) end)
@@ -9333,6 +9721,7 @@ end
 RunService.RenderStepped:Connect(function(dt)
 	local camera = workspace.CurrentCamera
 	if not camera then return end
+	moveCleats(workspace:GetServerTimeNow(), camera.CFrame.Position)
 	motion:step(workspace:GetServerTimeNow(), dt)
 	local eye = camera.CFrame.Position
 	local alive = {}
@@ -9364,7 +9753,7 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000066"><Properties><string name="Name">MachineWindow</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: the window of one production machine - its own little workplace.
+<Item class="ModuleScript" referent="RBX000067"><Properties><string name="Name">MachineWindow</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: the window of one production machine - its own little workplace.
 --
 --   +---------------------------------------------------------------+
 --   | Kräutermühle                                   läuft      [X] |
@@ -9786,7 +10175,7 @@ end
 
 return Window
 ]]></ProtectedString></Properties></Item>
-<Item class="LocalScript" referent="RBX000067"><Properties><string name="Name">MarketIdle</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: plays the idle loops of the market traders.
+<Item class="LocalScript" referent="RBX000068"><Properties><string name="Name">MarketIdle</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT: plays the idle loops of the market traders.
 -- A trader is a folder "Figure" of seven anchored MeshParts that the server placed in the rest
 -- pose.  MarketMotion holds, per part, the joint frame for every sample of the loop; a part moves
 -- with  pivot * frame(t) * CFrame.new(-joint) * restLocal.  Only this client sees the motion, the
@@ -9871,7 +10260,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 ]]></ProtectedString></Properties></Item>
-<Item class="ModuleScript" referent="RBX000068"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
+<Item class="ModuleScript" referent="RBX000069"><Properties><string name="Name">NetworkClient</string><ProtectedString name="Source"><![CDATA[-- ROBLOX CLIENT (UNVERIFIED_IN_STUDIO): thin wrapper around the two remotes. All state shown in
 -- the UI comes from server snapshots; the client never computes money, items or unlocks itself.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("ArcaneShared")

@@ -249,3 +249,28 @@ Aussehen am Gerät ungeprüft.
   Schnellste Bewegung: der Aufzugshub, 0,3 Studs je Bild.
 - Im Place gemessen (Version 24): Tor-Attribute stimmen (Ziel, Partnerposition, Höhe 3,21).
 - Am Gerät ungeprüft.
+
+## Nachtrag 2026-11-17 (3): Förderbänder – Optik und Platzieren
+
+Optik:
+- Neue Modelle (`machines.py`): gerades Band mit Holzwangen, Führungsschienen, Messingbeschlägen,
+  Rollen und glatter Laufbahn; Kurve als echter Viertelbogen. Laufbahn auf exakt 0,69 Studs
+  (`BELT_TOP`) – im Place gemessen: Ware liegt auf beiden Modellen ohne Abstand auf (0,000).
+- Kein großer Pfeil mehr auf Bändern; die Richtung zeigen mitlaufende Querstege (Client,
+  `GoodsAnimator`, 4 je Band, nur im Umkreis von 70 Studs) und Messingmarken an den Seitenwangen.
+- Ware und Querstege fahren in Kurven einen Viertelbogen (`GoodsMotion.pathPoint`) – auch an Bändern,
+  die Ware von der Seite aufnehmen. Bewegungstests unverändert ohne Halt und Sprung.
+
+Platzieren (`BeltPath.lua`, Aktion `PlaceBelts`):
+- Holzförderband wird als Strecke gebaut: Anfang und Ende wählen (PC: ziehen; Handy: antippen,
+  antippen, ✓), höchstens eine Ecke, jedes Band zeigt zum nächsten. ⟳ kehrt die Richtung der
+  Strecke um, X verwirft sie. Ein einzelnes Band startet weiter „nach rechts aus Spielersicht".
+- Vorschau: je Feld Kasten + Pfeil, rot bei belegt/außerhalb/reserviert; Schild mit Anzahl, Preis,
+  „zu teuer", Anschluss am Ende („→ Kräutermühle · Einlauf ✓" bzw. „⚠ hier ist kein Einlauf") und
+  am Anfang („← … · Auslauf").
+- Server: ganze Strecke oder nichts (`Place.placeLine`), Eingabe geprüft (Typ `cells`, max. 64).
+- Lokal getestet: Streckenform, Umkehr, Alles-oder-nichts, Ware läuft durch eine Strecke mit Ecke
+  vom Trichter in die Kiste, Rechte und ungültige Eingaben am Server.
+- Behoben vor Auslieferung: zwei Client-Funktionen wurden vor ihrer Definition benutzt (hätten zur
+  Laufzeit „nil" gesehen); gefunden mit einer Prüfung auf Namensreihenfolge.
+- Am Gerät ungeprüft: Bedienung (Ziehen, Tippen), Aussehen der Querstege, Leistung.

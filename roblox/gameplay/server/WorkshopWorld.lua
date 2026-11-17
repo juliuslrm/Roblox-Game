@@ -318,7 +318,10 @@ local function entityModel(self, room, e, byUid)
 			if p.mode == "out" then outDir = (p.dir + e.rot) % 4 break end
 		end
 		local flow = Vector3.new(Grid.DX[outDir], 0, Grid.DZ[outDir])
-		if def.layer ~= "pipe" then
+		if def.kind == "belt" then
+			-- belts show their direction by the moving cleats the client draws on the running surface
+			body:SetAttribute("BeltIn", e.rot % 4)
+		elseif def.layer ~= "pipe" then
 			flatArrow(body, "Arrow", base + Vector3.new(0, height / 2 + 0.08, 0) + flow * 0.7, flow, Color3.fromRGB(201, 154, 60), 1.4, false)
 		end
 		if CARRIER[def.kind] then

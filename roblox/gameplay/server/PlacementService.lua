@@ -10,13 +10,7 @@ function Place.cells(P) return Config.plotTiers[P.workshop.sizeTier].cells end
 
 -- Reserved cells: entrance (front edge, floor 1) and staircase (back-left corner, all floors).
 function Place.reserved(P, floor, x, z)
-	local n = Place.cells(P)
-	if floor == 1 then
-		local x0 = math.floor(n / 2) - math.floor(Config.door.width / 2)
-		if x >= x0 and x < x0 + Config.door.width and z < Config.door.depth then return true end
-	end
-	if x < 3 and z >= n - 4 then return true end
-	return false
+	return D.BeltPath.reserved(Place.cells(P), Config.door.width, Config.door.depth, floor, x, z)
 end
 
 function Place.find(P, uid)
@@ -224,6 +218,35 @@ function Place.starter(P)
 	addEntity(P, "kettle", mid - 6, mid - 2, 1, 2).recipe = nil
 	addEntity(P, "storage_crate", mid + 2, 3, 1, 0)
 	addEntity(P, "shop_shelf", mid + 3, 1, 1, 2)
+end
+
+-- A whole conveyor line at once: all parts are placed or none (cells from BeltPath.cells).
+-- Returns the new uids, or nil, code and the index of the first cell that failed.
+function Place.placeLine(P, machineId, floor, cells)
+	local def = Machines[machineId]
+	if not def then return nil, "NOT_FOUND" end
+	if def.category ~= "transport" or def.layer == "pipe" then return nil, "BAD_REQUEST" end
+	if #cells < 1 or #cells > D.BeltPath.MAX then return nil, "LIMIT" end
+	local seen = {}
+	for _, c in ipairs(cells) do
+		local k = Grid.key(floor, c.gx, c.gz)
+		if seen[k] then return nil, "BAD_REQUEST" end
+		seen[k] = true
+	end
+	local backup = { layout = Util.deepCopy(P.workshop.layout), buffers = Util.deepCopy(P.workshop.buffers),
+		nextUid = P.workshop.nextUid, wallet = P.wallet }
+	local placed = {}
+	for i, c in ipairs(cells) do
+		local e, code = Place.place(P, machineId, c.gx, c.gz, floor, c.rot)
+		if not e then
+			P.workshop.layout, P.workshop.buffers = backup.layout, backup.buffers
+			P.workshop.nextUid, P.wallet = backup.nextUid, backup.wallet
+			Place.refreshOutlets(P)
+			return nil, code, i
+		end
+		placed[#placed + 1] = e.uid
+	end
+	return placed
 end
 
 -- ---- blueprints ----

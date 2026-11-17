@@ -25,6 +25,16 @@ local function check(kind, v)
 			if not Util.isInt(k) or k < 1 or n > 128 or not validId(x) then return false end
 		end
 		return #v == n
+	elseif kind == "cells" then
+		if type(v) ~= "table" then return false end
+		local n = 0
+		for k, c in pairs(v) do
+			n = n + 1
+			if not Util.isInt(k) or k < 1 or n > 64 or type(c) ~= "table" then return false end
+			if not (Util.isInt(c.gx) and Util.isInt(c.gz) and Util.isInt(c.rot)) then return false end
+			if math.abs(c.gx) > 1000 or math.abs(c.gz) > 1000 or c.rot < 0 or c.rot > 3 then return false end
+		end
+		return n >= 1 and #v == n
 	end
 	return false
 end
@@ -43,7 +53,13 @@ function Sec.validate(action, payload)
 		elseif not check(kind, v) then
 			return nil
 		else
-			clean[name] = (kind == "ids") and Util.deepCopy(v) or v
+			if kind == "cells" then
+				local copy = {}
+				for i, c in ipairs(v) do copy[i] = { gx = c.gx, gz = c.gz, rot = c.rot } end
+				clean[name] = copy
+			else
+				clean[name] = (kind == "ids") and Util.deepCopy(v) or v
+			end
 		end
 	end
 	if payload.actionId ~= nil then

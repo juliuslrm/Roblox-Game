@@ -18,6 +18,7 @@ local Grid = require(Shared.GridMath)
 local Net = require(script.Parent:WaitForChild("NetworkClient"))
 local MachineWindow = require(script.Parent:WaitForChild("MachineWindow"))
 local Ports = require(Shared.MachinePorts)
+local BeltPath = require(Shared.BeltPath)
 local player = Players.LocalPlayer
 
 local C = { cream = Color3.fromRGB(241, 235, 221), ink = Color3.fromRGB(35, 32, 31), brass = Color3.fromRGB(201, 154, 60),
@@ -249,7 +250,11 @@ local function renderBuild(s)
 				row(def.name .. "  –  " .. def.cost .. " Münzen  (" .. def.w * 2 .. "×" .. def.d * 2 .. " Studs)", "Platzieren", function()
 					startBuild(id)
 					closePanel()
-					toast("Tippe auf den Werkstattboden, um den Platz zu wählen. ⟳ dreht, ✓ baut, X bricht ab.", C.wood)
+					if Machines[id].kind == "belt" and id ~= "belt_turn" then
+						toast("Bandstrecke: Anfang antippen, Ende antippen, ✓ baut. ⟳ kehrt die Richtung um. Am PC: ziehen.", C.wood)
+					else
+						toast("Tippe auf den Werkstattboden, um den Platz zu wählen. ⟳ dreht, ✓ baut, X bricht ab.", C.wood)
+					end
 				end)
 			else
 				row("🔒 " .. def.name .. "\nForschung: " .. Research[def.research].name, nil, nil, C.dim)
@@ -378,7 +383,9 @@ workspace.DescendantAdded:Connect(function(d)
 	end
 end)
 
+local clearLine                                   -- defined with the line building below
 local function stopBuild()
+	if clearLine then clearLine() end
 	Build.machine, Build.pointer, Build.cell = nil, nil, nil
 	if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
 	confirm.Visible = false
@@ -390,9 +397,10 @@ local function placeGhost()
 	local result = send("PlaceMachine", { machine = Build.machine, gx = c.gx, gz = c.gz, floor = c.floor, rot = Build.rot })
 	if result.ok then toast(Machines[Build.machine].name .. " gebaut", C.ok) end
 end
-button("⟳", confirm, function() Build.rot = (Build.rot + 1) % 4 end).Size = UDim2.new(0, 64, 0, 52)
-button("✓", confirm, placeGhost, C.ok).Size = UDim2.new(0, 64, 0, 52)
-button("X", confirm, stopBuild, C.bad).Size = UDim2.new(0, 64, 0, 52)
+local onRotate, onConfirm, onCancel             -- defined with the line building below
+button("⟳", confirm, function() onRotate() end).Size = UDim2.new(0, 64, 0, 52)
+button("✓", confirm, function() onConfirm() end, C.ok).Size = UDim2.new(0, 64, 0, 52)
+button("X", confirm, function() onCancel() end, C.bad).Size = UDim2.new(0, 64, 0, 52)
 
 -- Grid direction (0 = +z, 1 = +x, 2 = -z, 3 = -x) that lies to the right of the current view.
 -- The workshop grid is aligned with the world axes.
@@ -426,9 +434,6 @@ local function pointerPosition()
 	end
 	return UserInputService:GetMouseLocation()
 end
-UserInputService.TouchTapInWorld:Connect(function(position, processed)
-	if Build.machine and not processed then Build.pointer = position end
-end)
 -- First workshop floor under a screen point.  The ray passes the own character (which stands in the
 -- middle of the screen on a phone), machines and walls.
 local function floorUnder(pos)
@@ -472,13 +477,193 @@ local function aimArrow(pieces, tip, dir)
 	pieces[3].CFrame = look * CFrame.Angles(0, math.rad(-140), 0) * CFrame.new(0, 0, -0.3)
 end
 
+-- ---------------------------------------------------------------- belt lines
+-- Belts are laid as whole lines: first cell, last cell, and the line runs between them (one corner
+-- at most, the corner belt takes the goods in from its side).  Mouse: press on the first cell, drag,
+-- release.  Touch: tap the first cell, tap the last cell (tap again to move it), then ✓.
+-- ⟳ reverses the flow of a line (a single belt turns), X drops the line (or leaves building).
+local function lineCapable(id) local def = Machines[id] return def and def.kind == "belt" and id ~= "belt_turn" end
+local Line = { start = nil, flip = false, pool = {}, folder = nil, label = nil, plan = nil, hover = nil }
+local function cellAt(s, hit)
+	local cs = Config.cellSize
+	local half = s.workshop.cells * cs / 2
+	return { gx = math.floor((hit.Position.X - s.room.x + half) / cs), gz = math.floor((hit.Position.Z - s.room.z + half) / cs),
+		floor = hit.Instance:GetAttribute("ArcaneFloor") }
+end
+clearLine = function()
+	if Line.folder then Line.folder:Destroy() end
+	Line.folder, Line.pool, Line.label, Line.plan, Line.start, Line.flip = nil, {}, nil, nil, nil, false
+end
+local function lineGhost(i)
+	local g = Line.pool[i]
+	if g then return g end
+	if not Line.folder then Line.folder = make("Folder", { Name = "ArcaneLineGhost" }, workspace) end
+	local box = make("Part", { Name = "Cell", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+		Material = Enum.Material.SmoothPlastic, Transparency = 0.5, Size = Vector3.new(Config.cellSize - 0.15, 0.7, Config.cellSize - 0.15) }, Line.folder)
+	local arrow = {}
+	for k = 1, 3 do
+		arrow[k] = make("Part", { Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+			Material = Enum.Material.SmoothPlastic, Color = C.cream, Size = (k == 1) and Vector3.new(0.22, 0.1, 0.9) or Vector3.new(0.22, 0.1, 0.55) }, Line.folder)
+	end
+	g = { box = box, arrow = arrow }
+	Line.pool[i] = g
+	return g
+end
+-- what the line connects to: text for the label, and whether the end really feeds something
+local function connections(s, plan)
+	local ents = s.workshop.entities
+	local function at(floor, x, z)
+		for _, e in ipairs(ents) do
+			local def = Machines[e.machine]
+			if e.floor == floor and def.layer ~= "pipe" then
+				local w, d = Grid.size(def, e.rot)
+				if x >= e.gx and x < e.gx + w and z >= e.gz and z < e.gz + d then return e, def end
+			end
+		end
+	end
+	local first, last = plan.cells[1], plan.cells[#plan.cells]
+	local floor = plan.floor
+	local text = {}
+	-- end: the cell the last belt hands to
+	local nx, nz = last.gx + Grid.DX[last.rot], last.gz + Grid.DZ[last.rot]
+	local e, def = at(floor, nx, nz)
+	if e then
+		if def.kind == "crate" or def.kind == "shelf" then
+			text[#text + 1] = "→ " .. def.name
+		elseif Ports.isMachine(def) then
+			local inSide = e.inSide or Ports.DEFAULT_IN
+			local px, pz, pdir = Ports.cell(def, e, inSide)
+			if px + Grid.DX[pdir] == last.gx and pz + Grid.DZ[pdir] == last.gz and (pdir + 2) % 4 == last.rot then
+				text[#text + 1] = "→ " .. def.name .. " · Einlauf ✓"
+			else
+				text[#text + 1] = "⚠ " .. def.name .. ": hier ist kein Einlauf"
+			end
+		elseif def.category == "transport" then
+			text[#text + 1] = "→ " .. def.name
+		end
+	end
+	-- start: something that feeds the first belt
+	for _, o in ipairs(ents) do
+		local odef = Machines[o.machine]
+		if o.floor == floor and Ports.isMachine(odef) then
+			local _, outSide = Ports.sides(odef, o)
+			local px, pz, pdir = Ports.cell(odef, o, outSide)
+			if px + Grid.DX[pdir] == first.gx and pz + Grid.DZ[pdir] == first.gz then
+				table.insert(text, 1, "← " .. odef.name .. " · Auslauf")
+			end
+		elseif o.floor == floor and odef.kind == "hopper" then
+			local f = o.rot % 4
+			if o.gx + Grid.DX[f] == first.gx and o.gz + Grid.DZ[f] == first.gz then table.insert(text, 1, "← " .. odef.name) end
+		end
+	end
+	return table.concat(text, "\n")
+end
+local function lineFrame(s)
+	local hit = floorUnder(pointerPosition())
+	if not hit then return end
+	local cell = cellAt(s, hit)
+	Line.hover = cell
+	local start = Line.start or cell
+	local cells = BeltPath.cells(start.gx, start.gz, cell.gx, cell.gz, Build.rot, Line.flip)
+	if not cells then return end
+	local plan = { floor = start.floor, cells = cells }
+	Line.plan = plan
+	local cs = Config.cellSize
+	local half = s.workshop.cells * cs / 2
+	local floorY = s.room.y + (plan.floor - 1) * Config.floorHeight
+	local taken = {}
+	for _, e in ipairs(s.workshop.entities) do
+		local def = Machines[e.machine]
+		if e.floor == plan.floor and def.layer ~= "pipe" then
+			for _, c in ipairs(Grid.cells(def, e.gx, e.gz, e.rot)) do taken[c[1] .. ":" .. c[2]] = true end
+		end
+	end
+	local blocked = 0
+	for i, c in ipairs(cells) do
+		local g = lineGhost(i)
+		local bad = c.gx < 0 or c.gz < 0 or c.gx >= s.workshop.cells or c.gz >= s.workshop.cells or taken[c.gx .. ":" .. c.gz]
+			or BeltPath.reserved(s.workshop.cells, Config.door.width, Config.door.depth, plan.floor, c.gx, c.gz)
+		if bad then blocked = blocked + 1 end
+		local centre = Vector3.new(s.room.x - half + (c.gx + 0.5) * cs, floorY + 0.35, s.room.z - half + (c.gz + 0.5) * cs)
+		g.box.CFrame, g.box.Color, g.box.Transparency = CFrame.new(centre), bad and C.bad or C.ok, 0.5
+		local dir = Vector3.new(Grid.DX[c.rot], 0, Grid.DZ[c.rot])
+		local tip = centre + Vector3.new(0, 0.4, 0) + dir * 0.55
+		local look = CFrame.lookAt(tip, tip + dir)
+		g.arrow[1].CFrame = look * CFrame.new(0, 0, 0.5)
+		g.arrow[2].CFrame = look * CFrame.Angles(0, math.rad(140), 0) * CFrame.new(0, 0, -0.22)
+		g.arrow[3].CFrame = look * CFrame.Angles(0, math.rad(-140), 0) * CFrame.new(0, 0, -0.22)
+		for _, a in ipairs(g.arrow) do a.Transparency = 0 end
+	end
+	for i = #cells + 1, #Line.pool do
+		local g = Line.pool[i]
+		g.box.Transparency = 1
+		for _, a in ipairs(g.arrow) do a.Transparency = 1 end
+	end
+	-- label over the last belt: count, price, what it connects
+	local last = Line.pool[#cells].box
+	if not Line.label then
+		Line.label = make("BillboardGui", { Size = UDim2.new(0, 230, 0, 64), StudsOffset = Vector3.new(0, 3, 0), AlwaysOnTop = true }, last)
+		local t = make("TextLabel", { Name = "Text", Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.ink, BackgroundTransparency = 0.15,
+			TextColor3 = C.cream, Font = Enum.Font.GothamBold, TextScaled = true, Text = "" }, Line.label)
+		corner(t, 8)
+		make("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) }, t)
+	end
+	Line.label.Adornee, Line.label.Parent = last, last
+	local cost = #cells * Machines[Build.machine].cost
+	local head = string.format("%d %s · %d Münzen", #cells, #cells == 1 and "Band" or "Bänder", cost)
+	if blocked > 0 then head = head .. " · " .. blocked .. " blockiert" end
+	if cost > s.wallet then head = head .. " · zu teuer" end
+	local info = connections(s, plan)
+	Line.label.Text.Text = (info ~= "") and (head .. "\n" .. info) or head
+	Line.label.Text.TextColor3 = (blocked > 0 or cost > s.wallet) and Color3.fromRGB(255, 190, 170) or C.cream
+end
+local function placeLine()
+	local plan = Line.plan
+	if not (Build.machine and plan) then return end
+	local result = send("PlaceBelts", { machine = Build.machine, floor = plan.floor, cells = plan.cells })
+	if result.ok then
+		toast(#plan.cells == 1 and "Band gebaut" or (#plan.cells .. " Bänder gebaut"), C.ok)
+		Line.start, Line.flip = nil, false
+	elseif result.payload and result.payload.index then
+		toast("Band " .. result.payload.index .. " der Strecke ist blockiert", C.bad)
+	end
+end
+onRotate = function()
+	if Build.machine and lineCapable(Build.machine) and Line.start then Line.flip = not Line.flip
+	else Build.rot = (Build.rot + 1) % 4 end
+end
+onConfirm = function()
+	if Build.machine and lineCapable(Build.machine) then placeLine() else placeGhost() end
+end
+onCancel = function()
+	if Line.start then Line.start, Line.flip = nil, false else clearLine() stopBuild() end
+end
+UserInputService.TouchTapInWorld:Connect(function(position, processed)
+	if not Build.machine or processed then return end
+	Build.pointer = position
+	-- belts: the first tap fixes the start of the line, every further tap moves its end
+	if lineCapable(Build.machine) and not Line.start then
+		local s = Net.snapshot
+		local hit = s and s.workshop and s.room and floorUnder(position)
+		if hit then Line.start = cellAt(s, hit) end
+	end
+end)
+
 RunService.RenderStepped:Connect(function()
 	local s = Net.snapshot
 	if not (Build.machine and s and s.workshop and s.room) then
 		if Build.machine or Build.ghost then stopBuild() end
+		if Line.folder then clearLine() end
 		return
 	end
 	confirm.Visible = true
+	if lineCapable(Build.machine) then
+		if Build.ghost then Build.ghost:Destroy() Build.ghost = nil end
+		lineFrame(s)
+		return
+	elseif Line.folder then
+		clearLine()
+	end
 	local hit = floorUnder(pointerPosition())
 	if not hit then return end
 	local def = Machines[Build.machine]
@@ -538,9 +723,20 @@ RunService.RenderStepped:Connect(function()
 end)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed or not Build.machine then return end
-	if input.KeyCode == Enum.KeyCode.R then Build.rot = (Build.rot + 1) % 4
-	elseif input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.X then stopBuild()
-	elseif input.UserInputType == Enum.UserInputType.MouseButton1 then placeGhost() end
+	if input.KeyCode == Enum.KeyCode.R then onRotate()
+	elseif input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.X then onCancel()
+	elseif input.KeyCode == Enum.KeyCode.Return then onConfirm()
+	elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if lineCapable(Build.machine) then Line.start = Line.hover          -- press: first cell of the line
+		else placeGhost() end
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	-- release: last cell; the line is built at once
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and Build.machine and lineCapable(Build.machine) and Line.start then
+		placeLine()
+		Line.start = nil
+	end
 end)
 
 -- ---------------------------------------------------------------- prompts, snapshots, notifications

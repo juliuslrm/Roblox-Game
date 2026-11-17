@@ -1,5 +1,5 @@
 -- Network contract. Payload field types: "int" (small integer), "user" (Roblox user id), "num", "str", "bool",
--- "id" (short string), "ids" (array of ids).
+-- "id" (short string), "ids" (array of ids), "cells" (array of { gx, gz, rot } integers).
 -- A field name ending in "?" is optional.
 local P = {}
 P.remoteName = "ArcaneRequest"
@@ -13,6 +13,7 @@ P.actions = {
 	RemoveMachine = { uid = "id" },
 	RotateMachine = { uid = "id" },
 	SetMachinePorts = { uid = "id", ["inSide?"] = "int", ["outSide?"] = "int", ["auto?"] = "bool" },
+	PlaceBelts = { machine = "id", floor = "int", cells = "cells" },
 	SetRecipe = { uid = "id", ["recipe?"] = "id" },
 	StartManualCraft = { uid = "id", recipe = "id" },
 	TransferStack = { from = "id", to = "id", item = "id", amount = "int", ["slot?"] = "id" },
