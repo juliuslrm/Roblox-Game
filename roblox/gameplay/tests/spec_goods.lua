@@ -59,9 +59,18 @@ local function client(P)
 					if outs == 1 then out = (p.dir + e.rot) % 4 end
 				end
 			end
-			m:setCarrier(e.uid, { room = 1, floor = e.floor, gx = e.gx, gz = e.gz, x = e.gx * CS + CS / 2, y = 0,
-				z = e.gz * CS + CS / 2, out = outs == 1 and out or -1,
-				period = PERIOD[def.kind] and Config.sim[PERIOD[def.kind]] or 0.5 })
+			local partner
+			for _, other in ipairs(P.workshop.layout) do if other.uid == e.link then partner = other end end
+			local links = GoodsMotion.links(def, e, partner)
+			local c = { room = 1, floor = e.floor, gx = e.gx, gz = e.gz, x = e.gx * CS + CS / 2, y = (e.floor - 1) * Config.floorHeight,
+				z = e.gz * CS + CS / 2, out = outs == 1 and out or -1, next = links.next,
+				rise = links.rise and links.rise * Config.floorHeight or nil,
+				period = PERIOD[def.kind] and Config.sim[PERIOD[def.kind]] or 0.5 }
+			if links.warp then
+				local w = links.warp
+				c.warp = { x = w.gx * CS + CS / 2, y = (w.floor - 1) * Config.floorHeight, z = w.gz * CS + CS / 2, out = w.out }
+			end
+			m:setCarrier(e.uid, c)
 		end
 	end
 	return m
@@ -207,5 +216,72 @@ test("goods", "the server moves a full line in one tick (transfer order)", funct
 		check(math.abs(b.t - t0) < 1e-9, "belts out of step: " .. b.t .. " vs " .. t0)
 	end
 end)
+
+-- crate -> hopper -> belts -> (lift up one floor | gate to a partner gate) -> belts -> crate
+local function special(kind)
+	local P = Profile.new(78)
+	P.workshop.layout, P.workshop.buffers, P.workshop.nextUid = {}, {}, 1
+	P.workshop.sizeTier, P.workshop.floors, P.wallet, P.items = 2, 2, 100000, {}
+	for id in pairs(D.Research) do P.research[id] = true end
+	local function put(m, gx, gz, floor, rot)
+		local e, code = Place.place(P, m, gx, gz, floor, rot)
+		if not e then error("cannot place " .. m .. " at " .. gx .. "," .. gz .. "/" .. floor .. ": " .. tostring(code)) end
+		return e
+	end
+	local source = put("storage_crate", 4, 8, 1, 0)
+	P.workshop.buffers[source.uid].inv.herb_mint = 12
+	put("input_hopper", 6, 8, 1, 1)
+	put("wooden_belt", 7, 8, 1, 1)
+	put("wooden_belt", 8, 8, 1, 1)
+	local floor2, x0 = 1, 10
+	if kind == "lift" then
+		put("vertical_lift", 9, 8, 1, 1)                     -- hands over on floor 2, at (10, 8)
+		floor2 = 2
+	else
+		local a = put("magical_gate", 9, 8, 1, 1)
+		local b = put("magical_gate", 14, 14, 1, 1)          -- somewhere else; goods leave it to (15, 14)
+		a.link = b.uid
+		x0 = 15
+	end
+	local z0 = (kind == "lift") and 8 or 14
+	for x = x0, x0 + 2 do put("wooden_belt", x, z0, floor2, 1) end
+	put("storage_crate", x0 + 3, z0, floor2, 0)
+	return P
+end
+
+for _, kind in ipairs({ "lift", "gate" }) do
+	test("goods", "goods travel through the " .. kind .. " as one object, without jumping", function()
+		local P = special(kind)
+		local rt = Sim.newRuntime()
+		local m = client(P)
+		local state = { t = 0, simT = 0, lastSync = -1, n = 0, pub = {}, queue = {} }
+		local last, through, worst, smallest, rose = {}, 0, 0, 1, 0
+		local entered = {}
+		run(P, rt, m, state, 40, function()
+			for serial, v in pairs(m.visuals) do
+				local l = last[serial]
+				if l then
+					local d = math.sqrt((v.x - l.x) ^ 2 + (v.y - l.y) ^ 2 + (v.z - l.z) ^ 2)
+					-- the portal may move an object only while it is (almost) invisible
+					if d > CS * 1.5 then check(l.scale < 0.1 or v.scale < 0.1, "visible jump of " .. d) else worst = math.max(worst, d) end
+				end
+				if v.x < 19 then entered[serial] = true end
+				if entered[serial] and (v.x > 20.5 and (kind == "gate" and v.z > 25 or v.y > Config.floorHeight - 0.5)) then
+					if not (l and l.counted) then through = through + 1 end
+					v.counted = true
+				end
+				smallest = math.min(smallest, v.scale)
+				rose = math.max(rose, v.y)
+				last[serial] = { x = v.x, y = v.y, z = v.z, scale = v.scale, counted = v.counted or (l and l.counted) }
+			end
+		end)
+		results.info[#results.info + 1] = string.format("%s: %d items carried through as the same object, largest step %.3f studs, smallest scale %.2f, highest point %.1f studs",
+			kind, through, worst, smallest, rose)
+		check(through >= 5, "goods carried through as the same object")
+		check(worst < 0.3, "jump of " .. worst)
+		if kind == "gate" then check(smallest < 0.05, "shrinks into the portal") end
+		if kind == "lift" then check(rose > Config.floorHeight - 0.5, "climbs one floor") end
+	end)
+end
 
 return results

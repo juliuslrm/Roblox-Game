@@ -17,12 +17,35 @@
 --
 -- Usage (see client/GoodsAnimator.client.lua):
 --   local m = GoodsMotion.new(cellSize)
---   m:setCarrier(id, { room, floor, gx, gz, x, y, z, out = dir | -1, period })
+--   m:setCarrier(id, { room, floor, gx, gz, x, y, z, out = dir | -1, period, next?, rise?, warp? })
 --   m:setState(id, item | nil, arrivedAt, inDir | nil)      -- whenever the server data changes
 --   m:step(now, dt)                                         -- every frame, now = server time
---   m.visuals: serial -> { item, x, y, z, yaw, scale }       -- what to draw
+--   m.visuals: serial -> { item, x, y, z, yaw, spin, scale }  -- what to draw
+local Grid = require(script.Parent.GridMath)
 local GoodsMotion = {}
 GoodsMotion.__index = GoodsMotion
+
+-- Where goods go after part `e` (server and tests use this to describe a part to the client):
+--   next  = { gx, floor, gz } cell the goods are handed to (single-exit parts only)
+--   rise  = floors the goods climb on the way (lift)
+--   warp  = { gx, floor, gz, out } partner gate the goods reappear at, and its exit direction
+function GoodsMotion.links(def, e, partner)
+	local outs = {}
+	for _, p in ipairs(def.ports or {}) do
+		if p.mode == "out" then outs[#outs + 1] = p end
+	end
+	if #outs ~= 1 then return {} end
+	local px, pz, dir = Grid.port(def, outs[1], e.gx, e.gz, e.rot)
+	if def.kind == "lift" then
+		return { next = { gx = px + Grid.DX[dir], floor = e.floor + 1, gz = pz + Grid.DZ[dir] }, rise = 1 }
+	elseif def.kind == "gate" then
+		if not partner then return {} end
+		local qx, qz, qdir = Grid.port(def, outs[1], partner.gx, partner.gz, partner.rot)
+		return { next = { gx = qx + Grid.DX[qdir], floor = partner.floor, gz = qz + Grid.DZ[qdir] },
+			warp = { gx = partner.gx, floor = partner.floor, gz = partner.gz, out = qdir } }
+	end
+	return { next = { gx = px + Grid.DX[dir], floor = e.floor, gz = pz + Grid.DZ[dir] } }
+end
 
 local DX = { [0] = 0, [1] = 1, [2] = 0, [3] = -1 }
 local DZ = { [0] = 1, [1] = 0, [2] = -1, [3] = 0 }
@@ -43,11 +66,14 @@ function GoodsMotion.new(cellSize)
 	return setmetatable({ cs = cellSize, carriers = {}, byKey = {}, vis = {}, leaving = {}, visuals = {}, serial = 0 }, GoodsMotion)
 end
 
+-- c.next = { gx, floor, gz } (optional), c.rise = height to climb in studs (lift, optional),
+-- c.warp = { x, y, z, out } surface point and exit direction of the partner gate (optional)
 function GoodsMotion:setCarrier(id, c)
 	local old = self.carriers[id]
 	if old and self.byKey[old.key] == id then self.byKey[old.key] = nil end
 	c.id = id
 	c.key = GoodsMotion.key(c.room, c.floor, c.gx, c.gz)
+	c.nextKey = c.next and GoodsMotion.key(c.room, c.next.floor, c.next.gx, c.next.gz) or nil
 	self.carriers[id] = c
 	self.byKey[c.key] = id
 end
@@ -108,23 +134,24 @@ function GoodsMotion:_reconcile(now)
 			local inDir = c.inDir or (c.out >= 0 and c.out or 0)
 			local src = self:_neighbour(c, (inDir + 2) % 4)
 			local adopt
-			if src then
-				for i, v in ipairs(loose) do
-					if not taken[i] and v.carrier == src.id and v.item == c.item and v.at < c.at then
-						adopt = i
-						break
-					end
+			for i, v in ipairs(loose) do
+				local from = self.carriers[v.carrier]
+				if not taken[i] and from and v.item == c.item and v.at < c.at
+					and (from.nextKey == c.key or (src and from.id == src.id and from.nextKey == nil)) then
+					adopt = i
+					break
 				end
 			end
 			if adopt then
 				local v = loose[adopt]
 				taken[adopt] = true
-				v.prev = { carrier = src.id, at = v.at, inDir = v.inDir }
+				v.prev = { carrier = v.carrier, at = v.at, inDir = v.inDir }
 				v.at, v.inDir, v.carrier, v.goneAt = c.at, c.inDir, nil, nil
 				self.vis[id] = v
 			else
+				-- comes out of a machine or hopper (or the client has just started watching)
 				self.serial = self.serial + 1
-				self.vis[id] = { serial = self.serial, item = c.item, at = c.at, inDir = c.inDir }
+				self.vis[id] = { serial = self.serial, item = c.item, at = c.at, inDir = c.inDir, emerge = now - c.at < 1.5 }
 			end
 		end
 	end
@@ -134,46 +161,85 @@ function GoodsMotion:_reconcile(now)
 	end
 end
 
--- Point on the path of part `c` at progress p (0 = entry edge, 0.5 = centre, 1 = exit edge, > 1
--- slides on beyond the exit).  outDir overrides the exit (splitters decide per item).
-function GoodsMotion:_point(c, inDir, outDir, p)
+-- Pose on the path of part `c` at progress p (0 = entry edge, 0.5 = centre, 1 = exit edge):
+-- x, y, z, travel direction, scale, spin (extra turn in radians).  outDir overrides the exit
+-- (splitters decide per item).
+--   lift: into the shaft, up one floor, out at the top
+--   gate: into the portal (shrinks and swirls), out of the partner gate (grows), on to its exit
+function GoodsMotion:_pose(c, inDir, outDir, p)
 	local h = self.cs / 2
-	if p <= 0.5 then
-		local k = p / 0.5
-		return c.x + DX[inDir] * h * (k - 1), c.y, c.z + DZ[inDir] * h * (k - 1), inDir
+	local function edge(x, y, z, dir, k) return x + DX[dir] * h * k, y, z + DZ[dir] * h * k end
+	if c.rise and c.rise ~= 0 then
+		if p <= 0.3 then
+			local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.3 - 1)
+			return x, y, z, inDir, 1, 0
+		elseif p <= 0.8 then
+			local k = (p - 0.3) / 0.5
+			k = k * k * (3 - 2 * k)                                  -- eases in and out of the climb
+			return c.x, c.y + c.rise * k, c.z, inDir, 1, k * math.pi
+		end
+		local x, y, z = edge(c.x, c.y + c.rise, c.z, outDir, (p - 0.8) / 0.2)
+		return x, y, z, outDir, 1, 0
 	end
-	local k = (p - 0.5) / 0.5
-	return c.x + DX[outDir] * h * k, c.y, c.z + DZ[outDir] * h * k, outDir
+	if c.warp then
+		local w = c.warp
+		if p <= 0.5 then
+			local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
+			return x, y, z, inDir, 1, 0
+		elseif p <= 0.72 then                                         -- swirls into the portal
+			local k = (p - 0.5) / 0.22
+			return c.x, c.y + 0.6 * k, c.z, inDir, 1 - k, k * 3 * math.pi
+		elseif p <= 0.86 then                                         -- and out of the partner
+			local k = (p - 0.72) / 0.14
+			return w.x, w.y + 0.6 * (1 - k), w.z, w.out, k, (1 - k) * 3 * math.pi
+		end
+		local x, y, z = edge(w.x, w.y, w.z, w.out, (p - 0.86) / 0.14)
+		return x, y, z, w.out, 1, 0
+	end
+	if p <= 0.5 then
+		local x, y, z = edge(c.x, c.y, c.z, inDir, p / 0.5 - 1)
+		return x, y, z, inDir, 1, 0
+	end
+	local x, y, z = edge(c.x, c.y, c.z, outDir, (p - 0.5) / 0.5)
+	return x, y, z, outDir, 1, 0
 end
 
--- where a visual is at render time r: x, y, z, travel direction, scale (nil = not to be drawn yet)
+-- where a visual is at render time r: x, y, z, travel direction, scale, spin (nil = not drawn yet)
 function GoodsMotion:_place(v, c, r)
-	if v.goneAt then                                                -- leaving: rest of the way, then into the machine
+	if v.goneAt then
+		-- leaving into a machine or crate: to the exit at belt speed, on into the opening, then a small
+		-- hop and down - as if dropped into the funnel - shrinking and turning a little
 		local out = c.out >= 0 and c.out or (v.inDir or 0)
 		local p = math.min(1, (r - v.at) / c.period)
-		local scale = 1
+		local x, y, z, dir, scale, spin = self:_pose(c, v.inDir or out, out, p)
 		if r > v.goneAt then
-			-- slides on at belt speed into the machine and shrinks away
 			local k = math.min(1, (r - v.goneAt) / VANISH)
-			p, scale = math.max(p, 1) + (math.min(r, v.goneAt + VANISH) - v.goneAt) / c.period, 1 - 0.8 * k
+			local slide = (math.min(r, v.goneAt + VANISH) - v.goneAt) / c.period * self.cs
+			x, z = x + DX[out] * slide, z + DZ[out] * slide
+			y = y + 0.35 * math.sin(k * math.pi) - 0.6 * k * k
+			scale, spin = scale * (1 - 0.85 * k), spin + k * 1.2
 		end
-		local x, y, z, dir = self:_point(c, v.inDir or out, out, p)
-		return x, y, z, dir, scale
+		return x, y, z, dir, scale, spin
 	end
 	if r < v.at then
 		local prev = v.prev and self.carriers[v.prev.carrier]
 		if not prev then return nil end                             -- arrives later (e.g. out of a machine)
 		local inDir = v.prev.inDir or (prev.out >= 0 and prev.out or 0)
-		local out = v.inDir or (prev.out >= 0 and prev.out or inDir)  -- leaves towards the part it went to
-		local x, y, z, dir = self:_point(prev, inDir, out, math.min(1, math.max(0, (r - v.prev.at) / prev.period)))
-		return x, y, z, dir, 1
+		local out = prev.out >= 0 and prev.out or (v.inDir or inDir)   -- splitters: towards where it went
+		return self:_pose(prev, inDir, out, math.min(1, math.max(0, (r - v.prev.at) / prev.period)))
 	end
 	v.prev = nil
 	local inDir = v.inDir or (c.out >= 0 and c.out or 0)
 	local p = math.max(0, (r - v.at) / c.period)
 	p = (c.out < 0) and math.min(p, 0.5) or math.min(p, 1)
-	local x, y, z, dir = self:_point(c, inDir, c.out >= 0 and c.out or inDir, p)
-	return x, y, z, dir, 1
+	local x, y, z, dir, scale, spin = self:_pose(c, inDir, c.out >= 0 and c.out or inDir, p)
+	if v.emerge then
+		-- pushed out of the machine: rises out of the opening and grows to full size
+		local k = math.min(1, (r - v.at) / (c.period * 0.25))
+		if k >= 1 then v.emerge = nil end
+		y, scale = y - 0.5 * (1 - k), scale * (0.25 + 0.75 * k)
+	end
+	return x, y, z, dir, scale, spin
 end
 
 function GoodsMotion:step(now, dt)
@@ -182,7 +248,7 @@ function GoodsMotion:step(now, dt)
 	local follow = 1 - math.exp(-SMOOTH * math.max(dt or 0, 0))
 	local seen = {}
 	local function draw(v, c)
-		local x, y, z, dir, scale = self:_place(v, c, r)
+		local x, y, z, dir, scale, spin = self:_place(v, c, r)
 		if not x then return end
 		local yaw = atan2(DX[dir], DZ[dir])
 		if not v.x then
@@ -194,7 +260,9 @@ function GoodsMotion:step(now, dt)
 			local d = (yaw - v.yaw + math.pi) % (2 * math.pi) - math.pi
 			v.yaw = v.yaw + d * follow
 		end
-		v.scale = scale
+		v.scale, v.spin = scale, spin or 0
+		-- a jump of the target (portal) is taken over at once, not smoothed across the workshop
+		if (x - v.x) ^ 2 + (z - v.z) ^ 2 > (self.cs * 1.5) ^ 2 then v.x, v.y, v.z = x, y, z end
 		seen[v.serial] = v
 	end
 	for id, v in pairs(self.vis) do draw(v, self.carriers[id]) end

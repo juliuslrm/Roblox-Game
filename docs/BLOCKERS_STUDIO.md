@@ -230,3 +230,22 @@ Aussehen am Gerät ungeprüft.
   45 Modelle in ReplicatedStorage, keine servergezeichnete Ware mehr.
 - Offen: Aufzug und Magisches Tor übergeben über Etagen bzw. Entfernung – dort verschwindet die
   Ware und taucht am Ziel neu auf. Aussehen am Gerät ungeprüft.
+
+## Nachtrag 2026-11-17 (2): Animationen beim Hinein- und Hinausgehen
+
+- In Maschinen und Kisten: Die Ware rutscht in Bandgeschwindigkeit in die Öffnung, macht einen
+  kleinen Hüpfer, sinkt hinein, schrumpft und dreht sich dabei (0,4 s).
+- Aus Maschinen und Trichtern: Die Ware steigt aus der Öffnung und wächst auf volle Größe
+  (erstes Viertel der Bandzeit).
+- Aufzug: hinein bis zur Schachtmitte, eine Etage hoch (weich beschleunigt, halbe Drehung), oben
+  heraus aufs Band – ein durchgehendes Objekt.
+- Magisches Tor: hinein, schrumpft wirbelnd im Portal, wächst wirbelnd am Partnertor wieder heraus
+  und fährt weiter – ein durchgehendes Objekt.
+- Server: `GoodsMotion.links` beschreibt je Förderteil Ziel (`GoodsNext`), Steighöhe (`GoodsRise`)
+  und Partnertor (`GoodsWarp`, `GoodsWarpOut`); ein Tor wird neu gezeichnet, wenn sein Partner sich
+  bewegt.
+- Lokal gemessen (`spec_goods`): Aufzug und Tor je 12 von 12 Waren als dasselbe Objekt durch;
+  Tor schrumpft bis 2 % und versetzt die Ware nur unsichtbar; Aufzug steigt 12 Studs.
+  Schnellste Bewegung: der Aufzugshub, 0,3 Studs je Bild.
+- Im Place gemessen (Version 24): Tor-Attribute stimmen (Ziel, Partnerposition, Höhe 3,21).
+- Am Gerät ungeprüft.

@@ -7,6 +7,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("ArcaneShared")
 local Architecture = require(Shared.WorkshopArchitecture)
 local Models = require(Shared.WorkshopModels)
 local Ports = require(Shared.MachinePorts)
+local GoodsMotion = require(Shared.GoodsMotion)
 local WW = {}
 WW.__index = WW
 
@@ -245,7 +246,8 @@ local function portMarks(self, room, e, def, body)
 	end
 end
 
-local function entityModel(self, room, e)
+-- byUid: all entities of the room (to find a gate's partner)
+local function entityModel(self, room, e, byUid)
 	local def = Machines[e.machine]
 	local w, d = Grid.size(def, e.rot)
 	local cs = Config.cellSize
@@ -329,6 +331,16 @@ local function entityModel(self, room, e)
 			body:SetAttribute("GoodsSurface", base + Vector3.new(0, height / 2 - 0.11, 0))
 			body:SetAttribute("GoodsOut", multi == 1 and outDir or -1)       -- splitters decide per item
 			body:SetAttribute("GoodsPeriod", PERIOD[def.kind] and Config.sim[PERIOD[def.kind]] or 0.5)
+			-- where the goods go next; lifts climb on the way, gates send them to their partner
+			local partner = e.link and byUid and byUid[e.link]
+			local links = GoodsMotion.links(def, e, partner)
+			if links.next then body:SetAttribute("GoodsNext", Vector3.new(links.next.gx, links.next.floor, links.next.gz)) end
+			if links.rise then body:SetAttribute("GoodsRise", links.rise * Config.floorHeight) end
+			if links.warp then
+				local w = links.warp
+				body:SetAttribute("GoodsWarp", WW.cellCenter(self, room, w.floor, w.gx, w.gz) + Vector3.new(0, height - 0.11, 0))
+				body:SetAttribute("GoodsWarpOut", w.out)
+			end
 		end
 	end
 	body.Parent = room.entityFolder
@@ -362,15 +374,20 @@ function WW:sync(view, label)
 	local room = self:ensureRoom(view.owner, view.cells, view.floors, label)
 	if not room then return nil end
 	if room.version ~= view.version then
-		local seen = {}
+		local seen, byUid = {}, {}
+		for _, e in ipairs(view.entities) do byUid[e.uid] = e end
 		for _, e in ipairs(view.entities) do
 			seen[e.uid] = true
 			local cur = room.entities[e.uid]
 			local sig = e.machine .. ":" .. e.gx .. ":" .. e.gz .. ":" .. e.floor .. ":" .. e.rot
 				.. ":" .. tostring(e.inSide) .. ":" .. tostring(e.outSide) .. ":" .. tostring(e.outAuto)
+			local partner = e.link and byUid[e.link]
+			if partner then                       -- a gate is redrawn when its partner moves
+				sig = sig .. ":" .. partner.uid .. "@" .. partner.gx .. "," .. partner.gz .. "," .. partner.floor .. "," .. partner.rot
+			end
 			if not cur or cur.sig ~= sig then
 				if cur then cur.body:Destroy() end
-				room.entities[e.uid] = { sig = sig, body = entityModel(self, room, e) }
+				room.entities[e.uid] = { sig = sig, body = entityModel(self, room, e, byUid) }
 			end
 		end
 		for uid, cur in pairs(room.entities) do

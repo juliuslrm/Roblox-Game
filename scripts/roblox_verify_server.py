@@ -177,7 +177,9 @@ for i, plot in ipairs(plots) do
 		{ uid = "k" .. i, machine = "kettle", gx = 2, gz = 2, floor = 1, rot = 0, inv = {}, fluids = {} },
 		{ uid = "g" .. i, machine = "grinder", gx = 8, gz = 4, floor = 1, rot = 1, inSide = 2, outSide = 1, outAuto = false, inv = {}, fluids = {} },
 		{ uid = "b" .. i, machine = "wooden_belt", gx = 12, gz = 4, floor = 1, rot = 1, inv = {}, fluids = {} },
-		{ uid = "t" .. i, machine = "belt_turn", gx = 12, gz = 8, floor = 1, rot = 0, inv = {}, fluids = {} } } }
+		{ uid = "t" .. i, machine = "belt_turn", gx = 12, gz = 8, floor = 1, rot = 0, inv = {}, fluids = {} },
+		{ uid = "ga" .. i, machine = "magical_gate", gx = 14, gz = 4, floor = 1, rot = 1, link = "gb" .. i, inv = {}, fluids = {} },
+		{ uid = "gb" .. i, machine = "magical_gate", gx = 14, gz = 10, floor = 1, rot = 1, inv = {}, fluids = {} } } }
 	local room = ww:sync(view, "Werkstatt von Test " .. i)
 	if i == 1 then
 		-- directions: a belt with rot 1 conveys towards +X; a curve with rot 0 hands over to its left (-X);
@@ -212,6 +214,12 @@ for i, plot in ipairs(plots) do
 			local models = game:GetService("ReplicatedStorage"):FindFirstChild("ArcaneItemModels")
 			local n = 0
 			for _, d in ipairs(models and models:GetDescendants() or {}) do if d:IsA("MeshPart") then n = n + 1 end end
+			local ga, gb = room.entityFolder["ga1"], room.entityFolder["gb1"]
+			local warp = ga:GetAttribute("GoodsWarp")
+			p("gate: next=%s warp at partner=%s (partner surface %.2f vs warp %.2f), warp out=%s, unlinked gate has warp=%s",
+				tostring(ga:GetAttribute("GoodsNext")), tostring(warp and (Vector3.new(warp.X, 0, warp.Z) - Vector3.new(gb.Position.X, 0, gb.Position.Z)).Magnitude < 0.6),
+				gb:GetAttribute("GoodsSurface") and gb:GetAttribute("GoodsSurface").Y or -1, warp and warp.Y or -1,
+				tostring(ga:GetAttribute("GoodsWarpOut")), tostring(gb:GetAttribute("GoodsWarp") ~= nil))
 			p("goods attributes: %s; after leaving: item=%s; curve out=%s; mill has none=%s; item models for clients: %d, server-drawn goods: %s",
 				first, tostring(belt:GetAttribute("GoodsItem")), tostring(turn:GetAttribute("GoodsOut")),
 				tostring(mill:GetAttribute("GoodsOut") == nil), n, belt:FindFirstChild("Goods") and "yes" or "none")

@@ -22,9 +22,13 @@ local templates = ReplicatedStorage:WaitForChild("ArcaneItemModels", 20)
 local function readStatic(body)
 	local cell, surface = body:GetAttribute("GoodsCell"), body:GetAttribute("GoodsSurface")
 	if typeof(cell) ~= "Vector3" or typeof(surface) ~= "Vector3" then return nil end
-	return { room = body:GetAttribute("GoodsRoom"), floor = cell.Y, gx = cell.X, gz = cell.Z,
+	local c = { room = body:GetAttribute("GoodsRoom"), floor = cell.Y, gx = cell.X, gz = cell.Z,
 		x = surface.X, y = surface.Y, z = surface.Z, out = body:GetAttribute("GoodsOut") or -1,
-		period = body:GetAttribute("GoodsPeriod") or 2 }
+		period = body:GetAttribute("GoodsPeriod") or 2, rise = body:GetAttribute("GoodsRise") }
+	local nextCell, warp = body:GetAttribute("GoodsNext"), body:GetAttribute("GoodsWarp")
+	if typeof(nextCell) == "Vector3" then c.next = { gx = nextCell.X, floor = nextCell.Y, gz = nextCell.Z } end
+	if typeof(warp) == "Vector3" then c.warp = { x = warp.X, y = warp.Y, z = warp.Z, out = body:GetAttribute("GoodsWarpOut") or 0 } end
+	return c
 end
 local function readState(body)
 	motion:setState(body, body:GetAttribute("GoodsItem"), body:GetAttribute("GoodsAt"), body:GetAttribute("GoodsIn"),
@@ -110,12 +114,14 @@ RunService.RenderStepped:Connect(function(dt)
 				m = newModel(v.item)
 				models[serial] = m
 			end
-			if math.abs(m.scale - v.scale) > 0.01 then
-				m.scale = v.scale
-				m.part.Size = m.base * v.scale
+			local scale = math.max(v.scale, 0.02)
+			if math.abs(m.scale - scale) > 0.005 then
+				m.scale = scale
+				m.part.Size = m.base * scale
 			end
-			m.part.CFrame = CFrame.new(v.x, v.y, v.z) * CFrame.Angles(0, v.yaw + turnOf(v.item), 0)
-				* CFrame.new(m.offset.Position * v.scale) * (m.offset - m.offset.Position)
+			m.part.Transparency = (v.scale < 0.05) and 1 or 0
+			m.part.CFrame = CFrame.new(v.x, v.y, v.z) * CFrame.Angles(0, v.yaw + turnOf(v.item) + (v.spin or 0), 0)
+				* CFrame.new(m.offset.Position * scale) * (m.offset - m.offset.Position)
 			alive[serial] = true
 		end
 	end
