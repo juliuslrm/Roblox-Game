@@ -68,6 +68,26 @@ def wrist_bend(geo, mats, side):
     return bend, sideways
 
 
+def _twist(D, axis):
+    """Rotation angle (degrees, signed) of the 3x3 rotation D around `axis` (swing-twist split)."""
+    from mathutils import Matrix
+    q = Matrix(D.tolist()).to_quaternion()
+    v = float(np.dot((q.x, q.y, q.z), axis))
+    return math.degrees(2 * math.atan2(v, q.w)) if abs(q.w) > 1e-9 or abs(v) > 1e-9 else 0.0
+
+
+def arm_twist(geo, mats, side):
+    """(twist of the hand against the forearm, rotation of the forearm against the upper arm) in
+    degrees, both around the forearm's axis.  The wrist itself hardly twists (the radius turns round
+    the ulna, which is a forearm rotation); the forearm turns about 85 degrees each way from the
+    neutral pose (thumb forwards)."""
+    up, lo, wr = (mats[f"{b}.{side}"][:3, :3] for b in ("upperarm01", "lowerarm01", "wrist"))
+    axis = geo["forearm"]
+    wrist = _twist(np.linalg.inv(lo) @ wr, axis)
+    fore = _twist(np.linalg.inv(up) @ wr, axis)
+    return (wrist + 180) % 360 - 180, (fore + 180) % 360 - 180
+
+
 def check_grip(ch, side):
     """All measurements of one hand.  -> dict with the values, the problems and the automated scores."""
     body = ch.body
@@ -156,10 +176,13 @@ def check_grip(ch, side):
     duration = C.LOOPS[role]["duration"]
     count = int(round(duration * FPS))
     up, lo, wr = (f"{b}.{side}" for b in ("upperarm01", "lowerarm01", "wrist"))
-    elbow, lift, wrists, frames, bends, sides = [], [], [], [], [], []
+    elbow, lift, wrists, frames, bends, sides, twists, turns = [], [], [], [], [], [], [], []
     for k in range(count):
         mats = body.bone_matrices(C.local_rotations(role, duration * k / count))
         b_, s_ = wrist_bend(geo, mats, side)
+        tw_, fr_ = arm_twist(geo, mats, side)
+        twists.append(abs(tw_))
+        turns.append(abs(fr_))
         bends.append(b_)
         sides.append(s_)
         p = {b: (mats[b] @ np.r_[ch.heads[b], 1])[:3] for b in (up, lo, wr)}
@@ -172,6 +195,13 @@ def check_grip(ch, side):
     out["wrist_sideways"] = round(max(sides), 1)
     if wrist > 50 or max(sides) > 25:
         mandatory.append(f"wrist bent {wrist:.0f} / sideways {max(sides):.0f} degrees against the forearm (limits 50 / 25)")
+    out["wrist_twist"] = round(max(twists), 1)
+    out["forearm_rotation"] = round(max(turns), 1)
+    if max(twists) > 45 or max(turns) > 95:
+        mandatory.append(f"hand twisted {max(twists):.0f} degrees in the wrist / forearm turned {max(turns):.0f} degrees "
+                         f"(limits 45 / 95)")
+    elif max(twists) > 30:
+        problems.append(f"hand twisted {max(twists):.0f} degrees in the wrist (the forearm should turn instead)")
     out["elbow_flexion"] = [round(min(elbow), 1), round(max(elbow), 1)]
     out["arm_lift_max"] = round(max(lift), 1)
     if min(elbow) < 5 or max(elbow) > 145:
@@ -213,13 +243,14 @@ def check_grip(ch, side):
     out["jerk_max"] = round(float(jerk.max()), 3)
     if steps.max() > 0.6 or max(rot_steps) > 40:
         problems.append(f"the hand jumps {steps.max():.2f} studs / {max(rot_steps):.0f} degrees between two samples")
-    if steps[-1] > 3 * max(1e-3, float(np.median(steps))) and steps[-1] > 0.05:
+    if steps[-1] > 2.5 * max(1e-3, float(steps[-2]), float(steps[0])) and steps[-1] > 0.05:
         problems.append(f"the loop seam jumps {steps[-1]:.2f} studs")
 
     # ---- automated scores
     s_pos = 20 * inside if not any("holds the" in m for m in mandatory) else 0
     s_fing = 14 * float(np.mean(wrapped)) / 3 + (6 if thumb_gap <= touch or "thumb" not in " ".join(problems) else 0)
-    s_arm = 15 - (4 if wrist > 30 else 0) - (11 if wrist > 50 else 0) - 5 * sum("elbow" in p or "upper arm" in p for p in problems)
+    s_arm = 15 - (4 if wrist > 30 else 0) - (11 if wrist > 50 else 0) \
+        - 5 * sum(("elbow" in p or "upper arm" in p or "twisted" in p) for p in problems + mandatory)
     s_stab = 15 if drift <= 0.05 * t else (8 if drift <= 0.1 * t else 0)
     s_mot = 15 - 7 * sum("jumps" in p for p in problems)
     out["scores"] = dict(position=round(s_pos, 1), fingers=round(s_fing, 1), wrist_arm=max(0, s_arm), stability=s_stab,

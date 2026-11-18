@@ -1,0 +1,12 @@
+{
+ "selma_R": {"score": 14, "notes": "Faust um die gebundenen Stängel, Blüten oben, zum Riechen vor die Nase gehalten; Finger liegen auf dem Bindfaden, kein Blattkontakt sichtbar."},
+ "selma_L": {"score": 14, "notes": "Hakengriff am Korbbügel, Arm hängt locker, Korb hängt unter der Hand und frei vom Rock."},
+ "nyra_R": {"score": 11, "notes": "Kristall am Körper gegriffen, Spitze frei, vor der rechten Brust. Abzug: Die Spitze steht fast senkrecht und reicht bis an die Haarsträhnen (Haare sind nicht Teil der Kollisionsprüfung); die Handfläche liegt 0,045 Studs (≈1,2 cm) vom Kristall ab."},
+ "nyra_L": {"score": 14, "notes": "Hakengriff am Laternenbügel, Arm unten, Laterne hängt senkrecht neben dem Mantel."},
+ "lio_R": {"score": 12, "notes": "Kraftgriff um den Flaschenkörper, Korken frei und oben; beim Reiben aufrecht vor dem Bauch. Gegen das Licht seitlich auf Augenhöhe: von vorn ist das Gesicht frei, aus der Schrägansicht von rechts verdeckt die Hand das rechte Auge."},
+ "lio_L": {"score": 13, "notes": "Tuch zwischen Fingern und Daumen, reibt die Flasche; in der Pause hängt die Hand mit dem Tuch locker. Tuchfalten sind grob."},
+ "aron_R": {"score": 11, "notes": "Kraftgriff am Stiel, Schlagfläche trifft das Erz zweimal (Messung 0,004 Studs), ohne zu streifen. Abzug: Im Rückschwung steht der Ellbogen weit seitlich ab und die Hand bleibt tief (kurzer Schwung aus dem Unterarm); in Ruhe hängt der Hammer schräg vor der Schürze."},
+ "aron_L": {"score": 13, "notes": "Erz in der offenen Hand vor dem Bauch, Finger umfassen es von unten; ruhig, während der Hammer trifft."},
+ "esme_R": {"score": 12, "notes": "Kraftgriff am unteren Stiel, Stiel liegt auf der rechten Schulter, Axtkopf hinter dem Rücken. Abzug: Das Stielende ragt nah am Kinn vorbei (Hautabstand 0,14 Studs ≈ 3,9 cm), Handgelenk seitlich am Grenzwert (20°)."},
+ "esme_L": {"score": 13, "notes": "Zollstock im Spitzgriff vor der Brust beim Peilen; Glieder des Zollstocks schematisch."}
+}

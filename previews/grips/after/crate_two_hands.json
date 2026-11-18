@@ -1,19 +1,23 @@
 {
  "right_arm": {
-  "elbow_flexion": 101.5,
-  "arm_lift": 27.8,
-  "wrist_bend": 4.9,
-  "wrist_sideways": 8.4,
-  "cost": 0.0139
+  "elbow_flexion": 101.9,
+  "arm_lift": 27.9,
+  "wrist_bend": 4.6,
+  "wrist_sideways": 7.0,
+  "wrist_twist": 17.2,
+  "forearm_rotation": 19.8,
+  "cost": 0.0131
  },
  "left_arm": {
-  "elbow_flexion": 108.4,
-  "arm_lift": 47.1,
-  "wrist_bend": 7.4,
-  "wrist_sideways": 20.0,
-  "cost": 0.115
+  "elbow_flexion": 107.9,
+  "arm_lift": 42.2,
+  "wrist_bend": 5.4,
+  "wrist_sideways": 17.6,
+  "wrist_twist": -20.1,
+  "forearm_rotation": 19.5,
+  "cost": 0.3671
  },
- "left_hand_to_handle": 0.0003,
+ "left_hand_to_handle": 0.001,
  "fingers": {
   "L": {
    "1": {
@@ -23,7 +27,7 @@
      11.5
     ],
     "touching": 1,
-    "deepest": -0.0034
+    "deepest": 0.0042
    },
    "2": {
     "angles": [
@@ -32,7 +36,7 @@
      53.8
     ],
     "touching": 3,
-    "deepest": -0.0191
+    "deepest": -0.019
    },
    "3": {
     "angles": [
@@ -41,7 +45,7 @@
      46.2
     ],
     "touching": 3,
-    "deepest": -0.0044
+    "deepest": -0.0015
    },
    "4": {
     "angles": [
@@ -50,7 +54,7 @@
      83.8
     ],
     "touching": 3,
-    "deepest": -0.0036
+    "deepest": -0.0056
    },
    "5": {
     "angles": [
@@ -58,8 +62,8 @@
      2.5,
      78.8
     ],
-    "touching": 3,
-    "deepest": -0.0041
+    "touching": 1,
+    "deepest": -0.0047
    }
   },
   "R": {
@@ -110,5 +114,7 @@
    }
   }
  },
- "problems": []
+ "problems": [
+  "L finger 5: 1 links on the bar"
+ ]
 }

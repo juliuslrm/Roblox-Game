@@ -1,0 +1,863 @@
+{
+ "results": [
+  {
+   "profile": "basket",
+   "kind": "prop_basket",
+   "finger_thickness": 0.0577,
+   "hand_length": 0.675,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.0988,
+      0.0169,
+      -0.0035
+     ],
+     "touching": 1
+    },
+    "2": {
+     "gaps": [
+      0.0074,
+      0.0077,
+      -0.0036
+     ],
+     "touching": 3
+    },
+    "3": {
+     "gaps": [
+      0.0029,
+      0.0071,
+      -0.0038
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0024,
+      -0.0017,
+      -0.004
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0119,
+      0.0045,
+      -0.0023
+     ],
+     "touching": 2
+    }
+   },
+   "palm_gap": 0.0124,
+   "deepest": -0.004,
+   "contact_points": 120,
+   "contact_y": [
+    -0.198,
+    0.127
+   ],
+   "region_share": 1.0,
+   "wrist_bend": 1.5,
+   "wrist_sideways": 1.0,
+   "wrist_twist": 0.0,
+   "forearm_rotation": 0.3,
+   "elbow_flexion": [
+    8.9,
+    14.5
+   ],
+   "arm_lift_max": 18.5,
+   "slide": 0.0,
+   "hand_step_max": 0.033,
+   "hand_turn_max_deg": 1.3,
+   "seam_step": 0.006,
+   "jerk_max": 0.007,
+   "scores": {
+    "position": 20.0,
+    "fingers": 18.8,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "selma",
+   "side": "L",
+   "body_clearance": 0.0907,
+   "body_clearance_time": 6.0,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/selma_L_basket.png"
+  },
+  {
+   "profile": "herb_bundle",
+   "kind": "prop_herb_bundle",
+   "finger_thickness": 0.0581,
+   "hand_length": 0.675,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.0928,
+      0.0169,
+      -0.004
+     ],
+     "touching": 1
+    },
+    "2": {
+     "gaps": [
+      -0.0008,
+      0.0006,
+      -0.0034
+     ],
+     "touching": 3
+    },
+    "3": {
+     "gaps": [
+      0.0108,
+      0.0002,
+      -0.0042
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0063,
+      -0.0031,
+      -0.004
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0068,
+      -0.0008,
+      -0.0038
+     ],
+     "touching": 3
+    }
+   },
+   "palm_gap": 0.0101,
+   "deepest": -0.0042,
+   "contact_points": 192,
+   "contact_y": [
+    -0.225,
+    0.132
+   ],
+   "region_share": 0.974,
+   "wrist_bend": 1.5,
+   "wrist_sideways": 1.0,
+   "wrist_twist": 0.0,
+   "forearm_rotation": 4.0,
+   "elbow_flexion": [
+    54.1,
+    98.1
+   ],
+   "arm_lift_max": 45.6,
+   "slide": 0.0,
+   "hand_step_max": 0.128,
+   "hand_turn_max_deg": 6.8,
+   "seam_step": 0.016,
+   "jerk_max": 0.036,
+   "scores": {
+    "position": 19.5,
+    "fingers": 20.0,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "selma",
+   "side": "R",
+   "body_clearance": 0.0285,
+   "body_clearance_time": 1.75,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/selma_R_herb_bundle.png"
+  },
+  {
+   "profile": "lantern",
+   "kind": "prop_lantern",
+   "finger_thickness": 0.0592,
+   "hand_length": 0.699,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.0783,
+      0.0,
+      -0.0044
+     ],
+     "touching": 2
+    },
+    "2": {
+     "gaps": [
+      0.0078,
+      0.0068,
+      -0.0037
+     ],
+     "touching": 3
+    },
+    "3": {
+     "gaps": [
+      0.008,
+      -0.0,
+      -0.0039
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0111,
+      -0.0025,
+      -0.0033
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0115,
+      -0.0035,
+      -0.0036
+     ],
+     "touching": 3
+    }
+   },
+   "palm_gap": 0.0055,
+   "deepest": -0.0044,
+   "contact_points": 120,
+   "contact_y": [
+    -0.189,
+    0.127
+   ],
+   "region_share": 1.0,
+   "wrist_bend": 1.5,
+   "wrist_sideways": 1.0,
+   "wrist_twist": 0.0,
+   "forearm_rotation": 0.3,
+   "elbow_flexion": [
+    10.7,
+    14.5
+   ],
+   "arm_lift_max": 15.7,
+   "slide": 0.0,
+   "hand_step_max": 0.027,
+   "hand_turn_max_deg": 1.0,
+   "seam_step": 0.027,
+   "jerk_max": 0.029,
+   "scores": {
+    "position": 20.0,
+    "fingers": 20.0,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "nyra",
+   "side": "L",
+   "body_clearance": 0.1613,
+   "body_clearance_time": 0.0,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/nyra_L_lantern.png"
+  },
+  {
+   "profile": "crystal",
+   "kind": "prop_crystal",
+   "finger_thickness": 0.0572,
+   "hand_length": 0.699,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.1351,
+      0.0611,
+      -0.0039
+     ],
+     "touching": 1
+    },
+    "2": {
+     "gaps": [
+      0.0611,
+      -0.0028,
+      0.0041
+     ],
+     "touching": 2
+    },
+    "3": {
+     "gaps": [
+      -0.0007,
+      0.0064,
+      -0.0036
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.001,
+      0.0043,
+      -0.0023
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0227,
+      0.0041,
+      0.0109
+     ],
+     "touching": 2
+    }
+   },
+   "palm_gap": 0.0451,
+   "deepest": -0.0039,
+   "contact_points": 66,
+   "contact_y": [
+    -0.255,
+    0.14
+   ],
+   "region_share": 1.0,
+   "wrist_bend": 5.0,
+   "wrist_sideways": 20.1,
+   "wrist_twist": 20.2,
+   "forearm_rotation": 20.5,
+   "elbow_flexion": [
+    76.1,
+    125.0
+   ],
+   "arm_lift_max": 10.7,
+   "slide": 0.0,
+   "hand_step_max": 0.071,
+   "hand_turn_max_deg": 3.9,
+   "seam_step": 0.03,
+   "jerk_max": 0.019,
+   "scores": {
+    "position": 20.0,
+    "fingers": 17.7,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [
+    "palm 0.045 studs from the crystal (power grip needs it on the handle)"
+   ],
+   "mandatory": [],
+   "role": "nyra",
+   "side": "R",
+   "body_clearance": 0.4665,
+   "body_clearance_time": 2.25,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/nyra_R_crystal.png"
+  },
+  {
+   "profile": "cloth",
+   "kind": "prop_cloth",
+   "finger_thickness": 0.0638,
+   "hand_length": 0.774,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.1256,
+      0.0086,
+      -0.0038
+     ],
+     "touching": 2
+    },
+    "2": {
+     "gaps": [
+      0.0201,
+      -0.0005,
+      -0.0039
+     ],
+     "touching": 2
+    },
+    "3": {
+     "gaps": [
+      0.0025,
+      0.0091,
+      -0.0038
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0115,
+      0.0009,
+      -0.0038
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0026,
+      -0.0025,
+      0.0068
+     ],
+     "touching": 3
+    }
+   },
+   "palm_gap": 0.0126,
+   "deepest": -0.0039,
+   "contact_points": 108,
+   "contact_y": [
+    -0.22,
+    0.154
+   ],
+   "region_share": 1.0,
+   "wrist_bend": 1.5,
+   "wrist_sideways": 1.5,
+   "wrist_twist": 8.3,
+   "forearm_rotation": 26.6,
+   "elbow_flexion": [
+    36.2,
+    118.9
+   ],
+   "arm_lift_max": 25.1,
+   "slide": 0.0,
+   "hand_step_max": 0.185,
+   "hand_turn_max_deg": 10.2,
+   "seam_step": 0.045,
+   "jerk_max": 0.075,
+   "scores": {
+    "position": 20.0,
+    "fingers": 18.8,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "lio",
+   "side": "L",
+   "body_clearance": 0.2585,
+   "body_clearance_time": 0.0,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/lio_L_cloth.png"
+  },
+  {
+   "profile": "potion_bottle",
+   "kind": "prop_potion_bottle",
+   "finger_thickness": 0.0671,
+   "hand_length": 0.774,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.081,
+      0.0123,
+      -0.0041
+     ],
+     "touching": 2
+    },
+    "2": {
+     "gaps": [
+      0.0062,
+      0.0089,
+      -0.0037
+     ],
+     "touching": 3
+    },
+    "3": {
+     "gaps": [
+      -0.0001,
+      0.0064,
+      -0.003
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0089,
+      0.0086,
+      -0.0026
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0199,
+      0.0104,
+      -0.0022
+     ],
+     "touching": 2
+    }
+   },
+   "palm_gap": 0.0087,
+   "deepest": -0.0041,
+   "contact_points": 121,
+   "contact_y": [
+    -0.305,
+    0.145
+   ],
+   "region_share": 0.992,
+   "wrist_bend": 5.0,
+   "wrist_sideways": 20.0,
+   "wrist_twist": 20.1,
+   "forearm_rotation": 36.9,
+   "elbow_flexion": [
+    95.3,
+    118.1
+   ],
+   "arm_lift_max": 65.2,
+   "slide": 0.0,
+   "hand_step_max": 0.236,
+   "hand_turn_max_deg": 5.7,
+   "seam_step": 0.03,
+   "jerk_max": 0.079,
+   "scores": {
+    "position": 19.8,
+    "fingers": 18.8,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "lio",
+   "side": "R",
+   "body_clearance": 0.2372,
+   "body_clearance_time": 0.0,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/lio_R_potion_bottle.png"
+  },
+  {
+   "profile": "ore",
+   "kind": "prop_ore",
+   "finger_thickness": 0.0651,
+   "hand_length": 0.781,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.0855,
+      0.0083,
+      -0.0031
+     ],
+     "touching": 2
+    },
+    "2": {
+     "gaps": [
+      0.0222,
+      0.0118,
+      -0.0026
+     ],
+     "touching": 2
+    },
+    "3": {
+     "gaps": [
+      0.0077,
+      0.0109,
+      -0.0022
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.016,
+      0.0022,
+      -0.0029
+     ],
+     "touching": 2
+    },
+    "5": {
+     "gaps": [
+      -0.0028,
+      -0.0021,
+      0.0038
+     ],
+     "touching": 3
+    }
+   },
+   "palm_gap": 0.0004,
+   "deepest": -0.0031,
+   "contact_points": 120,
+   "contact_y": [
+    -0.174,
+    0.133
+   ],
+   "region_share": 1.0,
+   "wrist_bend": 1.1,
+   "wrist_sideways": 0.4,
+   "wrist_twist": 2.8,
+   "forearm_rotation": 16.4,
+   "elbow_flexion": [
+    103.9,
+    114.9
+   ],
+   "arm_lift_max": 14.3,
+   "slide": 0.0,
+   "hand_step_max": 0.053,
+   "hand_turn_max_deg": 3.3,
+   "seam_step": 0.012,
+   "jerk_max": 0.035,
+   "scores": {
+    "position": 20.0,
+    "fingers": 17.7,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "aron",
+   "side": "L",
+   "body_clearance": 0.4549,
+   "body_clearance_time": 2.5,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/aron_L_ore.png"
+  },
+  {
+   "profile": "hammer",
+   "kind": "prop_hammer",
+   "finger_thickness": 0.0663,
+   "hand_length": 0.781,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.0847,
+      0.009,
+      -0.0038
+     ],
+     "touching": 2
+    },
+    "2": {
+     "gaps": [
+      0.008,
+      0.0087,
+      -0.004
+     ],
+     "touching": 3
+    },
+    "3": {
+     "gaps": [
+      0.0056,
+      0.0066,
+      -0.0037
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0052,
+      0.0012,
+      -0.004
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0117,
+      0.0012,
+      -0.0038
+     ],
+     "touching": 3
+    }
+   },
+   "palm_gap": -0.0129,
+   "deepest": -0.0129,
+   "contact_points": 138,
+   "contact_y": [
+    -0.24,
+    0.138
+   ],
+   "region_share": 1.0,
+   "wrist_bend": 5.4,
+   "wrist_sideways": 23.0,
+   "wrist_twist": 18.5,
+   "forearm_rotation": 21.6,
+   "elbow_flexion": [
+    36.2,
+    127.5
+   ],
+   "arm_lift_max": 83.8,
+   "slide": 0.0,
+   "hand_step_max": 0.247,
+   "hand_turn_max_deg": 8.8,
+   "seam_step": 0.03,
+   "jerk_max": 0.293,
+   "scores": {
+    "position": 20.0,
+    "fingers": 20.0,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "aron",
+   "side": "R",
+   "body_clearance": -0.0313,
+   "body_clearance_time": 3.25,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/aron_R_hammer.png"
+  },
+  {
+   "profile": "folding_rule",
+   "kind": "prop_folding_rule",
+   "finger_thickness": 0.0573,
+   "hand_length": 0.687,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.0664,
+      0.0033,
+      0.02
+     ],
+     "touching": 1
+    },
+    "2": {
+     "gaps": [
+      -0.0031,
+      -0.0028,
+      -0.0035
+     ],
+     "touching": 3
+    },
+    "3": {
+     "gaps": [
+      -0.0021,
+      -0.0032,
+      0.0091
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0111,
+      0.0082,
+      -0.0033
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0035,
+      0.006,
+      0.0128
+     ],
+     "touching": 2
+    }
+   },
+   "palm_gap": 0.0045,
+   "deepest": -0.0035,
+   "contact_points": 116,
+   "contact_y": [
+    -0.171,
+    0.125
+   ],
+   "region_share": 1.0,
+   "wrist_bend": 1.5,
+   "wrist_sideways": 1.1,
+   "wrist_twist": 0.0,
+   "forearm_rotation": 2.0,
+   "elbow_flexion": [
+    32.2,
+    60.1
+   ],
+   "arm_lift_max": 74.5,
+   "slide": 0.0,
+   "hand_step_max": 0.087,
+   "hand_turn_max_deg": 2.9,
+   "seam_step": 0.016,
+   "jerk_max": 0.031,
+   "scores": {
+    "position": 20.0,
+    "fingers": 18.8,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "esme",
+   "side": "L",
+   "body_clearance": 0.8117,
+   "body_clearance_time": 5.5,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/esme_L_folding_rule.png"
+  },
+  {
+   "profile": "axe",
+   "kind": "prop_axe",
+   "finger_thickness": 0.0581,
+   "hand_length": 0.687,
+   "fingers": {
+    "1": {
+     "gaps": [
+      0.0925,
+      0.0204,
+      -0.003
+     ],
+     "touching": 1
+    },
+    "2": {
+     "gaps": [
+      0.0005,
+      0.0012,
+      -0.0038
+     ],
+     "touching": 3
+    },
+    "3": {
+     "gaps": [
+      0.0023,
+      0.003,
+      -0.003
+     ],
+     "touching": 3
+    },
+    "4": {
+     "gaps": [
+      0.0072,
+      0.01,
+      -0.0036
+     ],
+     "touching": 3
+    },
+    "5": {
+     "gaps": [
+      0.0116,
+      0.0108,
+      -0.0035
+     ],
+     "touching": 2
+    }
+   },
+   "palm_gap": 0.0114,
+   "deepest": -0.0038,
+   "contact_points": 128,
+   "contact_y": [
+    -0.235,
+    0.131
+   ],
+   "region_share": 0.922,
+   "wrist_bend": 2.1,
+   "wrist_sideways": 20.5,
+   "wrist_twist": 2.0,
+   "forearm_rotation": 8.6,
+   "elbow_flexion": [
+    139.6,
+    140.6
+   ],
+   "arm_lift_max": 35.4,
+   "slide": 0.0,
+   "hand_step_max": 0.011,
+   "hand_turn_max_deg": 0.6,
+   "seam_step": 0.003,
+   "jerk_max": 0.002,
+   "scores": {
+    "position": 18.4,
+    "fingers": 18.8,
+    "wrist_arm": 15,
+    "stability": 15,
+    "motion": 15
+   },
+   "problems": [],
+   "mandatory": [],
+   "role": "esme",
+   "side": "R",
+   "body_clearance": 0.1434,
+   "body_clearance_time": 1.25,
+   "sheet": "/home/user/Roblox-Game/previews/grips/after/esme_R_axe.png"
+  }
+ ],
+ "extras": {
+  "aron": {
+   "hammer_to_ore": {
+    "closest": 0.0043,
+    "taps": [
+     [
+      1.75,
+      0.0043
+     ],
+     [
+      2.62,
+      0.0043
+     ]
+    ]
+   }
+  }
+ }
+}

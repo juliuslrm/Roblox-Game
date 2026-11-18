@@ -24,7 +24,7 @@ Folgerungen:
 
 ## Befunde je Griff (vorher)
 
-Grenzwerte relativ zur gemessenen Fingerdicke t (0,060–0,066 Studs): Kontakt < 0,2 t, Durchdringung höchstens 0,3 t, Verrutschen < 0,1 t.
+Einheiten: 1 Stud = 27 cm (Maßstab der Figuren), also 0,01 Stud ≈ 2,7 mm. Grenzwerte relativ zur gemessenen Fingerdicke t (0,060–0,066 Studs ≈ 1,6–1,8 cm): Kontakt < 0,2 t, Durchdringung höchstens 0,3 t, Verrutschen < 0,1 t.
 
 ### Lio – rechte Hand – Flasche (Kernfall)
 1. **Sieht falsch aus:**
@@ -64,7 +64,7 @@ Grenzwerte relativ zur gemessenen Fingerdicke t (0,060–0,066 Studs): Kontakt <
 ### Aron – rechte Hand – Hammer, linke Hand – Erz (Werkzeuggebrauch)
 1. **Sieht falsch aus:**
    - Er hält den Hammer vor das Gesicht.
-   - Die „Schläge“ treffen das Erz nicht. Gemessen: Annäherungen bei 0,34/0,47 s auf 5–8 cm, dafür dringt der Hammerkopf bei t = 2,5–2,6 s bis zu 5,9 cm in das Erz ein.
+   - Die „Schläge“ treffen das Erz nicht. Gemessen: Annäherungen bei 0,34/0,47 s auf 0,05–0,08 Studs (≈ 1,4–2,2 cm), dafür dringt der Hammerkopf bei t = 2,5–2,6 s bis zu 0,059 Studs (≈ 1,6 cm) in das Erz ein.
 2. **Ursache:**
    - Die Schleife ist mit geschätzten Winkeln gebaut, ohne Ziel „Hammerfläche auf Erzoberseite“.
    - Das Profil „Hammer“ hatte einen zu engen Griffbereich (−0,15…0,42). Der Stiel reicht bis −0,6, der Kontakt bei y −0,24 liegt also auf dem Stiel. Diese Meldung war ein Profilfehler, kein Griffehler.
@@ -74,12 +74,12 @@ Grenzwerte relativ zur gemessenen Fingerdicke t (0,060–0,066 Studs): Kontakt <
    - Griffbereich = ganzer Stiel.
 4. **Fehlende Rig-Teile:** keine.
 5. **Richtige Haltung:** Kraftgriff am Stiel, Schlag von oben auf das Erz in Brusthöhe, Blick auf das Erz.
-6. **Prüfung:** Abstand Hammerkopf–Erz über die Schleife (Schlag erreicht 0 ± 1 cm, nie tiefer), Bogen.
+6. **Prüfung:** Abstand Hammerkopf–Erz über die Schleife (Schlag erreicht 0 ± 0,01 Studs, nie tiefer), Bogen.
 
 ### Nyra – rechte Hand – Kristall
 1. **Sieht falsch aus:**
    - Der Kristall wird vor das Auge gehalten und verdeckt Gesicht und Haare.
-   - Die Handfläche liegt nicht am Kristall (4,5 cm Abstand).
+   - Die Handfläche liegt nicht am Kristall (0,045 Studs ≈ 1,2 cm Abstand).
 2. **Ursache:** geschätzte Armwinkel. Den Kristall hält sie mit den Fingern und ohne Handfläche, was für einen kleinen Stein eher ein Präzisionsgriff ist.
 3. **Nötig:** Kristall per IK vor die Brust halten, seitlich vom Gesicht, Blick darauf.
 4. **Fehlende Rig-Teile:** keine.

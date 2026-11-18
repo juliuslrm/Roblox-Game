@@ -202,7 +202,7 @@ def tool_use(ch):
     return {"closest": round(float(d.min()), 4), "taps": [(round(t, 2), round(v, 4)) for t, v in taps]}
 
 
-def report_markdown(results, reviews):
+def report_markdown(results, reviews, extras=None):
     lines = ["# Griff-Validierung", "",
              "Erzeugt von `blender/validate_grips.py`. Automatische Werte aus `blender/village/gripcheck.py`; die",
              "visuelle Wertung stammt aus `docs/grip_reviews.json` und wurde nach Ansicht der Bogen in",
@@ -237,17 +237,52 @@ def report_markdown(results, reviews):
                   f"- Aufgabe: {G.PROFILES[r['profile']]['task']}",
                   f"- Fingerdicke {r['finger_thickness']} Studs, Handlänge {r['hand_length']} Studs",
                   f"- Glieder mit Kontakt (Daumen, Zeige-, Mittel-, Ring-, kleiner Finger): "
-                  f"{[r['fingers'][i]['touching'] for i in (1, 2, 3, 4, 5)]}, Handfläche {r['palm_gap']} Studs",
+                  f"{[r['fingers'].get(i, r['fingers'].get(str(i), {})).get('touching') for i in (1, 2, 3, 4, 5)]}, Handfläche {r['palm_gap']} Studs",
                   f"- Tiefste Durchdringung {r['deepest']} Studs; Kontakt auf dem Griffbereich: {r['region_share']:.0%} "
                   f"(Kontakt bei y {r['contact_y']})",
-                  f"- Handgelenk {r['wrist_bend']}°, Ellbogen {r['elbow_flexion'][0]}–{r['elbow_flexion'][1]}°, "
-                  f"Oberarm max. {r['arm_lift_max']}° gehoben",
+                  f"- Handgelenk gebeugt {r['wrist_bend']}° / seitlich {r['wrist_sideways']}°, in sich verdreht "
+                  f"{r['wrist_twist']}°, Unterarm gedreht {r['forearm_rotation']}°, Ellbogen "
+                  f"{r['elbow_flexion'][0]}–{r['elbow_flexion'][1]}°, Oberarm max. {r['arm_lift_max']}° gehoben",
                   f"- Verrutschen in der Schleife: {r['slide']} Studs; größter Handschritt {r['hand_step_max']} Studs, "
                   f"Drehung {r['hand_turn_max_deg']}°, Naht {r['seam_step']}",
                   f"- Abstand Gegenstand ↔ Körper in der Schleife: {r['body_clearance']} Studs",
                   f"- Probleme: {r['problems'] or 'keine'}; Pflichtverletzungen: {r['mandatory'] or 'keine'}",
                   f"- Visuelle Prüfung: {v.get('notes', 'noch nicht angesehen')}",
                   f"- Bogen: `previews/grips/after/{r['role']}_{r['side']}_{r['profile']}.png`", ""]
+    if extras:
+        lines += ["## Werkzeuggebrauch (Testfall D)", ""]
+        for role, e in extras.items():
+            use = e["hammer_to_ore"]
+            lines += [f"- {role}: Hammerkopf ↔ Erz über die Schleife (32 Proben/s): kleinster Abstand {use['closest']} Studs, "
+                      f"Treffer (lokale Minima unter 0,15 Studs) bei {use['taps']}. Ein Treffer gilt, wenn er 0 ± 0,01 "
+                      f"Studs erreicht und der Kopf nie tiefer als 0,01 Studs ins Erz geht.", ""]
+    before = ROOT / "previews/grips/before/grip_validation.json"
+    if before.exists():
+        b = json.loads(before.read_text(encoding="utf-8"))
+        now = {(r["role"], r["side"]): r for r in results}
+        lines += ["## Vorher / nachher (automatische Punkte von 85, Pflichtverletzungen)", "",
+                  "Vorher = Commit `bcf8da2` (`previews/grips/before/`), gemessen vor Einführung der Messung "
+                  "„Handgelenk in sich verdreht / Unterarmdrehung“; diese Spalte fehlt dort.", "",
+                  "| Händler | Hand | vorher | nachher | Pflicht vorher | Pflicht nachher |", "|---|---|---|---|---|---|"]
+        for r in b["results"]:
+            n = now.get((r["role"], r["side"]))
+            if n is None:
+                continue
+            lines.append(f"| {r['role']} | {r['side']} | {r['profile']} {sum(r['scores'].values()):.1f} | "
+                         f"{n['profile']} {sum(n['scores'].values()):.1f} | {'; '.join(r['mandatory']) or '–'} | "
+                         f"{'; '.join(n['mandatory']) or '–'} |")
+        for role, e in b.get("extras", {}).items():
+            lines.append("")
+            lines.append(f"Werkzeuggebrauch {role} vorher: {e['hammer_to_ore']} (negativ = im Erz).")
+        lines.append("")
+    crate = ROOT / "previews/grips/after/crate_two_hands.json"
+    if crate.exists():
+        c = json.loads(crate.read_text(encoding="utf-8"))
+        lines += ["## Zwei-Hand-Griff (Testfall C, Testszene `blender/grip_test_crate.py`)", "",
+                  f"- Linke Hand ↔ ihr Kistengriff: {c['left_hand_to_handle']} Studs",
+                  f"- Rechter Arm: {c['right_arm']}", f"- Linker Arm: {c['left_arm']}",
+                  f"- Probleme: {c['problems'] or 'keine'}",
+                  "- Bogen: `previews/grips/after/crate_two_hands.png`", ""]
     return "\n".join(lines) + "\n"
 
 
@@ -290,7 +325,7 @@ def main():
     if args.out.rstrip("/").endswith("after") and not args.only:
         rv = ROOT / "docs/grip_reviews.json"
         reviews = json.loads(rv.read_text(encoding="utf-8")) if rv.exists() else {}
-        (ROOT / "docs/GRIP_VALIDATION_REPORT.md").write_text(report_markdown(results, reviews), encoding="utf-8")
+        (ROOT / "docs/GRIP_VALIDATION_REPORT.md").write_text(report_markdown(results, reviews, extras), encoding="utf-8")
     failed = [r for r in results if r["mandatory"]]
     print(f"grip validation: {len(results)} grips, {len(failed)} with mandatory failures")
 

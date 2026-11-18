@@ -211,12 +211,23 @@ def hammer(mb, side):
 
 
 def ore(mb, side):
-    """Lump of copper ore: dark host rock with green-orange veins and bright crystals."""
-    mb.blob(0.15, "rock_dark", pos=(0, 0.02, -0.02), scale=(1.05, 1.25, 1.0), level=3, noise=0.14, smooth=True, grad=(0.3, 0.75))
+    """Lump of copper ore: one closed rock surface (bumpy), its veins are coloured patches of that
+    surface - no separate blobs, so inside / outside is unambiguous for the contact tests."""
+    start = len(mb.faces)
+    mb.blob(0.15, "rock_dark", pos=(0, 0.02, -0.02), scale=(1.05, 1.25, 1.0), level=3, noise=0.14, smooth=True,
+            grad=(0.25, 0.75))
+    centres = []
     for i in range(9):
         a, b = i * 2.39, 0.6 + (i % 3) * 0.5
-        p = Vector((0.15 * math.cos(a) * math.sin(b) * 1.0, 0.02 + 0.17 * math.cos(b), 0.15 * math.sin(a) * math.sin(b)))
-        mb.blob(0.035 + 0.01 * (i % 2), ("roof_orange", "leaf_teal", "brass")[i % 3], pos=tuple(p), level=1, noise=0.25, smooth=True)
+        centres.append((Vector((math.cos(a) * math.sin(b), math.cos(b), math.sin(a) * math.sin(b))).normalized(),
+                        ("roof_orange", "leaf_teal", "brass")[i % 3]))
+    for k in range(start, len(mb.faces)):
+        c = sum((mb.verts[v] for v in mb.faces[k]), Vector()) / len(mb.faces[k])
+        d = (c - Vector((0, 0.02, -0.02))).normalized()
+        for direction, colour in centres:
+            if d.dot(direction) > 0.93:
+                mb.colors[k] = colour
+                break
 
 
 # ---------------------------------------------------------------- Esme
@@ -287,14 +298,15 @@ def _lathe_y(mb, profile, segs=24, smooth=True):
 
 def potion_bottle(mb, side):
     """Alchemist's bottle (real size: body 6 cm across, 11 cm high; whole bottle 18 cm), gripped round
-    its body: the origin is the middle of the body, the cork points to the thumb side (-Y), so it is
+    its body: the origin lies 1.6 cm below the middle of the body (the thumb tip rests on the
+    shoulder, the cork stays free), the cork points to the thumb side (-Y), so it is
     up whenever the hand holds the bottle in front of the body.  One closed glass surface; the potion
     is the colour of its lower bands (no inner surface that would confuse the contact test)."""
     g, p, c = "glass_light", "glass_lit", "wood_pale"
-    _lathe_y(mb, [(0.0, 0.215, p), (0.075, 0.214, p), (0.1, 0.2, p), (0.108, 0.17, p), (0.108, 0.0, p), (0.108, -0.06, g),
-                  (0.106, -0.15, g), (0.09, -0.2, g), (0.055, -0.235, g), (0.042, -0.27, g), (0.042, -0.315, g),
-                  (0.05, -0.322, g), (0.05, -0.338, c), (0.044, -0.345, c), (0.046, -0.4, c), (0.04, -0.41, c),
-                  (0.0, -0.412, c)])
+    _lathe_y(mb, [(0.0, 0.155, p), (0.075, 0.154, p), (0.1, 0.14, p), (0.108, 0.11, p), (0.108, -0.06, p), (0.108, -0.12, g),
+                  (0.106, -0.21, g), (0.09, -0.26, g), (0.055, -0.295, g), (0.042, -0.33, g), (0.042, -0.375, g),
+                  (0.05, -0.382, g), (0.05, -0.398, c), (0.044, -0.405, c), (0.046, -0.46, c), (0.04, -0.47, c),
+                  (0.0, -0.472, c)])
 
 
 CRATE_SPAN = 1.27      # studs between the two handle bars: crate 0.95 wide, room for the fingers behind the bars

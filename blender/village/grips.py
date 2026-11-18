@@ -27,8 +27,8 @@ PROFILES = {
                     task="hold the crystal by its body, the point free; turn it in the light"),
     "lantern": dict(builder="lantern", kind="hook", tilt=4.0, region=(-0.3, 0.3), forbidden=[], palm=False,
                     task="carry by the bail with the arm down, the lantern hangs below the hand"),
-    "potion_bottle": dict(builder="potion_bottle", kind="power", tilt=0.0, region=(-0.19, 0.22),
-                          forbidden=[("cork", -0.42, -0.33), ("neck", -0.33, -0.23)], palm=True,
+    "potion_bottle": dict(builder="potion_bottle", kind="power", tilt=0.0, region=(-0.3, 0.16),
+                          forbidden=[("cork", -0.48, -0.39), ("neck", -0.39, -0.325)], palm=True,
                           task="hold the bottle round its body, cork up; polish it, hold it to the light"),
     # a soft cloth has no wrong part: its hanging ends may touch the fingers
     "cloth": dict(builder="cloth", kind="ball", tilt=4.0, region=(-0.6, 0.6), forbidden=[], palm=True,

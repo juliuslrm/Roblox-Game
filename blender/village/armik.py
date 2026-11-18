@@ -71,6 +71,7 @@ class Scene:
         arm = W[:, [names.index(b) for b in names if b.startswith(("wrist", "lowerarm", "upperarm"))]].sum(axis=1) > 0.3
         faces = [body.faces[i] for i in body.face_ids("body")]
         self.faces = [f for f in faces if not arm[list(f)].any()]
+        self.trunk = ~arm                       # body vertices without the arms (targets are measured on it)
         rots = C.local_rotations(ch.role, t)
         P = _posed(ch, W, body.verts, rots)
         self.body_bvh = BVHTree.FromPolygons([Vector(v) for v in P], [list(f) for f in self.faces], all_triangles=False)
@@ -138,9 +139,10 @@ def pose_vector(x):
             (float(x[5]), 0.0, float(x[6])))
 
 
-def solve(scene, side, goal, starts, iters=500, fixed=None):
+def solve(scene, side, goal, starts, iters=500, fixed=None, prior=None):
     """Minimises goal(mats, scene) + human penalties over the arm of `side` (other channels as in the
-    loop or as given in `fixed`)."""
+    loop or as given in `fixed`).  prior = (angles, weight) keeps the solution close to a given pose
+    (an approach right before a contact pose, so the last stretch of the motion is short)."""
     tag = "l" if side == "L" else "r"
 
     def f(x):
@@ -151,8 +153,11 @@ def solve(scene, side, goal, starts, iters=500, fixed=None):
         # comfort: a relaxed arm (elbow near 90 degrees, upper arm low, little turn, wrist near straight)
         comfort = ((flex - 90) / 60) ** 2 + (lift / 70) ** 2 + (x[2] / 50) ** 2 + (x[4] / 50) ** 2 + (x[1] / 45) ** 2 \
             + (bend / 40) ** 2 + (sideways / 25) ** 2
-        twist = max(0.0, abs(x[2]) - 60) ** 2 + max(0.0, abs(x[4]) - 60) ** 2
-        return goal(mats) + 0.05 * pen + 0.05 * twist + COMFORT * comfort
+        wrist_twist, fore_turn = gripcheck.arm_twist(scene.ch.body.hand_geometry[side], mats, side)
+        twist = max(0.0, abs(x[2]) - 60) ** 2 + 4 * max(0.0, abs(wrist_twist) - 20) ** 2 \
+            + 4 * max(0.0, abs(fore_turn) - 80) ** 2
+        near = 0.0 if prior is None else prior[1] * float(np.sum((np.asarray(x) - np.asarray(prior[0])) ** 2))
+        return goal(mats) + 0.05 * pen + 0.05 * twist + COMFORT * comfort + near
     best = None
     for x0 in starts:
         x0 = tuple(x0) + (0.0, 0.0) * (len(x0) == 5)
@@ -163,5 +168,7 @@ def solve(scene, side, goal, starts, iters=500, fixed=None):
     mats = scene.mats({"upper_" + tag: up, "fore_" + tag: fo, "hand_" + tag: ha}, fixed)
     _, flex, lift = arm_penalty(scene, mats, side)
     bend, sideways = wrist_bend(scene, mats, side)
+    wrist_twist, fore_turn = gripcheck.arm_twist(scene.ch.body.hand_geometry[side], mats, side)
     return up, fo, ha, best[1], dict(elbow_flexion=round(flex, 1), arm_lift=round(lift, 1), wrist_bend=round(bend, 1),
-                                    wrist_sideways=round(sideways, 1))
+                                    wrist_sideways=round(sideways, 1), wrist_twist=round(wrist_twist, 1),
+                                    forearm_rotation=round(fore_turn, 1))
