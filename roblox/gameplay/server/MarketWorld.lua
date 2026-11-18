@@ -18,9 +18,9 @@ local function block(parent, name, frame, size, color, collides, transparency)
 	return part
 end
 
-local function imported(parent, templates, name, pivot, shape)
+local function imported(parent, templates, name, pivot)
 	local template = templates and templates:FindFirstChild(name, true)
-	shape = shape or Art[name]
+	local shape = Art[name]
 	if not template or not shape or not template:IsA("BasePart") or not template.Archivable then return nil end
 	local mesh = template:Clone()
 	mesh.Size = Vector3.new(table.unpack(shape.size))
@@ -31,25 +31,28 @@ local function imported(parent, templates, name, pivot, shape)
 	return mesh
 end
 
--- A trader is a figure of seven rigid parts (see blender/village/merchants.py).  The server sets
--- them up in the rest pose; every client plays the idle loop locally (MarketIdle.client.lua) and
--- needs the role, the part name and the ground frame of the figure for that.
-local function importedMerchant(parent, templates, role, pivot)
-	local art = Art.merchants and Art.merchants[role]
-	if not art or not templates then return false end
-	local figure = Instance.new("Folder")
-	figure.Name = "Figure"
-	for part, shape in pairs(art.parts) do
-		local mesh = imported(figure, templates, "merchant_" .. role .. "_" .. part, pivot, shape)
-		if not mesh then
-			figure:Destroy()
-			return false
+-- A trader is a skinned rig (see blender/build_characters.py): a Model with a RootPart that holds
+-- the bones, several skinned MeshParts and an AnimationController.  The asset loader left it in the
+-- figure frame around the world origin; it is cloned, moved to the stall and anchored.  Every
+-- client plays the idle loop locally by setting Bone.Transform (MarketIdle.client.lua) and needs the
+-- role and the ground frame of the figure for that.
+local function importedTrader(parent, templates, role, pivot)
+	local head = templates and templates:FindFirstChild("trader_" .. role .. "_head", true)
+	local template = head and head.Parent
+	if not template or not template:IsA("Model") or not template:FindFirstChild("RootPart") then return false end
+	local rig = template:Clone()
+	rig.Name = "Figure"
+	for _, d in ipairs(rig:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.CFrame = pivot * d.CFrame
+			d.Anchored, d.CanCollide, d.CanQuery, d.CanTouch = true, false, false, false
 		end
-		mesh.Name = part
 	end
-	figure:SetAttribute("MerchantRole", role)
-	figure:SetAttribute("MerchantPivot", pivot)
-	figure.Parent = parent
+	local poses = rig:FindFirstChild("InitialPoses")
+	if poses then poses:Destroy() end
+	rig:SetAttribute("MerchantRole", role)
+	rig:SetAttribute("MerchantPivot", pivot)
+	rig.Parent = parent
 	return true
 end
 
@@ -114,7 +117,7 @@ function World.build(parent, anchors, origin, templates, groundPosition, onOpen)
 				* (origin - origin.Position) * CFrame.Angles(0, math.rad(anchor.yaw), 0)
 			if not imported(folder, templates, "stall_" .. id, pivot) then fallbackStall(folder, pivot, accent) end
 			local npc = pivot * CFrame.new(0, 0, -1.6)
-			if not importedMerchant(folder, templates, id, npc) then
+			if not importedTrader(folder, templates, id, npc) then
 				fallbackMerchant(folder, npc, accent)
 			end
 			block(folder, "CounterCollision", pivot * CFrame.new(0, 1.5, 0.45), Vector3.new(8.2, 3, 2.25), WOOD, true, 1)

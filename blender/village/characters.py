@@ -1,0 +1,579 @@
+"""The five market traders as realistic, skinned characters.
+
+A trader is a shaped MakeHuman body (village/human.py) with its own clothes, hair, eyes and the
+things it holds, bound to one reduced skeleton.  The build order is:
+
+    body = make_body(role)        shape (gender, age, muscle, weight, race mix) and height
+    rest_pose(body)               arms hanging, elbows slightly bent, hands turned so that the
+                                  knuckle line runs front to back (thumb in front)
+    grips = close_hands(body)     fingers close around the handle of every held thing until they
+                                  touch it; the result is baked into the rest pose
+    ...                           clothes, hair, face, props (later modules)
+
+Figure space: Z up, the figure faces -Y, its left side is +X, ground at z = 0, 1 unit = 1 stud.
+"""
+import math
+
+import numpy as np
+from mathutils import Matrix, Quaternion, Vector
+
+from . import human as H
+
+ROLES = ("selma", "nyra", "lio", "aron", "esme")
+
+# body shape per trader: MakeHuman macro parameters (see human.macro_targets) and height in studs
+SHAPE = {
+    "selma": dict(gender=0.0, age=0.62, muscle=0.5, weight=0.62, race={"caucasian": 1.0}, height=6.15),
+    "nyra": dict(gender=0.0, age=0.8, muscle=0.35, weight=0.42, race={"caucasian": 0.7, "asian": 0.3}, height=6.3),
+    "lio": dict(gender=1.0, age=0.52, muscle=0.52, weight=0.44, race={"african": 0.6, "caucasian": 0.4}, height=6.45),
+    "aron": dict(gender=1.0, age=0.64, muscle=0.88, weight=0.68, race={"caucasian": 1.0}, height=6.7),
+    "esme": dict(gender=0.0, age=0.56, muscle=0.68, weight=0.5, race={"caucasian": 0.6, "african": 0.1, "asian": 0.3},
+                 height=6.3),
+}
+
+SIDES = (("L", 1.0), ("R", -1.0))       # bone suffix, sign of x
+
+
+def make_body(role):
+    p = dict(SHAPE[role])
+    height = p.pop("height")
+    return H.Body.build(p, height)
+
+
+def _head(body, bone):
+    return np.asarray(body.bones[bone][0], dtype=np.float64)
+
+
+def _unit(v):
+    v = np.asarray(v, dtype=np.float64)
+    return v / np.linalg.norm(v)
+
+
+def _twist_angle(R, axis):
+    """Angle (degrees) of the twist part of rotation R about `axis` (swing-twist decomposition)."""
+    q = Matrix(R.tolist()).to_quaternion()
+    a = Vector(axis).normalized()
+    p = Vector((q.x, q.y, q.z)).dot(a)
+    return math.degrees(2 * math.atan2(p, q.w))
+
+
+def _frame(d, k):
+    """Orthonormal 3x3 frame with columns (d, k orthogonalised, d x k)."""
+    d = _unit(d)
+    k = _unit(k - np.dot(k, d) * d)
+    return np.column_stack((d, k, np.cross(d, k)))
+
+
+def hand_frame(body, side):
+    """(finger direction, knuckle line index -> little finger) of a hand."""
+    wrist = _head(body, "wrist." + side)
+    index, little = _head(body, "finger2-1." + side), _head(body, "finger5-1." + side)
+    return (index + little) / 2 - wrist, little - index
+
+
+def rest_pose(body, upper_out=6.0, upper_fwd=4.0, elbow=10.0, shoulder_drop=4.0, stance=0.36):
+    """Arms down along the body (A-pose of the base mesh -> village rest pose).  Each step rotates one
+    bone and bakes the result, so every rotation is a plain world rotation about the bone head."""
+    for side, sx in SIDES:
+        up, low = "upperarm01." + side, "lowerarm01." + side
+        d = _head(body, low) - _head(body, up)
+        a, f = math.radians(upper_out), math.radians(upper_fwd)
+        target = np.array((sx * math.sin(a), -math.sin(f), -math.cos(a) * math.cos(f)))
+        body.apply_pose({up: H.rotation_between(d, target)})
+        d = _head(body, "wrist." + side) - _head(body, low)
+        e = math.radians(elbow)
+        target = np.array((sx * math.sin(math.radians(2)), -math.sin(e), -math.cos(e)))
+        body.apply_pose({low: H.rotation_between(d, target)})
+        # turn the hand: fingers continue the forearm, knuckle line front -> back (index in front);
+        # the twist is spread over the forearm like a real pronation
+        axis = _unit(_head(body, "wrist." + side) - _head(body, low))
+        fd, kn = hand_frame(body, side)
+        R = _frame(axis, np.array((0.0, 1.0, 0.0))) @ _frame(fd, kn).T
+        twist = _twist_angle(R, axis)
+        body.apply_pose({low: H.rot(axis, twist * 0.3)})
+        body.apply_pose({"lowerarm02." + side: H.rot(axis, twist * 0.45)})
+        fd, kn = hand_frame(body, side)
+        body.apply_pose({"wrist." + side: _frame(axis, np.array((0.0, 1.0, 0.0))) @ _frame(fd, kn).T})
+        # shoulders relaxed: the clavicle drops a little
+        body.apply_pose({"clavicle." + side: H.rot((0.0, 1.0, 0.0), sx * shoulder_drop)})
+    for side, sx in SIDES:
+        # legs closer together: the ankle comes in to `stance` from the middle, the foot stays flat
+        hip, knee, ankle = (_head(body, b + side) for b in ("upperleg01.", "lowerleg01.", "foot."))
+        target = np.array((sx * stance, ankle[1], ankle[2])) - hip
+        turn = H.rotation_between(ankle - hip, target)
+        body.apply_pose({"upperleg01." + side: turn})
+        body.apply_pose({"foot." + side: turn.T})
+    # stand on the ground with the soles of the skin (the helper geometry of the base mesh reaches lower)
+    skin = sorted({v for i in body.face_ids("body") for v in body.faces[i]})
+    lift = body.verts[skin, 2].min()
+    body.verts[:, 2] -= lift
+    body.bones = {b: (h - (0, 0, lift), t - (0, 0, lift)) for b, (h, t) in body.bones.items()}
+    return body
+
+
+# ---------------------------------------------------------------- holding things
+FINGER_RATIO = (1.0, 1.2, 0.9)          # how the three joints of a finger close together
+FINGER_LIMIT = (95.0, 110.0, 85.0)      # degrees
+THUMB_RATIO = (0.55, 1.0, 1.0)
+THUMB_LIMIT = (50.0, 65.0, 75.0)
+PENETRATION = 0.004                     # studs: skin may press this far into a handle
+CREASE = 0.016                          # extra give of the flesh right at a finger joint
+STEP = 1.5                              # degrees per closing step
+
+
+def hand_axes(body, side):
+    """Grip frame of a hand in the rest pose: origin = middle of the knuckle line, ey = knuckle line
+    (index -> little finger), ez = towards the wrist, ex = ey x ez; pn = palm normal."""
+    sx = dict(SIDES)[side]
+    wrist = _head(body, "wrist." + side)
+    bases = [_head(body, f"finger{i}-1.{side}") for i in range(2, 6)]
+    origin = np.mean(bases, axis=0)
+    ey = _unit(bases[3] - bases[0])
+    ez = wrist - origin
+    ez = _unit(ez - np.dot(ez, ey) * ey)
+    ex = np.cross(ey, ez)
+    pn = -sx * ex
+    return origin, ex, ey, ez, pn
+
+
+class Hand:
+    """Vertices, weights and signed distance for closing one hand around a prop."""
+
+    def __init__(self, body, side):
+        self.body, self.side = body, side
+        names, W = body.dense_weights()
+        self.names = names
+        bones = ["wrist." + side] + [f"finger{i}-{j}.{side}" for i in range(1, 6) for j in range(1, 4)]
+        cols = [names.index(b) for b in bones]
+        mask = W[:, cols].sum(axis=1) > 0.05
+        self.idx = np.nonzero(mask)[0]
+        self.W = W[self.idx]
+        dom = np.argmax(self.W, axis=1)
+        self.dominant = np.array([names[k] for k in dom])
+        self.rest = body.verts[self.idx]
+
+    def posed(self, rots):
+        mats = self.body.bone_matrices(rots)
+        vh = np.c_[self.rest, np.ones(len(self.rest))]
+        out = np.zeros_like(self.rest)
+        for j, b in enumerate(self.names):
+            w = self.W[:, j]
+            nz = w > 0
+            if nz.any():
+                out[nz] += w[nz, None] * (vh[nz] @ mats[b].T)[:, :3]
+        return out
+
+    def link(self, bone):
+        return self.dominant == bone
+
+
+_RAY = Vector((0.5773, 0.5774, 0.5774))
+
+
+def _inside(bvh, co):
+    """Ray parity test (robust in dents of noisy shapes, where the nearest face normal misleads)."""
+    hits, origin = 0, co
+    for _ in range(64):
+        loc, _n, _i, _d = bvh.ray_cast(origin, _RAY)
+        if loc is None:
+            break
+        hits += 1
+        origin = loc + _RAY * 1e-5
+    return hits % 2 == 1
+
+
+def signed_distance(bvh, pts):
+    """Distance of points to a closed mesh; negative inside."""
+    out = np.empty(len(pts))
+    for i, p in enumerate(pts):
+        co = Vector(p)
+        hit = bvh.find_nearest(co)
+        if hit[0] is None:
+            out[i] = 1e3
+            continue
+        d = (co - hit[0])
+        inside = d.dot(hit[1]) < 0
+        if inside or d.length < 0.02:
+            inside = _inside(bvh, co)
+        out[i] = -d.length if inside else d.length
+    return out
+
+
+def prop_bvh(mb, matrix):
+    """BVH of a prop (MeshBuilder in prop space) placed with a 4x4 numpy matrix."""
+    from mathutils.bvhtree import BVHTree
+    M = Matrix(matrix.tolist())
+    verts = [M @ v for v in mb.verts]
+    return BVHTree.FromPolygons(verts, [list(f) for f in mb.faces], all_triangles=False)
+
+
+def place_prop(body, side, mb, tilt, along=-0.015, gap=0.004):
+    """Prop frame (4x4) in figure space: handle axis along the knuckle line, tilted by `tilt` degrees
+    (the little finger end towards the wrist, as in a real power grip), pushed against the palm until
+    the skin touches it."""
+    origin, ex, ey, ez, pn = hand_axes(body, side)
+    Rp = np.column_stack((ex, ey, ez)) @ H.rot((1.0, 0.0, 0.0), tilt)
+    hand = Hand(body, side)
+    contact = np.isin(hand.dominant, ["wrist." + side] + [f"finger{i}-1.{side}" for i in range(2, 6)])
+    pts = hand.posed(open_hand(body, side))[contact]
+
+    def frame(d):
+        M = np.eye(4)
+        M[:3, :3] = Rp
+        M[:3, 3] = origin + ez * along + pn * d
+        return M
+
+    lo, hi = 0.0, 0.6
+    for _ in range(26):                         # smallest distance from the palm without touching
+        mid = (lo + hi) / 2
+        if signed_distance(prop_bvh(mb, frame(mid)), pts).min() < gap:
+            lo = mid
+        else:
+            hi = mid
+    return frame(hi)
+
+
+OPEN = (-12.0, -18.0, -10.0)            # degrees: the open hand before it closes around a prop
+THUMB_OPEN = (-20.0, -10.0, -5.0)
+
+
+def _finger_axes(body, side, i, pn, axis_point=None, axis_dir=None):
+    axes = []
+    for j in (1, 2, 3):
+        h, t = (np.asarray(x) for x in body.bones[f"finger{i}-{j}.{side}"])
+        seg = _unit(t - h)
+        if i == 1 and axis_point is not None:           # thumb: turns towards the handle axis
+            rel = h - axis_point
+            toward = -(rel - np.dot(rel, axis_dir) * axis_dir)
+            axes.append(_unit(np.cross(seg, _unit(toward))))
+        elif i == 1:                                     # thumb, no prop yet: across the palm
+            axes.append(_unit(np.cross(seg, pn)))
+        else:
+            axes.append(_unit(np.cross(seg, pn)))
+    return axes
+
+
+def open_hand(body, side):
+    """Finger rotations of the opened hand (fingers stretched, thumb spread)."""
+    pn = hand_axes(body, side)[4]
+    rots = {}
+    for i in range(1, 6):
+        start = THUMB_OPEN if i == 1 else OPEN
+        for j, ax in zip((1, 2, 3), _finger_axes(body, side, i, pn)):
+            rots[f"finger{i}-{j}.{side}"] = H.rot(ax, start[j - 1])
+    return rots
+
+
+def _close(hand, rots, chain, axes, ratio, limit, bvh, start=(0.0, 0.0, 0.0)):
+    """Closes one finger (three bones) from `start` until every link rests on the prop."""
+    angles = list(start)
+    frozen = [False, False, False]
+    links = [hand.link(b) for b in chain]
+    # the flesh in the crease of a joint gives way: vertices close to the joint of their link may
+    # press deeper into the handle than the pads
+    tolerance = []
+    for b, link in zip(chain, links):
+        h, t = (np.asarray(x) for x in hand.body.bones[b])
+        dist = np.linalg.norm(hand.rest[link] - h, axis=1) / max(1e-6, np.linalg.norm(t - h))
+        tolerance.append(PENETRATION + CREASE * np.clip(1 - dist / 0.5, 0, 1))
+    local = dict(rots)
+    for b, ax, a in zip(chain, axes, angles):
+        local[b] = H.rot(ax, a)
+    pts = hand.posed(local)
+    base = [float((signed_distance(bvh, pts[link]) + tol).min()) if link.any() else 0.0
+            for link, tol in zip(links, tolerance)]
+    for _ in range(400):
+        if all(frozen):
+            break
+        while True:
+            trial = [a if f else min(lim, a + STEP * r) for a, f, r, lim in zip(angles, frozen, ratio, limit)]
+            for j in range(3):
+                if trial[j] >= limit[j]:
+                    frozen[j] = True
+            local = dict(rots)
+            for b, ax, a in zip(chain, axes, trial):
+                local[b] = H.rot(ax, a)
+            pts = hand.posed(local)
+            hit = None
+            for k in range(3):
+                if not links[k].any():
+                    continue
+                depth = signed_distance(bvh, pts[links[k]]) + tolerance[k]
+                # a link stops when it presses into the prop deeper than it already did (a cloth
+                # corner may touch a finger from the start)
+                if depth.min() < min(0.0, base[k]) - 1e-4:
+                    hit = k
+                    break
+            if hit is None:
+                angles = trial
+                break
+            first_free = frozen.index(False)
+            for j in range(max(hit, first_free) + 1):
+                frozen[j] = True
+            if all(frozen):
+                break
+    for b, ax, a in zip(chain, axes, angles):
+        rots[b] = H.rot(ax, a)
+    return angles
+
+
+def close_hand(body, side, mb, frame):
+    """Finger rotations (bone -> 3x3) that close the hand around the prop placed at `frame`, plus
+    the contact report: per finger the closing angles, the gap of its tip link and the deepest
+    penetration of any of its links."""
+    hand = Hand(body, side)
+    bvh = prop_bvh(mb, frame)
+    pn = hand_axes(body, side)[4]
+    axis_point, axis_dir = frame[:3, 3], frame[:3, 1]
+    rots, report = open_hand(body, side), {}
+    for i in (2, 3, 4, 5, 1):
+        chain = [f"finger{i}-{j}.{side}" for j in (1, 2, 3)]
+        axes = _finger_axes(body, side, i, pn, axis_point, axis_dir)
+        ratio, limit = (THUMB_RATIO, THUMB_LIMIT) if i == 1 else (FINGER_RATIO, FINGER_LIMIT)
+        start = THUMB_OPEN if i == 1 else OPEN
+        angles = _close(hand, rots, chain, axes, ratio, limit, bvh, start)
+        pts = hand.posed(rots)
+        tip = signed_distance(bvh, pts[hand.link(chain[2])]).min() if hand.link(chain[2]).any() else 1.0
+        deep = min(signed_distance(bvh, pts[hand.link(b)]).min() for b in chain if hand.link(b).any())
+        report[i] = dict(angles=[round(a, 1) for a in angles], tip_gap=round(float(tip), 4), deepest=round(float(deep), 4))
+    return rots, report
+
+
+# ---------------------------------------------------------------- assembly
+GRIP_LIMITS = dict(contact=0.025, depth=-0.02)      # studs: every finger near the prop, none deep inside
+
+
+def prepared_body(role):
+    """Shaped body in the rest pose with both hands closed around their props.  Returns the body
+    (finger and twist bones merged away), the props (MeshBuilder, 4x4 frame) and the grip report."""
+    from . import props as P
+    from .meshkit import MeshBuilder
+    body = rest_pose(make_body(role))
+    held, report = {}, {}
+    for side, sx in SIDES:
+        fn, tilt, along = P.PROPS[role][side]
+        mb = MeshBuilder(seed=len(role) * 7 + (1 if side == "L" else 2))
+        fn(mb, sx)
+        frame = place_prop(body, side, mb, tilt, along)
+        rots, rep = close_hand(body, side, mb, frame)
+        body.apply_pose(rots)
+        held[side] = (fn.__name__, mb, frame)
+        report[side] = rep
+    merge = [f"finger{i}-{j}.{s}" for s, _ in SIDES for i in range(1, 6) for j in (3, 2, 1)]
+    merge += [f"{b}.{s}" for s, _ in SIDES for b in ("lowerarm02", "upperarm02")]
+    body.merge_bones(merge)
+    return body, held, report
+
+
+def grip_problems(report):
+    out = []
+    for side, fingers in report.items():
+        for i, r in fingers.items():
+            if min(r["tip_gap"], r["deepest"]) > GRIP_LIMITS["contact"]:
+                out.append(f"hand {side} finger {i}: {min(r['tip_gap'], r['deepest']):.3f} studs from the prop")
+            if r["deepest"] < GRIP_LIMITS["depth"]:
+                out.append(f"hand {side} finger {i}: {r['deepest']:.3f} studs inside the prop")
+    return out
+
+
+class Character:
+    """A finished trader: pieces (meshes with weights over `bones`), the skeleton and grip report."""
+
+    def __init__(self, role, body, pieces, report):
+        self.role = role
+        self.body = body
+        self.bones = list(body.order)
+        self.parents = dict(body.parents)
+        self.heads = {b: np.asarray(body.bones[b][0]) for b in self.bones}
+        self.tails = {b: np.asarray(body.bones[b][1]) for b in self.bones}
+        self.pieces = pieces
+        self.report = report
+
+
+def _skin_colors(anat, head, role):
+    from . import outfits as O
+    from .wardrobe import rgb
+    V = anat.V
+    col = np.tile(rgb(O.COLORS[role]["skin"]), (len(V), 1))
+    m = head.mouth
+
+    def blend(mask_w, target):
+        w = np.clip(mask_w, 0, 1)[:, None]
+        return col * (1 - w) + target * w
+    front = (V[:, 1] < head.centre[1] - 0.08).astype(float)
+    lips = np.exp(-(((V[:, 0] - m[0]) / 0.055) ** 2 + ((V[:, 2] - m[2]) / 0.022) ** 2) * 1.6) * front
+    col = blend(lips * 0.85, rgb(O.COLORS[role]["lips"]))
+    for side, (c, r) in head.eyes.items():
+        cheek = c + np.array((0.0, -0.02, -0.11))
+        d = np.linalg.norm(V - cheek, axis=1)
+        col = blend(np.exp(-(d / 0.07) ** 2) * 0.22 * front, np.array((0.85, 0.45, 0.42)))
+        d = np.linalg.norm(V - c, axis=1)
+        col = col * (1 - 0.12 * np.exp(-(d / (r * 1.9)) ** 2))[:, None]          # soft shadow around the eyes
+    ears = np.exp(-((np.abs(V[:, 0]) - head.half_w) / 0.05) ** 2) * np.exp(-((V[:, 2] - head.eye_z + 0.05) / 0.12) ** 2)
+    col = blend(ears * 0.25 * (anat.weight(("head",)) > 0.5), np.array((0.85, 0.5, 0.45)))
+    hands = anat.weight(("wrist",))
+    col = col * (1 - 0.05 * hands)[:, None]
+    return np.clip(col, 0, 1)
+
+
+def _prop_piece(anat, side, name, mb, frame):
+    from . import palette
+    from . import wardrobe as Wd
+    M = np.asarray(frame)
+    V = np.array([tuple(v) for v in mb.verts])
+    V = (np.c_[V, np.ones(len(V))] @ M.T)[:, :3]
+    # one vertex per face corner so palette colours and tones stay crisp
+    verts, faces, cols = [], [], []
+    for f, cname, shades in zip(mb.faces, mb.colors, mb.shades):
+        base = len(verts)
+        for i, s in zip(f, shades):
+            verts.append(V[i])
+            cols.append(palette.tone(palette.RGB[cname], s))
+        faces.append(tuple(range(base, base + len(f))))
+    W = Wd.fixed_weights(anat, len(verts), "wrist." + side)
+    kind = "prop_" + name
+    return Wd.Piece(f"prop_{side}", np.array(verts), faces, W, np.array(cols), kind, smooth=False)
+
+
+def build(role, seed=None):
+    """The complete trader (see Character)."""
+    import random
+    from . import heads as Hd
+    from . import looks as Lk
+    from . import outfits as O
+    from . import wardrobe as Wd
+    rng = random.Random(seed if seed is not None else sum(map(ord, role)))
+    body, held, report = prepared_body(role)
+    anat = Wd.Anatomy(body)
+    pieces, covered = O.OUTFITS[role](anat)
+    head_pieces, scalp = Lk.LOOKS[role](anat, rng)
+    pieces += head_pieces
+    covered |= scalp
+    head = Hd.Head(anat)
+    skin_faces = [f for f in anat.faces if not covered[list(f)].all()]
+    used = sorted({v for f in skin_faces for v in f})
+    rm = {v: k for k, v in enumerate(used)}
+    colors = _skin_colors(anat, head, role)
+    skin = Wd.Piece("skin", anat.V[used], [tuple(rm[v] for v in f) for f in skin_faces], anat.W[used], colors[used], "skin")
+    pieces.insert(0, skin)
+    for side, (name, mb, frame) in held.items():
+        pieces.append(_prop_piece(anat, side, name, mb, frame))
+    return Character(role, body, pieces, report)
+
+
+# ---------------------------------------------------------------- idle loops
+# Joint angles in degrees (figure axes, the figure faces -Y), relative to the rest pose:
+#   torso / head: (rx = nod forwards +, ry = tilt to the figure's left -, rz = turn to the figure's left +)
+#   upper arm:    (rx = swing forwards -, ry = lift sideways: left arm -, right arm +,
+#                  rz = turn the raised forearm inwards: left arm -, right arm +)
+#   forearm:      (rx = bend forwards -, ry, rz = twist)
+# Keys are (time in seconds, value); values between keys are eased; the last key equals the first.
+# A basket or lantern hangs from its bail: those arms stay low (a raised fist could not carry it
+# hanging straight).
+LOOPS = {
+    # Selma smells the herbs, nods, lays them towards the basket and looks up at the customers.
+    "selma": dict(duration=8.0, keys={
+        "upper_l": [(0, (-4, -13, 0)), (4, (-7, -14, 0)), (6, (-2, -12, 0)), (8, (-4, -13, 0))],
+        "fore_l": [(0, (-4, 0, 0)), (4, (-8, 0, 0)), (6, (-2, 0, 0)), (8, (-4, 0, 0))],
+        "upper_r": [(0, (-22, 6, 0)), (1.6, (-44, 2, 26)), (3.4, (-44, 2, 26)), (5.2, (-26, 0, 34)), (6.4, (-26, 0, 34)),
+                    (8, (-22, 6, 0))],
+        "fore_r": [(0, (-56, 0, 0)), (1.6, (-92, 0, 0)), (3.4, (-88, 0, 0)), (5.2, (-52, 0, 0)), (6.4, (-48, 0, 0)),
+                   (8, (-56, 0, 0))],
+        "head": [(0, (0, 0, 8)), (1.6, (9, 0, -6)), (3.4, (10, 2, -6)), (4.4, (-4, 0, -4)), (5.4, (12, -4, 16)),
+                 (6.6, (-2, 0, 18)), (8, (0, 0, 8))],
+        "torso": [(0, (0, 0, 2)), (2.4, (4, 0, -3)), (5.4, (2, 0, 6)), (8, (0, 0, 2))],
+    }),
+    # Nyra holds the crystal up into the lantern light and turns it; the lantern sways a little.
+    "nyra": dict(duration=7.0, keys={
+        "upper_l": [(0, (-3, -4, 0)), (2, (-8, -5, 0)), (5, (-6, -5, 0)), (7, (-3, -4, 0))],
+        "fore_l": [(0, (-4, 0, 0)), (2, (-6, 0, 0)), (5, (-8, 0, 0)), (7, (-4, 0, 0))],
+        "upper_r": [(0, (-24, 8, 0)), (2.2, (-52, 6, 18)), (5.2, (-52, 6, 18)), (7, (-24, 8, 0))],
+        "fore_r": [(0, (-70, 0, 0)), (2.2, (-96, 0, -40)), (3.2, (-96, 0, 36)), (4.2, (-96, 0, -40)), (5.2, (-96, 0, 26)),
+                   (7, (-70, 0, 0))],
+        "head": [(0, (4, 0, -6)), (2.2, (10, -6, 6)), (3.7, (12, 6, 4)), (5.2, (10, -4, 6)), (7, (4, 0, -6))],
+        "torso": [(0, (0, 0, 0)), (3.5, (3, 0, 3)), (7, (0, 0, 0))],
+    }),
+    # Lio rubs the flask with the cloth, then holds it up against the light and looks at it.
+    "lio": dict(duration=6.5, keys={
+        "upper_l": [(0, (-30, -6, -10)), (0.5, (-36, -4, -14)), (1.0, (-28, -8, -8)), (1.5, (-36, -4, -14)),
+                    (2.0, (-28, -8, -8)), (3.4, (-16, -8, -2)), (5.4, (-16, -8, -2)), (6.5, (-30, -6, -10))],
+        "fore_l": [(0, (-84, 0, 0)), (0.5, (-92, 0, 0)), (1.0, (-80, 0, 0)), (1.5, (-92, 0, 0)), (2.0, (-80, 0, 0)),
+                   (3.4, (-58, 0, 0)), (5.4, (-58, 0, 0)), (6.5, (-84, 0, 0))],
+        "upper_r": [(0, (-26, 6, 10)), (2.0, (-26, 6, 10)), (3.6, (-58, 22, 6)), (5.2, (-58, 22, 6)), (6.5, (-26, 6, 10))],
+        "fore_r": [(0, (-78, 0, 0)), (2.0, (-78, 0, 0)), (3.6, (-86, 0, 24)), (4.4, (-86, 0, -24)), (5.2, (-86, 0, 24)),
+                   (6.5, (-78, 0, 0))],
+        "head": [(0, (14, 0, 0)), (2.0, (14, 0, 0)), (3.6, (-12, 6, -20)), (5.2, (-12, 6, -20)), (6.5, (14, 0, 0))],
+        "torso": [(0, (4, 0, 0)), (3.6, (-2, 0, -6)), (5.2, (-2, 0, -6)), (6.5, (4, 0, 0))],
+    }),
+    # Aron weighs the ore in his hand and taps it twice with the hammer.
+    "aron": dict(duration=6.0, keys={
+        "upper_l": [(0, (-30, -6, -16)), (3.0, (-32, -6, -16)), (4.4, (-44, -8, -8)), (6, (-30, -6, -16))],
+        "fore_l": [(0, (-76, 0, 0)), (1.5, (-72, 0, 0)), (1.7, (-68, 0, 0)), (2.1, (-72, 0, 0)), (2.3, (-68, 0, 0)),
+                   (3.0, (-76, 0, 0)), (4.4, (-90, 0, 0)), (6, (-76, 0, 0))],
+        "upper_r": [(0, (-18, 12, 6)), (1.1, (-32, 8, 24)), (1.5, (-24, 4, 30)), (1.9, (-30, 8, 26)), (2.1, (-24, 4, 30)),
+                    (3.0, (-18, 14, 6)), (6, (-18, 12, 6))],
+        "fore_r": [(0, (-54, 0, 0)), (1.1, (-88, 0, 0)), (1.5, (-50, 0, 0)), (1.9, (-84, 0, 0)), (2.1, (-50, 0, 0)),
+                   (3.0, (-56, 0, 0)), (6, (-54, 0, 0))],
+        "head": [(0, (4, 0, 6)), (1.2, (16, 0, -2)), (2.4, (16, 0, -2)), (3.4, (2, 0, 4)), (4.4, (10, -4, 10)),
+                 (5.2, (2, 0, 8)), (6, (4, 0, 6))],
+        "torso": [(0, (0, 0, 0)), (1.2, (5, 0, -2)), (2.4, (5, 0, -2)), (4.4, (0, 0, 4)), (6, (0, 0, 0))],
+    }),
+    # Esme rests the axe on her shoulder and sights along the folding rule.
+    "esme": dict(duration=8.0, keys={
+        "upper_r": [(0, (-12, 14, 0)), (2, (-16, 16, 0)), (4, (-12, 14, 0)), (6, (-18, 16, 0)), (8, (-12, 14, 0))],
+        "fore_r": [(0, (-108, 0, 0)), (2, (-102, 0, 0)), (4, (-108, 0, 0)), (6, (-100, 0, 0)), (8, (-108, 0, 0))],
+        "upper_l": [(0, (-20, -8, 0)), (2.2, (-68, -20, 12)), (3.4, (-68, -30, 26)), (4.6, (-68, -20, 12)),
+                    (5.6, (-68, -20, 12)), (8, (-20, -8, 0))],
+        "fore_l": [(0, (-54, 0, 0)), (2.2, (-34, 0, 0)), (3.4, (-26, 0, 0)), (4.6, (-34, 0, 0)), (5.6, (-40, 0, 0)),
+                   (8, (-54, 0, 0))],
+        "head": [(0, (0, 0, -8)), (2.2, (4, 0, 14)), (3.4, (4, 0, 28)), (4.6, (4, 0, 14)), (5.6, (8, 4, 12)),
+                 (6.8, (-2, 0, -4)), (8, (0, 0, -8))],
+        "torso": [(0, (0, 0, -2)), (3.4, (2, 0, 6)), (5.6, (2, 0, 4)), (8, (0, 0, -2))],
+    }),
+}
+
+# loop channel -> bones that share its rotation (fraction of the angles each)
+CHANNELS = {
+    "torso": (("spine03", 0.5), ("spine01", 0.5)),
+    "head": (("neck01", 0.4), ("head", 0.6)),
+    "upper_l": (("upperarm01.L", 1.0),), "fore_l": (("lowerarm01.L", 1.0),),
+    "upper_r": (("upperarm01.R", 1.0),), "fore_r": (("lowerarm01.R", 1.0),),
+}
+ANIMATED = ("spine03", "spine01", "neck01", "head", "upperarm01.L", "lowerarm01.L", "upperarm01.R", "lowerarm01.R")
+
+
+def _ease(u):
+    return u * u * (3 - 2 * u)
+
+
+def loop_angles(role, channel, t):
+    loop = LOOPS[role]
+    keys = loop["keys"].get(channel)
+    if not keys:
+        return (0.0, 0.0, 0.0)
+    t = t % loop["duration"]
+    for (t0, a), (t1, b) in zip(keys, keys[1:]):
+        if t0 <= t <= t1:
+            u = _ease((t - t0) / (t1 - t0)) if t1 > t0 else 0.0
+            return tuple(a[i] + (b[i] - a[i]) * u for i in range(3))
+    return keys[-1][1]
+
+
+def _euler(a):
+    """Rz @ Ry @ Rx of angles (rx, ry, rz) in degrees."""
+    return H.rot((0, 0, 1), a[2]) @ H.rot((0, 1, 0), a[1]) @ H.rot((1, 0, 0), a[0])
+
+
+def local_rotations(role, t):
+    """Bone -> 3x3 rotation (figure axes, about the bone head, relative to the parent) at loop time t."""
+    out = {}
+    for channel, bones in CHANNELS.items():
+        a = loop_angles(role, channel, t)
+        for bone, share in bones:
+            out[bone] = _euler(tuple(x * share for x in a))
+    breathe = 1.2 * math.sin(TAU_LOOP * t / 3.2)                 # slow breathing in the upper chest
+    out["spine01"] = out.get("spine01", np.eye(3)) @ H.rot((1, 0, 0), -breathe)
+    return out
+
+
+TAU_LOOP = 2 * math.pi

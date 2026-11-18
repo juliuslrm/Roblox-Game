@@ -42,56 +42,79 @@ Die 14 verkaufbaren Produkte verdienen Münzen im Spielerregal und in Aufträgen
 Kaufbündel haben feste Startpreise. Die Freischaltungen der 14 Rohwaren
 entsprechen ihren Sammelpunkten.
 
-## Figuren (Fassung vom 2026-11-17, realistisch)
+## Figuren (Fassung vom 2026-11-18: realistische Charaktere mit Skelett)
 
-Die Händler haben realistische Proportionen (rund 7,5 Kopfhöhen, 6,3–6,9 Studs groß) und bestehen
-weiterhin aus sieben starren Teilen je Figur, die sich in Kugelgelenken drehen (kein Skelett, kein
-Skinning). Jede Figur hat rund 16 600–18 500 Dreiecke, kein Teil mehr als 9 500:
+Die Händler sind keine Gliederfiguren mehr, sondern realistische Menschen mit verformbarer Haut
+(Skinned Meshes) an einem Skelett, so wie Figuren in aktuellen Spielen gebaut werden.
 
-| Teil | Inhalt | Gelenk |
-|---|---|---|
-| `lower` | Hüfte, Beine, Stiefel mit Sohle, Absatz und Schnürung bzw. Schnalle; Rock mit Falten bzw. Hose, Tunika, Kniebschurz | fest |
-| `torso` | Oberkörper mit Kragen, Knopfleiste, Gürtel, Tasche; Schürzenlatz, Weste, Schnürung, Umhang je Rolle | Taille |
-| `head` | modellierter Schädel mit Nase, Brauenbogen, Augenhöhlen, Wangen, Lippen und Kinn; Ohren, Haare, Hut, Kapuze, Bart | Hals |
-| `upper_l`, `upper_r` | Oberarm mit Schultermuskel, Ärmel (bei Aron hochgekrempelt) | Schulter |
-| `fore_l`, `fore_r` | Unterarm, Hand, Werkzeug | Ellbogen |
-
-- **Gesicht:** Augäpfel mit Iris, Pupille, Glanzpunkt und Lidern, Brauen mit eigenem Ausdruck,
-  Lippen als eigene Wülste mit Mundlinie, Ohren mit Muschel; Frauen- und Männerkopf unterscheiden
-  sich in Kiefer, Brauenbogen und Lippen.
-- **Hände:** Handfläche, vier Finger mit je drei Gliedern und Nägeln, Daumen; um den Werkzeuggriff
-  gekrümmt. Werkzeuge sind auf Handgröße skaliert.
-- **In der Hand:** Selma Kräuterzweig und Korb, Nyra Kristall und Laterne, Lio Phiole und Poliertuch,
-  Aron Hammer und Erzbrocken, Esme Axt und Zollstock. Korb und Laterne hängen bei vorgestrecktem
-  Unterarm senkrecht.
-- **Bewegungsschleifen** (6–8 s, weich überblendet, geschlossen): Selma riecht am Zweig und legt
-  ihn zum Korb; Nyra hebt die Laterne und dreht den Kristall in ihrem Licht; Lio poliert die Phiole
-  und hält sie gegen das Licht; Aron wiegt das Erz und klopft zweimal mit dem Hammer darauf; Esme
-  trägt die Axt auf der Schulter und peilt am Zollstock entlang.
+- **Körper:** Basis ist das MakeHuman-Grundmodell (Assets unter CC0, Daten in
+  `assets/thirdparty/makehuman`, siehe dortige `LICENSE.md`). Eigener Code mischt die Makro-Formen
+  (Geschlecht, Alter, Muskeln, Gewicht, Herkunft) je Figur: Selma (≈ 40 J.), Nyra (≈ 60 J., schlank),
+  Lio (≈ 22 J.), Aron (≈ 43 J., kräftig), Esme (≈ 33 J., sportlich). Ruhepose: Arme hängend,
+  Ellbogen leicht gebeugt, Schultern entspannt, Füße zusammen.
+- **Halten der Werkzeuge:** Jedes Werkzeug ist in echter Größe gebaut (1 Stud = 0,27 m) und liegt
+  wie bei einem Kraftgriff in der Handfläche, der Stiel leicht schräg. Die Finger schließen sich
+  Gelenk für Gelenk, bis sie die tatsächliche Werkzeuggeometrie berühren (Abstandsmessung gegen das
+  Modell, Daumen von der Gegenseite). Der Build prüft: jeder Finger höchstens 0,025 Studs
+  (≈ 7 mm) vom Werkzeug entfernt und nirgends tiefer als 0,02 Studs darin. Korb und Laterne hängen
+  an einem breiten Bügel senkrecht unter der Faust; die Arme, die sie tragen, bleiben unten.
+- **Kleidung:** Anliegende Teile (Hemden, Kleider, Hosen, Westen, Latz) sind die Körperoberfläche,
+  nach außen versetzt, mit Falten an Ellbogen, Knien und Taille, Saumdicke und glatten Schnittkanten.
+  Stoff überbrückt Mulden und fällt vom breitesten Punkt (z. B. der Brust) nach unten. Röcke,
+  Schürzen und Umhang folgen den gemessenen Körperquerschnitten. Stiefel sind über einem Leisten
+  aufgebaut: Zehenkappe, Spann, Schaft, Rahmen und Sohle. Verdeckte Haut wird entfernt.
+- **Kopf:** Augäpfel mit Iris, Pupille und dunklem Irisrand; Wimpern; Brauen aus einzelnen Härchen.
+  Haare bestehen aus einer Haarkappe und hunderten Strähnen, die am Kopf entlang wachsen: Selma
+  Zöpfe unter dem Spitzhut, Nyra silbernes langes Haar unter der Kapuze, Lio Locken mit
+  Schutzbrille, Aron kurzes Haar mit Vollbart und Schiebermütze, Esme Pferdeschwanz unter dem
+  Federhut.
+- **Texturen:** Jedes Mesh hat eine eigene, in Blender gebackene Textur: Farbe mal Struktur (Gewebe,
+  Leder, Filz, Hautporen, Haarsträhnen) mal Umgebungsverdeckung (Ambient Occlusion).
+- **Bewegungsschleifen** (6–8 s, geschlossen): Selma riecht an den Kräutern und legt sie Richtung
+  Korb; Nyra hält den Kristall ins Laternenlicht und dreht ihn; Lio poliert die Flasche und hält sie
+  gegen das Licht; Aron wiegt das Erz und klopft zweimal mit dem Hammer darauf; Esme trägt die Axt
+  auf der Schulter und peilt am Zollstock entlang. Alle atmen leicht. Bewegt werden Wirbelsäule,
+  Hals, Kopf, Ober- und Unterarme; die Haut verformt sich an den Gelenken weich mit.
 
 ## Dateien und Aufbau
 
-- `blender/village/merchants.py` – Figuren, Werkzeuge und Schleifen (Gelenkwinkel als Keyframes).
-- `blender/village/market.py` – Marktstände und Auslagen.
-- `blender/build_merchants.py` – baut alles, prüft und schreibt:
-  `exports/glb/market/*.glb`, `exports/library/arcane_market.{glb,fbx}`,
-  `assets/market/arcane_market.blend`, `roblox/gameplay/server/MarketArt.lua` (Maße, Gelenke),
-  `roblox/gameplay/shared/MarketMotion.lua` (Schleifen, 8 Bilder pro Sekunde als Gelenkrahmen),
-  `previews/market/01-haendler.png`, `02-bewegung.png`.
-- `roblox/gameplay/server/MarketWorld.lua` stellt Stand und Figur auf (Ruhepose),
-  `roblox/gameplay/client/MarketIdle.client.lua` spielt die Schleife auf jedem Client ab:
-  `Teil = Standpunkt * Rahmen(t) * CFrame.new(-Gelenk) * Ruhelage`.
+- `blender/village/human.py`: MakeHuman-Daten laden, Formen mischen, Skelett reduzieren,
+  Linear Blend Skinning.
+- `blender/village/characters.py`: Figuren je Händler, Ruhepose, Greif-Löser, Montage und
+  Bewegungsschleifen.
+- `blender/village/props.py`: Werkzeuge in echter Größe.
+- `blender/village/wardrobe.py`, `outfits.py`: Kleidungstechnik und die Outfits.
+- `blender/village/heads.py`, `looks.py`: Augen, Haare, Bärte, Hüte, Kapuze, Brille.
+- `blender/build_characters.py` baut alles, backt die Texturen, prüft und schreibt:
+  - `exports/library/trader_<rolle>.fbx`: Rig, Meshes und Texturen, je ein Roblox-Asset.
+  - `exports/textures/traders/*.png`.
+  - `roblox/gameplay/server/TraderArt.lua`: Meshes, Höhe und Referenzposen.
+  - `roblox/gameplay/shared/MarketMotion.lua`: lokale Knochenrotationen, 8 Bilder pro Sekunde.
+  - `previews/market/01-haendler.png`, `02-bewegung.png`, `03-haende.png`.
+- `blender/build_merchants.py` baut die Marktstände und prüft den Katalog.
+- `roblox/gameplay/server/MarketWorld.lua` klont das Rig an den Stand und verankert es.
+  `roblox/gameplay/client/MarketIdle.client.lua` setzt auf jedem Client `Bone.Transform` nach der
+  Formel `Ruhe⁻¹ · Figur · q · Figur⁻¹ · Ruhe`. Diese Formel hängt nicht davon ab, wie der Importer
+  die Knochen ausrichtet.
 
-Prüfungen beim Bauen: Katalog gegen Spieldaten, Dreiecksbudget (≤ 32 000 je Figur, ≤ 9 500 je Teil), Rückseiten-Audit,
-Schleifen ohne Sprung, und die exportierten Roblox-Rahmen ergeben dieselben Posen wie Blender
-(Abweichung 0,0001 Studs).
+Prüfungen beim Bauen:
+- Griffe: jeder Finger am Werkzeug.
+- Höchstens 19 500 Dreiecke je Mesh (Roblox-Grenze 20 000).
+- Höchstens 4 Knochen je Vertex.
+- Schleifen ohne Sprung.
+- Werkzeuge dringen während der Schleife nicht in den Körper ein.
 
 ## In Roblox
 
-Die Bibliothek `arcane_market.fbx` ist als Asset hochgeladen (ID in `roblox/VillageAssetIds.lua`) und
-wird beim Serverstart nach `ServerStorage.ArcaneMarketAssets` geladen. Fehlt ein Teil, erscheint eine
-einfache Ersatzfigur.
+Jeder Händler ist ein eigenes Modell-Asset (IDs in `roblox/VillageAssetIds.lua`, Ordner
+`ArcaneMarketAssets`). Beim Serverstart wird es nach `ServerStorage.ArcaneMarketAssets` geladen.
+Fehlt ein Rig, erscheint eine einfache Ersatzfigur.
 
-Im Place gemessen (Version 28, neue Figuren): fünf Figuren mit je sieben texturierten Teilen, Füße auf dem Boden,
-Höhen wie in Blender; die Schleifendaten ergeben dort Handwege von 0,7 bis 4,8 Studs pro Durchlauf.
-Nicht gesehen: die laufende Animation und das Aussehen auf einem Gerät.
+Im Place gemessen (Version 30, `scripts/roblox_verify_server.py`):
+- Je Händler 9 Meshes, alle skinned und texturiert, und 26 Knochen. Die Füße stehen auf dem Boden.
+- Höhen 6,41–6,76 Studs, Gesamtdreiecke 88 000–100 000 je Figur.
+- Der Server stellt die Schleife mit derselben Formel wie der Client für mehrere Zeitpunkte nach.
+  Die Handgelenke liegen dabei höchstens 0,0005 Studs neben den in Blender berechneten Positionen.
+
+Nicht gesehen: die laufende Animation und die Hautverformung auf einem echten Gerät. Die
+Hautverformung rechnet Roblox nur beim Rendern, auf dem Server lässt sie sich nicht messen.

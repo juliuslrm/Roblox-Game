@@ -32,40 +32,56 @@ for _, c in ipairs(workspace:GetChildren()) do names[#names + 1] = c.ClassName .
 p("workspace: %s", table.concat(names, ", "))
 local market = workspace:FindFirstChild("ArcaneMarket")
 p("market folders: %d", market and #market:GetChildren() or 0)
-do -- traders: seven textured parts each, standing on the ground behind their stall, loop data usable
+do -- traders: skinned rigs standing behind their stall; the idle loop moves the hands to where Blender put them
 	local Motion = require(game:GetService("ReplicatedStorage").ArcaneShared.MarketMotion)
+	local Art = require(game:GetService("ServerScriptService").ArcaneServer.TraderArt)
 	local lines = {}
 	for _, shop in ipairs(market and market:GetChildren() or {}) do
 		local figure = shop:FindFirstChild("Figure")
-		if not figure then
+		if not figure or not figure:IsA("Model") then
 			lines[#lines + 1] = shop.Name .. ": stand-in figure"
 		else
 			local pivot = figure:GetAttribute("MerchantPivot")
 			local role = figure:GetAttribute("MerchantRole")
-			local parts, textured, low, high = 0, 0, math.huge, -math.huge
-			for _, d in ipairs(figure:GetChildren()) do
-				parts = parts + 1
-				if d.TextureID ~= "" then textured = textured + 1 end
-				low = math.min(low, d.Position.Y - d.Size.Y / 2)
-				high = math.max(high, d.Position.Y + d.Size.Y / 2)
-			end
-			-- play the loop once like the client does and watch how far the hand parts travel
-			local data = Motion.roles[role]
-			local travel = 0
-			for part, rows in pairs(data.parts) do
-				local joint = data.joints[part]
-				local mesh = figure[part]
-				local rest = pivot:ToObjectSpace(mesh.CFrame)
-				local last
-				for _, r in ipairs(rows) do
-					local cf = pivot * CFrame.new(r[1], r[2], r[3], r[4], r[5], r[6], r[7]) * CFrame.new(-joint[1], -joint[2], -joint[3]) * rest
-					if last and part == "fore_r" then travel = travel + (cf.Position - last).Magnitude end
-					last = cf.Position
+			local parts, skinned, textured, low, high, bones = 0, 0, 0, math.huge, -math.huge, {}
+			for _, d in ipairs(figure:GetDescendants()) do
+				if d:IsA("MeshPart") then
+					parts += 1
+					if d.HasSkinnedMesh then skinned += 1 end
+					if d.TextureID ~= "" then textured += 1 end
+					low = math.min(low, d.Position.Y - d.Size.Y / 2)
+					high = math.max(high, d.Position.Y + d.Size.Y / 2)
+				elseif d:IsA("Bone") then
+					bones[d.Name] = d
 				end
 			end
+			-- pose the rig like the client does and compare the wrists with the Blender reference
+			local data, worst, missing = Motion.roles[role], 0, 0
+			local figureRot = pivot - pivot.Position
+			local entries = {}
+			for name, rows in pairs(data.bones) do
+				local bone = bones[name]
+				if not bone then missing += 1 else
+					local rest = bone.WorldCFrame - bone.WorldCFrame.Position
+					entries[#entries + 1] = { bone = bone, rows = rows, pre = rest:Inverse() * figureRot, post = figureRot:Inverse() * rest }
+				end
+			end
+			for _, ref in ipairs(Art.traders[role].check) do
+				for _, e in ipairs(entries) do
+					local r = e.rows[ref.sample]
+					e.bone.Transform = e.pre * CFrame.new(0, 0, 0, r[1], r[2], r[3], r[4]) * e.post
+				end
+				for side, key in pairs({ L = "wristL", R = "wristR" }) do
+					local w = bones["wrist." .. side]
+					local want = pivot * Vector3.new(table.unpack(ref[key]))
+					if w then worst = math.max(worst, (w.TransformedWorldCFrame.Position - want).Magnitude) else missing += 1 end
+				end
+			end
+			for _, e in ipairs(entries) do e.bone.Transform = CFrame.new() end
 			local stall = shop:FindFirstChild("stall_" .. shop.Name)
-			lines[#lines + 1] = string.format("%s: %d parts (%d textured), feet %.2f above pivot, top %.2f, right hand travels %.1f studs per loop, %.1f studs from stall centre",
-				shop.Name, parts, textured, low - pivot.Position.Y, high - pivot.Position.Y, travel,
+			lines[#lines + 1] = string.format("%s: %d meshes (%d skinned, %d textured), %d bones, feet %.2f above pivot, top %.2f, posed wrists off by %.4f studs, %d missing, %.1f studs from stall centre",
+				shop.Name, parts, skinned, textured, (function() local n = 0 for _ in pairs(bones) do n += 1 end return n end)(),
+				low - pivot.Position.Y, high - pivot.Position.Y, worst, missing,
 				stall and (Vector3.new(stall.Position.X, 0, stall.Position.Z) - Vector3.new(pivot.Position.X, 0, pivot.Position.Z)).Magnitude or -1)
 		end
 	end

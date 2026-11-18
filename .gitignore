@@ -3,3 +3,5 @@ __pycache__/
 *.blend1
 .venv/
 /tmp/
+# baked trader textures (also embedded in exports/library/trader_*.fbx)
+exports/textures/traders/

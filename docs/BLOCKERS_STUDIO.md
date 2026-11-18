@@ -291,3 +291,19 @@ Platzieren (`BeltPath.lua`, Aktion `PlaceBelts`):
   Modell, Textur entfernt; Raster 58 Teile auf 32 × 32 Studs.
 - Am Gerät ungeprüft: wie der Leuchteffekt auf dem Handy wirkt. `previews/assets/build_hologram_mockup.png`
   ist eine Annäherung aus Blender, kein Roblox-Bild.
+
+## Nachtrag 2026-11-18: realistische Händler mit Skelett
+
+Der offene Punkt „Händler-Animation“ ist gelöst: Jeder Händler ist jetzt ein eigenes Asset
+(`trader_<rolle>.fbx`). Gemessen per Open-Cloud-Ausführung:
+- Roblox importiert ein Rig-Modell mit `RootPart` (Knochen), skinned MeshParts und
+  `AnimationController`. Die Knochen kommen dabei mit eigener Ruhe-Orientierung an.
+- `MarketIdle` setzt `Bone.Transform` deshalb über die tatsächliche Ruhelage
+  (`Ruhe⁻¹ · Figur · q · Figur⁻¹ · Ruhe`).
+- Place-Version 30: alle fünf Rigs laden, Serverstart fehlerfrei. Die Posen stimmen auf
+  0,0005 Studs mit Blender überein (Details in `docs/MARKET_MERCHANTS.md`).
+
+Offen:
+- Sichtprüfung der Hautverformung und der Animation auf einem Gerät. Headless lässt sich das nicht
+  rendern.
+
