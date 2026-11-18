@@ -338,6 +338,7 @@ def prepared_body(role):
                 q = P_ - h
                 radii.append(np.median(np.linalg.norm(q - np.outer(q @ d, d), axis=1)))
         body.hand_geometry[side] = dict(forearm=_unit(wrist - elbow), hand=_unit(np.mean(bases, axis=0) - wrist),
+                                        palm=hand_axes(body, side)[4],
                                         length=length,
                                         finger_thickness=float(2 * np.median(radii)))
     merge = [f"finger{i}-{j}.{s}" for s, _ in SIDES for i in range(1, 6) for j in (3, 2, 1)]
@@ -455,6 +456,8 @@ def build(role, seed=None):
 #   upper arm:    (rx = swing forwards -, ry = lift sideways: left arm -, right arm +,
 #                  rz = turn the raised forearm inwards: left arm -, right arm +)
 #   forearm:      (rx = bend forwards -, ry, rz = twist)
+#   hand:         (rx, ry, rz) turn of the wrist (figure axes); the solver keeps the bend against the
+#                 forearm within 45 degrees and the sideways bend within 20 degrees
 # Keys are (time in seconds, value); values between keys are eased; the last key equals the first.
 # A basket or lantern hangs from its bail: those arms stay low (a raised fist could not carry it
 # hanging straight).
@@ -471,51 +474,64 @@ LOOPS = {
                  (6.6, (-2, 0, 18)), (8, (0, 0, 8))],
         "torso": [(0, (0, 0, 2)), (2.4, (4, 0, -3)), (5.4, (2, 0, 6)), (8, (0, 0, 2))],
     }),
-    # Nyra holds the crystal up into the lantern light and turns it; the lantern sways a little.
+    # Nyra holds the crystal in front of her chest (solved: blender/solve_poses.py) and turns it in
+    # her fingers; the lantern sways a little.
     "nyra": dict(duration=7.0, keys={
         "upper_l": [(0, (-3, -4, 0)), (2, (-8, -5, 0)), (5, (-6, -5, 0)), (7, (-3, -4, 0))],
         "fore_l": [(0, (-4, 0, 0)), (2, (-6, 0, 0)), (5, (-8, 0, 0)), (7, (-4, 0, 0))],
-        "upper_r": [(0, (-24, 8, 0)), (2.2, (-52, 6, 18)), (5.2, (-52, 6, 18)), (7, (-24, 8, 0))],
-        "fore_r": [(0, (-70, 0, 0)), (2.2, (-96, 0, -40)), (3.2, (-96, 0, 36)), (4.2, (-96, 0, -40)), (5.2, (-96, 0, 26)),
-                   (7, (-70, 0, 0))],
-        "head": [(0, (4, 0, -6)), (2.2, (10, -6, 6)), (3.7, (12, 6, 4)), (5.2, (10, -4, 6)), (7, (4, 0, -6))],
+        "upper_r": [(0, (-4, 4, 4)), (2.25, (-6, 0, 9)), (5.25, (-6, 0, 9)), (7, (-4, 4, 4))],
+        "fore_r": [(0, (-70, 0, 0)), (2.25, (-131, 0, 9)), (5.25, (-131, 0, 9)), (7, (-70, 0, 0))],
+        "hand_r": [(0, (0, 0, 0)), (2.25, (-5, 0, 2)), (3.25, (-5, 0, 32)), (4.25, (-5, 0, -26)), (5.25, (-5, 0, 2)),
+                   (7, (0, 0, 0))],
+        "head": [(0, (4, 0, -6)), (2.25, (14, 0, 10)), (3.75, (16, 3, 8)), (5.25, (14, -2, 10)), (7, (4, 0, -6))],
         "torso": [(0, (0, 0, 0)), (3.5, (3, 0, 3)), (7, (0, 0, 0))],
     }),
-    # Lio rubs the flask with the cloth, then holds it up against the light and looks at it.
+    # Lio holds the bottle upright at his lower chest and rubs it with the cloth, then holds it up to
+    # the light beside his face and turns it (poses solved: blender/solve_poses.py).
     "lio": dict(duration=6.5, keys={
-        "upper_l": [(0, (-30, -6, -10)), (0.5, (-36, -4, -14)), (1.0, (-28, -8, -8)), (1.5, (-36, -4, -14)),
-                    (2.0, (-28, -8, -8)), (3.4, (-16, -8, -2)), (5.4, (-16, -8, -2)), (6.5, (-30, -6, -10))],
-        "fore_l": [(0, (-84, 0, 0)), (0.5, (-92, 0, 0)), (1.0, (-80, 0, 0)), (1.5, (-92, 0, 0)), (2.0, (-80, 0, 0)),
-                   (3.4, (-58, 0, 0)), (5.4, (-58, 0, 0)), (6.5, (-84, 0, 0))],
-        "upper_r": [(0, (-26, 6, 10)), (2.0, (-26, 6, 10)), (3.6, (-58, 22, 6)), (5.2, (-58, 22, 6)), (6.5, (-26, 6, 10))],
-        "fore_r": [(0, (-78, 0, 0)), (2.0, (-78, 0, 0)), (3.6, (-86, 0, 24)), (4.4, (-86, 0, -24)), (5.2, (-86, 0, 24)),
-                   (6.5, (-78, 0, 0))],
-        "head": [(0, (14, 0, 0)), (2.0, (14, 0, 0)), (3.6, (-12, 6, -20)), (5.2, (-12, 6, -20)), (6.5, (14, 0, 0))],
+        "upper_l": [(0, (22, -13, -19)), (0.5, (23, -11, -24)), (1.0, (22, -13, -19)), (1.5, (23, -11, -24)),
+                    (2.0, (22, -13, -19)), (3.375, (-4, -8, -2)), (5.375, (-4, -8, -2)), (6.5, (22, -13, -19))],
+        "fore_l": [(0, (-110, 0, -21)), (0.5, (-110, 0, -13)), (1.0, (-110, 0, -21)), (1.5, (-110, 0, -13)),
+                   (2.0, (-110, 0, -21)), (3.375, (-30, 0, 0)), (5.375, (-30, 0, 0)), (6.5, (-110, 0, -21))],
+        "hand_l": [(0, (0, 0, 19)), (0.5, (-2, 0, -26)), (1.0, (0, 0, 19)), (1.5, (-2, 0, -26)), (2.0, (0, 0, 19)),
+                   (3.375, (0, 0, 0)), (5.375, (0, 0, 0)), (6.5, (0, 0, 19))],
+        "upper_r": [(0, (23, 22, 15)), (2.0, (23, 22, 15)), (3.625, (-57, 64, -4)), (5.125, (-57, 64, -4)),
+                    (6.5, (23, 22, 15))],
+        "fore_r": [(0, (-112, 0, 21)), (2.0, (-112, 0, 21)), (3.625, (-102, 0, -31)), (5.125, (-102, 0, -31)),
+                   (6.5, (-112, 0, 21))],
+        "hand_r": [(0, (-2, 0, -7)), (2.0, (-2, 0, -7)), (3.625, (33, 0, -99)), (4.375, (33, 0, -75)), (5.125, (33, 0, -99)),
+                   (6.5, (-2, 0, -7))],
+        "head": [(0, (16, 0, -4)), (2.0, (16, 0, -4)), (3.625, (-8, 4, -24)), (5.125, (-8, 4, -24)), (6.5, (16, 0, -4))],
         "torso": [(0, (4, 0, 0)), (3.6, (-2, 0, -6)), (5.2, (-2, 0, -6)), (6.5, (4, 0, 0))],
     }),
-    # Aron weighs the ore in his hand and taps it twice with the hammer.
+    # Aron holds the ore in front of his chest and taps it twice with the hammer: the hammer face meets
+    # the ore's surface exactly at the taps (1.5 s and 2.125 s; poses solved: blender/solve_poses.py).
     "aron": dict(duration=6.0, keys={
-        "upper_l": [(0, (-30, -6, -16)), (3.0, (-32, -6, -16)), (4.4, (-44, -8, -8)), (6, (-30, -6, -16))],
-        "fore_l": [(0, (-76, 0, 0)), (1.5, (-72, 0, 0)), (1.7, (-68, 0, 0)), (2.1, (-72, 0, 0)), (2.3, (-68, 0, 0)),
-                   (3.0, (-76, 0, 0)), (4.4, (-90, 0, 0)), (6, (-76, 0, 0))],
-        "upper_r": [(0, (-18, 12, 6)), (1.1, (-32, 8, 24)), (1.5, (-24, 4, 30)), (1.9, (-30, 8, 26)), (2.1, (-24, 4, 30)),
-                    (3.0, (-18, 14, 6)), (6, (-18, 12, 6))],
-        "fore_r": [(0, (-54, 0, 0)), (1.1, (-88, 0, 0)), (1.5, (-50, 0, 0)), (1.9, (-84, 0, 0)), (2.1, (-50, 0, 0)),
-                   (3.0, (-56, 0, 0)), (6, (-54, 0, 0))],
-        "head": [(0, (4, 0, 6)), (1.2, (16, 0, -2)), (2.4, (16, 0, -2)), (3.4, (2, 0, 4)), (4.4, (10, -4, 10)),
-                 (5.2, (2, 0, 8)), (6, (4, 0, 6))],
-        "torso": [(0, (0, 0, 0)), (1.2, (5, 0, -2)), (2.4, (5, 0, -2)), (4.4, (0, 0, 4)), (6, (0, 0, 0))],
+        "upper_l": [(0, (10, -8, 1)), (3.0, (10, -8, 1)), (4.375, (6, -8, 1)), (6, (10, -8, 1))],
+        "fore_l": [(0, (-109, 0, -22)), (3.0, (-109, 0, -22)), (4.375, (-118, 0, -22)), (6, (-109, 0, -22))],
+        "hand_l": [(0, (1, 0, -6)), (6, (1, 0, -6))],
+        "upper_r": [(0, (14, 4, 6)), (1.125, (20, 1, 11)), (1.5, (21, 23, 5)), (1.875, (20, 1, 11)), (2.125, (21, 23, 5)),
+                    (3.0, (14, 4, 6)), (6, (14, 4, 6))],
+        "fore_r": [(0, (-58, 0, 6)), (1.125, (-79, 0, 12)), (1.5, (-98, 0, 13)), (1.875, (-79, 0, 12)), (2.125, (-98, 0, 13)),
+                   (3.0, (-58, 0, 6)), (6, (-58, 0, 6))],
+        "hand_r": [(0, (0, 0, 6)), (1.125, (-4, 0, 11)), (1.5, (-12, 0, 34)), (1.875, (-4, 0, 11)), (2.125, (-12, 0, 34)),
+                   (3.0, (0, 0, 6)), (6, (0, 0, 6))],
+        "head": [(0, (14, 0, 4)), (1.2, (22, 0, 2)), (2.4, (22, 0, 2)), (3.4, (10, 0, 4)), (4.4, (16, -4, 8)),
+                 (5.2, (10, 0, 6)), (6, (14, 0, 4))],
+        "torso": [(0, (2, 0, 0)), (1.2, (6, 0, -2)), (2.4, (6, 0, -2)), (4.4, (2, 0, 4)), (6, (2, 0, 0))],
     }),
-    # Esme rests the axe on her shoulder and sights along the folding rule.
+    # Esme rests the axe on her right shoulder (the handle lies on it; pose solved:
+    # blender/solve_poses.py) and sights along the folding rule.
     "esme": dict(duration=8.0, keys={
-        "upper_r": [(0, (-12, 14, 0)), (2, (-16, 16, 0)), (4, (-12, 14, 0)), (6, (-18, 16, 0)), (8, (-12, 14, 0))],
-        "fore_r": [(0, (-108, 0, 0)), (2, (-102, 0, 0)), (4, (-108, 0, 0)), (6, (-100, 0, 0)), (8, (-108, 0, 0))],
+        "upper_r": [(0, (-26, 20, 14)), (2, (-27, 20, 14)), (4, (-26, 20, 14)), (6, (-27, 21, 14)), (8, (-26, 20, 14))],
+        "fore_r": [(0, (-134, 0, 3)), (4, (-133, 0, 3)), (8, (-134, 0, 3))],
+        "hand_r": [(0, (-19, 0, -13)), (8, (-19, 0, -13))],
         "upper_l": [(0, (-20, -8, 0)), (2.2, (-68, -20, 12)), (3.4, (-68, -30, 26)), (4.6, (-68, -20, 12)),
                     (5.6, (-68, -20, 12)), (8, (-20, -8, 0))],
         "fore_l": [(0, (-54, 0, 0)), (2.2, (-34, 0, 0)), (3.4, (-26, 0, 0)), (4.6, (-34, 0, 0)), (5.6, (-40, 0, 0)),
                    (8, (-54, 0, 0))],
-        "head": [(0, (0, 0, -8)), (2.2, (4, 0, 14)), (3.4, (4, 0, 28)), (4.6, (4, 0, 14)), (5.6, (8, 4, 12)),
-                 (6.8, (-2, 0, -4)), (8, (0, 0, -8))],
+        "head": [(0, (0, 0, -4)), (2.2, (4, 0, 14)), (3.4, (4, 0, 28)), (4.6, (4, 0, 14)), (5.6, (8, 4, 12)),
+                 (6.8, (-2, 0, -2)), (8, (0, 0, -4))],
         "torso": [(0, (0, 0, -2)), (3.4, (2, 0, 6)), (5.6, (2, 0, 4)), (8, (0, 0, -2))],
     }),
 }
@@ -526,8 +542,10 @@ CHANNELS = {
     "head": (("neck01", 0.4), ("head", 0.6)),
     "upper_l": (("upperarm01.L", 1.0),), "fore_l": (("lowerarm01.L", 1.0),),
     "upper_r": (("upperarm01.R", 1.0),), "fore_r": (("lowerarm01.R", 1.0),),
+    "hand_l": (("wrist.L", 1.0),), "hand_r": (("wrist.R", 1.0),),
 }
-ANIMATED = ("spine03", "spine01", "neck01", "head", "upperarm01.L", "lowerarm01.L", "upperarm01.R", "lowerarm01.R")
+ANIMATED = ("spine03", "spine01", "neck01", "head", "upperarm01.L", "lowerarm01.L", "wrist.L", "upperarm01.R",
+            "lowerarm01.R", "wrist.R")
 
 
 def _ease(u):
@@ -552,11 +570,12 @@ def _euler(a):
     return H.rot((0, 0, 1), a[2]) @ H.rot((0, 1, 0), a[1]) @ H.rot((1, 0, 0), a[0])
 
 
-def local_rotations(role, t):
-    """Bone -> 3x3 rotation (figure axes, about the bone head, relative to the parent) at loop time t."""
+def local_rotations(role, t, override=None):
+    """Bone -> 3x3 rotation (figure axes, about the bone head, relative to the parent) at loop time t.
+    override = {channel: angles} replaces channels (used by the pose solver)."""
     out = {}
     for channel, bones in CHANNELS.items():
-        a = loop_angles(role, channel, t)
+        a = (override or {}).get(channel) or loop_angles(role, channel, t)
         for bone, share in bones:
             out[bone] = _euler(tuple(x * share for x in a))
     breathe = 1.2 * math.sin(TAU_LOOP * t / 3.2)                 # slow breathing in the upper chest

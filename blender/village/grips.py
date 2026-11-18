@@ -17,8 +17,8 @@ the regions.
 """
 
 PROFILES = {
-    "herb_bundle": dict(builder="herb_bundle", kind="bundle", tilt=6.0, region=(-0.16, 0.2),
-                        forbidden=[("flowers and leaves", -1.0, -0.22)], palm=True,
+    "herb_bundle": dict(builder="herb_bundle", kind="bundle", tilt=6.0, region=(-0.2, 0.2),
+                        forbidden=[("flowers and leaves", -1.0, -0.28)], palm=True,
                         task="hold the bundle by the tied stems, flowers up; smell it"),
     "basket": dict(builder="basket", kind="hook", tilt=4.0, region=(-0.2, 0.2), forbidden=[], palm=False,
                    task="carry by the bail with the arm down, the basket hangs below the hand"),
@@ -30,13 +30,10 @@ PROFILES = {
     "potion_bottle": dict(builder="potion_bottle", kind="power", tilt=0.0, region=(-0.19, 0.22),
                           forbidden=[("cork", -0.42, -0.33), ("neck", -0.33, -0.23)], palm=True,
                           task="hold the bottle round its body, cork up; polish it, hold it to the light"),
-    # the flask of the first version, measured before the rework: held by the neck, its body (y 0.12 ..
-    # 0.47) hangs below the little finger; the requirement is a grip round the body
-    "vial": dict(builder="vial", kind="power", tilt=6.0, region=(0.12, 0.47), forbidden=[("cork", -0.32, -0.19)], palm=True,
-                 task="(first version) held by the neck"),
-    "cloth": dict(builder="cloth", kind="ball", tilt=4.0, region=(-0.2, 0.2), forbidden=[], palm=True,
+    # a soft cloth has no wrong part: its hanging ends may touch the fingers
+    "cloth": dict(builder="cloth", kind="ball", tilt=4.0, region=(-0.6, 0.6), forbidden=[], palm=True,
                   task="a crumpled cloth in the fist; rub the bottle with it"),
-    "hammer": dict(builder="hammer", kind="power", tilt=14.0, region=(-0.15, 0.42),
+    "hammer": dict(builder="hammer", kind="power", tilt=14.0, region=(-0.58, 0.42),
                    forbidden=[("hammer head", -1.2, -0.6)], palm=True,
                    task="power grip on the handle, head forwards; tap the ore"),
     "ore": dict(builder="ore", kind="ball", tilt=0.0, region=(-0.25, 0.3), forbidden=[], palm=True,
@@ -52,7 +49,7 @@ PROFILES = {
 HELD = {
     "selma": {"R": "herb_bundle", "L": "basket"},
     "nyra": {"R": "crystal", "L": "lantern"},
-    "lio": {"R": "vial", "L": "cloth"},
+    "lio": {"R": "potion_bottle", "L": "cloth"},
     "aron": {"R": "hammer", "L": "ore"},
     "esme": {"R": "axe", "L": "folding_rule"},
 }

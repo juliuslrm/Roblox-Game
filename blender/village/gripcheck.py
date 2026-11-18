@@ -7,8 +7,9 @@ All limits scale with the trader's own hand: t = finger thickness, measured on t
   B penetration  no hand vertex deeper than 0.3 t in the prop (skin gives a little at the joints);
                  the prop never enters the body (other than the holding hand) during the idle loop
   C grip region  the skin touches only the profile's region of the prop, never a forbidden part
-  D joints       finger angles inside the anatomical limits, the wrist close to straight with the
-                 forearm (< 25 degrees), elbow flexion 5 .. 145 degrees, upper arm < 110 degrees up
+  D joints       finger angles inside the anatomical limits; over the loop the wrist bent at most
+                 50 degrees and 25 degrees sideways against the forearm (anatomically about 70 / 30),
+                 elbow flexion 5 .. 145 degrees, upper arm < 110 degrees up
   E stability    the prop does not slide against the fingers during the loop (< 0.1 t)
   F motion       no jump between two samples or over the loop seam, no jitter
 Mandatory (a grip with one of these fails whatever its score): B, C, wrist in D, no contact in A, E.
@@ -52,6 +53,19 @@ def _posed(ch, W, V, rots):
         if nz.any():
             out[nz] += w[nz, None] * (vh[nz] @ mats[b].T)[:, :3]
     return out
+
+
+def wrist_bend(geo, mats, side):
+    """(bend, sideways bend) of the hand against the forearm in degrees (see armik.wrist_bend)."""
+    fore = mats["lowerarm01." + side][:3, :3] @ geo["forearm"]
+    hand = mats["wrist." + side][:3, :3] @ geo["hand"]
+    palm = mats["wrist." + side][:3, :3] @ geo["palm"]
+    palm = palm - np.dot(palm, hand) * hand
+    palm /= np.linalg.norm(palm)
+    side_axis = np.cross(hand, palm)
+    bend = math.degrees(math.atan2(abs(float(np.dot(fore, palm))), float(np.dot(fore, hand))))
+    sideways = math.degrees(math.atan2(abs(float(np.dot(fore, side_axis))), float(np.dot(fore, hand))))
+    return bend, sideways
 
 
 def check_grip(ch, side):
@@ -138,22 +152,26 @@ def check_grip(ch, side):
     over = [(i, k) for i in ang for k in range(3) if ang[i][k] > lim[i][k] + 0.1 or ang[i][k] < -25]
     if over:
         problems.append(f"finger joints outside their limits: {over}")
-    wrist = _angle(geo["forearm"], geo["hand"])
-    out["wrist_bend"] = round(wrist, 1)
-    if wrist > 25:
-        mandatory.append(f"wrist bent {wrist:.0f} degrees against the forearm")
     role = ch.role
     duration = C.LOOPS[role]["duration"]
     count = int(round(duration * FPS))
     up, lo, wr = (f"{b}.{side}" for b in ("upperarm01", "lowerarm01", "wrist"))
-    elbow, lift, wrists, frames = [], [], [], []
+    elbow, lift, wrists, frames, bends, sides = [], [], [], [], [], []
     for k in range(count):
         mats = body.bone_matrices(C.local_rotations(role, duration * k / count))
+        b_, s_ = wrist_bend(geo, mats, side)
+        bends.append(b_)
+        sides.append(s_)
         p = {b: (mats[b] @ np.r_[ch.heads[b], 1])[:3] for b in (up, lo, wr)}
         elbow.append(180 - _angle(p[up] - p[lo], p[wr] - p[lo]))
         lift.append(_angle(p[lo] - p[up], (0, 0, -1)))
         wrists.append(p[wr])
         frames.append(mats[wr])
+    wrist = max(bends)
+    out["wrist_bend"] = round(wrist, 1)
+    out["wrist_sideways"] = round(max(sides), 1)
+    if wrist > 50 or max(sides) > 25:
+        mandatory.append(f"wrist bent {wrist:.0f} / sideways {max(sides):.0f} degrees against the forearm (limits 50 / 25)")
     out["elbow_flexion"] = [round(min(elbow), 1), round(max(elbow), 1)]
     out["arm_lift_max"] = round(max(lift), 1)
     if min(elbow) < 5 or max(elbow) > 145:
@@ -201,7 +219,7 @@ def check_grip(ch, side):
     # ---- automated scores
     s_pos = 20 * inside if not any("holds the" in m for m in mandatory) else 0
     s_fing = 14 * float(np.mean(wrapped)) / 3 + (6 if thumb_gap <= touch or "thumb" not in " ".join(problems) else 0)
-    s_arm = 15 - (6 if wrist > 15 else 0) - (9 if wrist > 25 else 0) - 5 * sum("elbow" in p or "upper arm" in p for p in problems)
+    s_arm = 15 - (4 if wrist > 30 else 0) - (11 if wrist > 50 else 0) - 5 * sum("elbow" in p or "upper arm" in p for p in problems)
     s_stab = 15 if drift <= 0.05 * t else (8 if drift <= 0.1 * t else 0)
     s_mot = 15 - 7 * sum("jumps" in p for p in problems)
     out["scores"] = dict(position=round(s_pos, 1), fingers=round(s_fing, 1), wrist_arm=max(0, s_arm), stability=s_stab,

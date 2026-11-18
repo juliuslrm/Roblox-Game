@@ -77,11 +77,11 @@ def herb_bundle(mb, side):
         r = 0.0 if k == 0 else 0.022
         x0, z0 = r * math.cos(a), r * math.sin(a)
         spread = 1.0 + 0.9 * (k > 0)
-        pts = [(x0, 0.17, z0), (x0, 0.0, z0), (x0 * spread, -0.25, z0 * spread), (x0 * spread * 1.6, -0.52, z0 * spread * 1.6)]
+        pts = [(x0, 0.17, z0), (x0, 0.0, z0), (x0 * spread, -0.3, z0 * spread), (x0 * spread * 1.6, -0.58, z0 * spread * 1.6)]
         _tube(mb, pts, [0.011, 0.012, 0.011, 0.007], "leaf_dark" if k % 2 else "pine", n=6)
         for j in range(4):
             t = 0.3 + 0.17 * j
-            stem = Vector((x0 * (1 + 0.9 * t), -0.25 - 0.27 * (t - 0.3) / 0.7 - 0.05 * j, z0 * (1 + 0.9 * t)))
+            stem = Vector((x0 * (1 + 0.9 * t), -0.33 - 0.25 * (t - 0.3) / 0.7 - 0.05 * j, z0 * (1 + 0.9 * t)))
             out = Vector((math.cos(a + j * 2.1), -0.6, math.sin(a + j * 2.1)))
             _leaf(mb, stem, out, 0.13 + 0.03 * (j % 2), 0.045, ("leaf_green", "leaf_lime", "leaf_dark")[(k + j) % 3])
         tip = Vector(pts[-1])
@@ -178,14 +178,6 @@ def lantern(mb, side):
 
 
 # ---------------------------------------------------------------- Lio
-def vial(mb, side):
-    """Round flask held by the neck: the cork above the thumb, the glowing body below the fist."""
-    _along_y(mb, [(0.0, -0.3), (0.05, -0.3), (0.055, -0.26), (0.05, -0.2), (0.0, -0.2)], "wood_pale", segs=12)    # cork
-    _along_y(mb, [(0.0, -0.21), (0.058, -0.205), (0.06, -0.18), (0.046, -0.16), (0.044, 0.06), (0.075, 0.12), (0.14, 0.18),
-                  (0.172, 0.28), (0.165, 0.37), (0.12, 0.44), (0.0, 0.47)], "glass_light", segs=20, grad=(0.45, 1.0))
-    mb.blob(0.15, "glass_lit", pos=(0, 0.3, 0), scale=(1, 0.92, 1), level=2, noise=0.0, smooth=True, grad=(0.55, 1.0))
-
-
 def cloth(mb, side):
     """A crumpled polishing cloth in the fist, its ends hanging out on both sides."""
     mb.blob(0.075, "cloth_white", pos=(0, 0, 0), scale=(0.85, 1.55, 1.05), level=2, noise=0.18, smooth=True, grad=(0.45, 0.95))
@@ -303,3 +295,24 @@ def potion_bottle(mb, side):
                   (0.106, -0.15, g), (0.09, -0.2, g), (0.055, -0.235, g), (0.042, -0.27, g), (0.042, -0.315, g),
                   (0.05, -0.322, g), (0.05, -0.338, c), (0.044, -0.345, c), (0.046, -0.4, c), (0.04, -0.41, c),
                   (0.0, -0.412, c)])
+
+
+CRATE_SPAN = 1.27      # studs between the two handle bars: crate 0.95 wide, room for the fingers behind the bars
+
+
+def crate(mb, side):
+    """Test object for the two-handed grip (not used by a trader): a wooden crate with a vertical
+    handle bar on each side.  Prop space of the right hand: the right bar runs along Y through the
+    origin, the crate lies to the palm side (+X), the left bar at x = CRATE_SPAN."""
+    w, h, d = 0.95, 0.6, 0.7
+    cx = CRATE_SPAN / 2
+    mb.box(w, d, h, "wood_light", pos=(cx, 0, 0), anchor="c", grad=(0.35, 0.75))
+    for sz in (-1, 1):                                   # dark slats
+        mb.box(w + 0.02, d + 0.02, 0.07, "wood_mid", pos=(cx, 0, sz * h * 0.3), anchor="c")
+    # bars along Y (vertical while carried), held off the walls by two short blocks
+    for x, wall in ((0.0, cx - w / 2), (CRATE_SPAN, cx + w / 2)):
+        with mb.at(T(x, 0, 0)):
+            _along_y(mb, [(0.0, -0.22), (0.042, -0.22), (0.045, -0.2), (0.045, 0.2), (0.042, 0.22), (0.0, 0.22)], "iron",
+                     segs=14)
+        for y in (-0.19, 0.19):
+            mb.box(abs(wall - x) + 0.02, 0.06, 0.06, "iron", pos=((x + wall) / 2, y, 0), anchor="c")
