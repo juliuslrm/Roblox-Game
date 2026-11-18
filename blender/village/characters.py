@@ -305,18 +305,40 @@ GRIP_LIMITS = dict(contact=0.025, depth=-0.02)      # studs: every finger near t
 def prepared_body(role):
     """Shaped body in the rest pose with both hands closed around their props.  Returns the body
     (finger and twist bones merged away), the props (MeshBuilder, 4x4 frame) and the grip report."""
-    from . import props as P
+    from . import grips as G
+    from . import handheld as P
     from .meshkit import MeshBuilder
     body = rest_pose(make_body(role))
     held, report = {}, {}
     for side, sx in SIDES:
-        fn, tilt, _along = P.PROPS[role][side]
+        prof = G.profile(role, side)
+        fn = getattr(P, prof["builder"])
         mb = MeshBuilder(seed=len(role) * 7 + (1 if side == "L" else 2))
         fn(mb, sx)
-        frame, rots, rep = grip_prop(body, side, mb, tilt)
+        frame, rots, rep = grip_prop(body, side, mb, prof["tilt"], G.ALONG[prof["kind"]])
         body.apply_pose(rots)
-        held[side] = (fn.__name__, mb, frame)
+        held[side] = (G.HELD[role][side], mb, frame)
         report[side] = rep
+    # remember for the validator what the finger bones were before they are merged into the hand
+    names, W = body.dense_weights()
+    body.part = np.array([names[i] for i in np.argmax(W, axis=1)])
+    body.hand_geometry = {}
+    for side, _sx in SIDES:
+        wrist, elbow = _head(body, "wrist." + side), _head(body, "lowerarm01." + side)
+        bases = [_head(body, f"finger{i}-1.{side}") for i in range(2, 6)]
+        tip = np.asarray(body.bones[f"finger3-3.{side}"][1])
+        links = [f"finger{i}-{j}.{side}" for i in range(2, 6) for j in (1, 2, 3)]
+        radii = []
+        for b in links:
+            h, t = (np.asarray(x) for x in body.bones[b])
+            P_ = body.verts[body.part == b]
+            if len(P_):
+                d = (t - h) / np.linalg.norm(t - h)
+                q = P_ - h
+                radii.append(np.median(np.linalg.norm(q - np.outer(q @ d, d), axis=1)))
+        body.hand_geometry[side] = dict(forearm=_unit(wrist - elbow), hand=_unit(np.mean(bases, axis=0) - wrist),
+                                        length=float(np.linalg.norm(tip - wrist)),
+                                        finger_thickness=float(2 * np.median(radii)))
     merge = [f"finger{i}-{j}.{s}" for s, _ in SIDES for i in range(1, 6) for j in (3, 2, 1)]
     merge += [f"{b}.{s}" for s, _ in SIDES for b in ("lowerarm02", "upperarm02")]
     body.merge_bones(merge)
@@ -615,7 +637,7 @@ def _search_finger(hand, rots, chain, axes, limit, bvh, palm):
     return best[1], best[2], best[0]
 
 
-def grip_prop(body, side, mb, tilt):
+def grip_prop(body, side, mb, tilt, along_tried=GRIP_ALONG):
     """Power grip: for a few positions of the handle in the palm, every finger searches the joint
     angles that wrap the most links around the handle without pressing into it or into the palm;
     the position with the best wrap wins, then the thumb closes over it.
@@ -624,7 +646,7 @@ def grip_prop(body, side, mb, tilt):
     palm = _palm_bvh(hand)
     pn = hand_axes(body, side)[4]
     best = None
-    for along in GRIP_ALONG:
+    for along in along_tried:
         frame = place_prop(body, side, mb, tilt, along)
         bvh = prop_bvh(mb, frame)
         rots = open_hand(body, side)
