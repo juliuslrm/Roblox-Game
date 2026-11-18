@@ -112,7 +112,7 @@ Jeder Händler ist ein eigenes Modell-Asset (IDs in `roblox/VillageAssetIds.lua`
 `ArcaneMarketAssets`). Beim Serverstart wird es nach `ServerStorage.ArcaneMarketAssets` geladen.
 Fehlt ein Rig, erscheint eine einfache Ersatzfigur.
 
-Im Place gemessen (Version 30, `scripts/roblox_verify_server.py`):
+Im Place gemessen (Version 31, `scripts/roblox_verify_server.py`):
 - Je Händler 9 Meshes, alle skinned und texturiert, und 26 Knochen. Die Füße stehen auf dem Boden.
 - Höhen 6,41–6,76 Studs, Gesamtdreiecke 88 000–100 000 je Figur.
 - Der Server stellt die Schleife mit derselben Formel wie der Client für mehrere Zeitpunkte nach.
