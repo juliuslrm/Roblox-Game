@@ -6,8 +6,8 @@ things it holds, bound to one reduced skeleton.  The build order is:
     body = make_body(role)        shape (gender, age, muscle, weight, race mix) and height
     rest_pose(body)               arms hanging, elbows slightly bent, hands turned so that the
                                   knuckle line runs front to back (thumb in front)
-    grips = close_hands(body)     fingers close around the handle of every held thing until they
-                                  touch it; the result is baked into the rest pose
+    grip_prop(body, side, ...)    every finger wraps the handle of the held thing (joint angles
+                                  searched for the best wrap); baked into the rest pose
     ...                           clothes, hair, face, props (later modules)
 
 Figure space: Z up, the figure faces -Y, its left side is +X, ground at z = 0, 1 unit = 1 stud.
@@ -112,7 +112,6 @@ def rest_pose(body, upper_out=6.0, upper_fwd=4.0, elbow=10.0, shoulder_drop=4.0,
 
 
 # ---------------------------------------------------------------- holding things
-FINGER_RATIO = (1.0, 1.2, 0.9)          # how the three joints of a finger close together
 FINGER_LIMIT = (95.0, 110.0, 85.0)      # degrees
 THUMB_RATIO = (0.55, 1.0, 1.0)
 THUMB_LIMIT = (50.0, 65.0, 75.0)
@@ -265,9 +264,10 @@ def open_hand(body, side):
 
 
 def _close(hand, rots, chain, axes, ratio, limit, bvh, start=(0.0, 0.0, 0.0)):
-    """Closes one finger (three bones) from `start` until every link rests on the prop."""
+    """Closes one finger around the prop like a real power grip: the base joint folds the first link
+    onto the handle, then the middle joint wraps the middle link over it, then the tip joint.  A joint
+    stops when it would press any link from its own outwards deeper into the prop than allowed."""
     angles = list(start)
-    frozen = [False, False, False]
     links = [hand.link(b) for b in chain]
     # the flesh in the crease of a joint gives way: vertices close to the joint of their link may
     # press deeper into the handle than the pads
@@ -276,67 +276,26 @@ def _close(hand, rots, chain, axes, ratio, limit, bvh, start=(0.0, 0.0, 0.0)):
         h, t = (np.asarray(x) for x in hand.body.bones[b])
         dist = np.linalg.norm(hand.rest[link] - h, axis=1) / max(1e-6, np.linalg.norm(t - h))
         tolerance.append(PENETRATION + CREASE * np.clip(1 - dist / 0.5, 0, 1))
-    local = dict(rots)
-    for b, ax, a in zip(chain, axes, angles):
-        local[b] = H.rot(ax, a)
-    pts = hand.posed(local)
-    base = [float((signed_distance(bvh, pts[link]) + tol).min()) if link.any() else 0.0
-            for link, tol in zip(links, tolerance)]
-    for _ in range(400):
-        if all(frozen):
-            break
-        while True:
-            trial = [a if f else min(lim, a + STEP * r) for a, f, r, lim in zip(angles, frozen, ratio, limit)]
-            for j in range(3):
-                if trial[j] >= limit[j]:
-                    frozen[j] = True
-            local = dict(rots)
-            for b, ax, a in zip(chain, axes, trial):
-                local[b] = H.rot(ax, a)
-            pts = hand.posed(local)
-            hit = None
-            for k in range(3):
-                if not links[k].any():
-                    continue
-                depth = signed_distance(bvh, pts[links[k]]) + tolerance[k]
-                # a link stops when it presses into the prop deeper than it already did (a cloth
-                # corner may touch a finger from the start)
-                if depth.min() < min(0.0, base[k]) - 1e-4:
-                    hit = k
-                    break
-            if hit is None:
-                angles = trial
+
+    def depths(ang):
+        local = dict(rots)
+        for b, ax, a in zip(chain, axes, ang):
+            local[b] = H.rot(ax, a)
+        pts = hand.posed(local)
+        return [float((signed_distance(bvh, pts[link]) + tol).min()) if link.any() else 1.0
+                for link, tol in zip(links, tolerance)]
+    base = depths(angles)               # a cloth corner may touch a finger from the start
+    for j in range(3):
+        while angles[j] < limit[j]:
+            trial = list(angles)
+            trial[j] = min(limit[j], angles[j] + STEP * ratio[j])
+            d = depths(trial)
+            if any(d[k] < min(0.0, base[k]) - 1e-4 for k in range(j, 3)):
                 break
-            first_free = frozen.index(False)
-            for j in range(max(hit, first_free) + 1):
-                frozen[j] = True
-            if all(frozen):
-                break
+            angles = trial
     for b, ax, a in zip(chain, axes, angles):
         rots[b] = H.rot(ax, a)
     return angles
-
-
-def close_hand(body, side, mb, frame):
-    """Finger rotations (bone -> 3x3) that close the hand around the prop placed at `frame`, plus
-    the contact report: per finger the closing angles, the gap of its tip link and the deepest
-    penetration of any of its links."""
-    hand = Hand(body, side)
-    bvh = prop_bvh(mb, frame)
-    pn = hand_axes(body, side)[4]
-    axis_point, axis_dir = frame[:3, 3], frame[:3, 1]
-    rots, report = open_hand(body, side), {}
-    for i in (2, 3, 4, 5, 1):
-        chain = [f"finger{i}-{j}.{side}" for j in (1, 2, 3)]
-        axes = _finger_axes(body, side, i, pn, axis_point, axis_dir)
-        ratio, limit = (THUMB_RATIO, THUMB_LIMIT) if i == 1 else (FINGER_RATIO, FINGER_LIMIT)
-        start = THUMB_OPEN if i == 1 else OPEN
-        angles = _close(hand, rots, chain, axes, ratio, limit, bvh, start)
-        pts = hand.posed(rots)
-        tip = signed_distance(bvh, pts[hand.link(chain[2])]).min() if hand.link(chain[2]).any() else 1.0
-        deep = min(signed_distance(bvh, pts[hand.link(b)]).min() for b in chain if hand.link(b).any())
-        report[i] = dict(angles=[round(a, 1) for a in angles], tip_gap=round(float(tip), 4), deepest=round(float(deep), 4))
-    return rots, report
 
 
 # ---------------------------------------------------------------- assembly
@@ -351,11 +310,10 @@ def prepared_body(role):
     body = rest_pose(make_body(role))
     held, report = {}, {}
     for side, sx in SIDES:
-        fn, tilt, along = P.PROPS[role][side]
+        fn, tilt, _along = P.PROPS[role][side]
         mb = MeshBuilder(seed=len(role) * 7 + (1 if side == "L" else 2))
         fn(mb, sx)
-        frame = place_prop(body, side, mb, tilt, along)
-        rots, rep = close_hand(body, side, mb, frame)
+        frame, rots, rep = grip_prop(body, side, mb, tilt)
         body.apply_pose(rots)
         held[side] = (fn.__name__, mb, frame)
         report[side] = rep
@@ -369,6 +327,10 @@ def grip_problems(report):
     out = []
     for side, fingers in report.items():
         for i, r in fingers.items():
+            if i == "fit":
+                continue
+            if i != 1 and r.get("touching", 3) < 2:        # wrapped: at least two links of a finger on the handle
+                out.append(f"hand {side} finger {i}: only {r.get('touching')} of 3 links on the prop")
             if min(r["tip_gap"], r["deepest"]) > GRIP_LIMITS["contact"]:
                 out.append(f"hand {side} finger {i}: {min(r['tip_gap'], r['deepest']):.3f} studs from the prop")
             if r["deepest"] < GRIP_LIMITS["depth"]:
@@ -577,3 +539,115 @@ def local_rotations(role, t):
 
 
 TAU_LOOP = 2 * math.pi
+
+
+# ---------------------------------------------------------------- power grip by search
+GRIP_ALONG = (-0.01, 0.025, 0.06, 0.095)   # handle positions tried: from the knuckle line towards the wrist
+LINK_WEIGHT = (1.0, 1.5, 2.0)              # a wrapped middle and tip link count more than the base link
+TOUCH = 0.012                              # studs: a link this close to the prop touches it
+
+
+def _palm_bvh(hand):
+    """Surface of the palm (vertices that follow the wrist only), for finger tips that must not
+    sink into their own palm."""
+    from mathutils.bvhtree import BVHTree
+    body, side = hand.body, hand.side
+    palm = set(hand.idx[hand.dominant == "wrist." + side].tolist())
+    faces = [list(f) for i in body.face_ids("body") for f in [body.faces[i]] if all(v in palm for v in f)]
+    return BVHTree.FromPolygons([Vector(v) for v in body.verts], faces, all_triangles=False)
+
+
+def _finger_state(hand, rots, chain, axes, ang, bvh, palm, tolerance, links):
+    local = dict(rots)
+    for b, ax, a in zip(chain, axes, ang):
+        local[b] = H.rot(ax, a)
+    pts = hand.posed(local)
+    gaps, ok = [], True
+    for k, (link, tol) in enumerate(zip(links, tolerance)):
+        if not link.any():
+            gaps.append(1.0)
+            continue
+        d = signed_distance(bvh, pts[link])
+        if (d < -tol).any():
+            ok = False
+        gaps.append(float(d.min()))
+        if k > 0 and ok and (signed_distance(palm, pts[link][::3]) < -0.004).any():
+            ok = False                                          # finger sinks into its own palm
+    return ok, gaps
+
+
+def _search_finger(hand, rots, chain, axes, limit, bvh, palm):
+    links = [hand.link(b) for b in chain]
+    tolerance = []
+    for b, link in zip(chain, links):
+        h, t = (np.asarray(x) for x in hand.body.bones[b])
+        dist = np.linalg.norm(hand.rest[link] - h, axis=1) / max(1e-6, np.linalg.norm(t - h))
+        tolerance.append(PENETRATION + CREASE * np.clip(1 - dist / 0.5, 0, 1))
+
+    def score(ang):
+        ok, gaps = _finger_state(hand, rots, chain, axes, ang, bvh, palm, tolerance, links)
+        if not ok:
+            return None, gaps
+        s = sum(w for g, w in zip(gaps, LINK_WEIGHT) if g < TOUCH)
+        s -= 2.0 * min(0.3, max(0.0, min(gaps) - TOUCH))           # pulls a loose finger towards the prop
+        return s + 0.001 * sum(ang), gaps
+    best = (None, None, None)
+    grid = [np.arange(0.0, lim + 0.1, 15.0) for lim in limit]
+    for a1 in grid[0]:
+        for a2 in grid[1]:
+            for a3 in grid[2]:
+                sc_, gaps = score((a1, a2, a3))
+                if sc_ is not None and (best[0] is None or sc_ > best[0]):
+                    best = (sc_, (a1, a2, a3), gaps)
+    if best[1] is None:
+        return (0.0, 0.0, 0.0), [1.0, 1.0, 1.0], 0.0
+    step = 5.0
+    for _ in range(3):                                           # refine around the best cell
+        cur = best[1]
+        for d1 in (-step, 0, step):
+            for d2 in (-step, 0, step):
+                for d3 in (-step, 0, step):
+                    ang = tuple(min(lim, max(0.0, c + d)) for c, d, lim in zip(cur, (d1, d2, d3), limit))
+                    sc_, gaps = score(ang)
+                    if sc_ is not None and sc_ > best[0]:
+                        best = (sc_, ang, gaps)
+        step /= 2
+    return best[1], best[2], best[0]
+
+
+def grip_prop(body, side, mb, tilt):
+    """Power grip: for a few positions of the handle in the palm, every finger searches the joint
+    angles that wrap the most links around the handle without pressing into it or into the palm;
+    the position with the best wrap wins, then the thumb closes over it.
+    -> (prop frame 4x4, finger rotations, report)."""
+    hand = Hand(body, side)
+    palm = _palm_bvh(hand)
+    pn = hand_axes(body, side)[4]
+    best = None
+    for along in GRIP_ALONG:
+        frame = place_prop(body, side, mb, tilt, along)
+        bvh = prop_bvh(mb, frame)
+        rots = open_hand(body, side)
+        total, rep = 0.0, {}
+        for i in (2, 3, 4, 5):
+            chain = [f"finger{i}-{j}.{side}" for j in (1, 2, 3)]
+            axes = _finger_axes(body, side, i, pn)
+            ang, gaps, sc_ = _search_finger(hand, rots, chain, axes, FINGER_LIMIT, bvh, palm)
+            for b, ax, a in zip(chain, axes, ang):
+                rots[b] = H.rot(ax, a)
+            total += sc_
+            rep[i] = dict(angles=[round(float(a), 1) for a in ang], tip_gap=round(gaps[-1], 4), deepest=round(min(gaps), 4),
+                          touching=sum(g < TOUCH for g in gaps))
+        if best is None or total > best[0]:
+            best = (total, along, frame, bvh, rots, rep)
+    total, along, frame, bvh, rots, report = best
+    # thumb: closes over the handle from the other side, base to tip
+    chain = [f"finger1-{j}.{side}" for j in (1, 2, 3)]
+    axes = _finger_axes(body, side, 1, pn, frame[:3, 3], frame[:3, 1])
+    ang = _close(hand, rots, chain, axes, THUMB_RATIO, THUMB_LIMIT, bvh, THUMB_OPEN)
+    pts = hand.posed(rots)
+    gaps = [float(signed_distance(bvh, pts[hand.link(b)]).min()) for b in chain if hand.link(b).any()]
+    report[1] = dict(angles=[round(a, 1) for a in ang], tip_gap=round(gaps[-1], 4), deepest=round(min(gaps), 4),
+                     touching=sum(g < TOUCH for g in gaps))
+    report["fit"] = dict(along=along, score=round(total, 2))
+    return frame, rots, report

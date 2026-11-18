@@ -7,7 +7,7 @@ open (+Z towards the wrist), X = Y x Z.  With the forearm held forwards and the 
 up and +Y down.  Things carried on a bail (basket, lantern) hang along -Z below the fist: they are
 carried with the arm down (a bail held in a raised fist could not hang straight).
 
-Every prop is a closed solid: the grip solver (characters.close_hand) measures the signed distance of
+Every prop is a closed solid: the grip solver (characters.grip_prop) measures the signed distance of
 the finger skin to this very geometry.
 """
 import math

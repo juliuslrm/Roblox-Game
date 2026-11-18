@@ -52,12 +52,14 @@ Die Händler sind keine Gliederfiguren mehr, sondern realistische Menschen mit v
   (Geschlecht, Alter, Muskeln, Gewicht, Herkunft) je Figur: Selma (≈ 40 J.), Nyra (≈ 60 J., schlank),
   Lio (≈ 22 J.), Aron (≈ 43 J., kräftig), Esme (≈ 33 J., sportlich). Ruhepose: Arme hängend,
   Ellbogen leicht gebeugt, Schultern entspannt, Füße zusammen.
-- **Halten der Werkzeuge:** Jedes Werkzeug ist in echter Größe gebaut (1 Stud = 0,27 m) und liegt
-  wie bei einem Kraftgriff in der Handfläche, der Stiel leicht schräg. Die Finger schließen sich
-  Gelenk für Gelenk, bis sie die tatsächliche Werkzeuggeometrie berühren (Abstandsmessung gegen das
-  Modell, Daumen von der Gegenseite). Der Build prüft: jeder Finger höchstens 0,025 Studs
-  (≈ 7 mm) vom Werkzeug entfernt und nirgends tiefer als 0,02 Studs darin. Korb und Laterne hängen
-  an einem breiten Bügel senkrecht unter der Faust; die Arme, die sie tragen, bleiben unten.
+- **Halten der Werkzeuge:** Jedes Werkzeug ist in echter Größe gebaut (1 Stud = 0,27 m). Für vier
+  Lagen des Griffs in der Handfläche sucht jeder Finger die Winkel seiner drei Gelenke, bei denen
+  möglichst viele seiner Glieder den Griff berühren (Mittel- und Endglied zählen mehr). Ausgeschlossen
+  sind Stellungen, in denen ein Glied in den Griff oder in die eigene Handfläche eindringt. Die Lage
+  mit der besten Umschließung gewinnt; danach schließt der Daumen von der Gegenseite. Gemessen wird
+  gegen die tatsächliche Werkzeuggeometrie. Der Build prüft: Jeder Finger berührt den Griff mit
+  mindestens zwei Gliedern und steckt nirgends tiefer als 0,02 Studs darin. Korb und Laterne hängen
+  an einem Bügel senkrecht unter der Hand (Hakengriff); die Arme, die sie tragen, bleiben unten.
 - **Kleidung:** Anliegende Teile (Hemden, Kleider, Hosen, Westen, Latz) sind die Körperoberfläche,
   nach außen versetzt, mit Falten an Ellbogen, Knien und Taille, Saumdicke und glatten Schnittkanten.
   Stoff überbrückt Mulden und fällt vom breitesten Punkt (z. B. der Brust) nach unten. Röcke,
