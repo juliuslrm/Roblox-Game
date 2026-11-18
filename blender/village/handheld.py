@@ -262,3 +262,44 @@ def folding_rule(mb, side):
             leg("wood_pale")
             with mb.at(T(0, -0.62, 0), R("X", 140)):
                 leg("wood_pale")
+
+
+def _lathe_y(mb, profile, segs=24, smooth=True):
+    """Closed solid of revolution about +Y with a colour per band: profile = [(radius, y, colour), ...],
+    the colour of an entry applies to the band from it to the next entry."""
+    verts, rows = [], []
+    for r, y, _c in profile:
+        if r < 1e-6:
+            verts.append((0.0, y, 0.0))
+            rows.append([len(verts) - 1])
+        else:
+            row = []
+            for k in range(segs):
+                a = TAU * k / segs
+                verts.append((r * math.cos(a), y, r * math.sin(a)))
+                row.append(len(verts) - 1)
+            rows.append(row)
+    faces, colors = [], []
+    for (a, b), (_r, _y, col) in zip(zip(rows, rows[1:]), profile):
+        for k in range(segs):
+            k2 = (k + 1) % segs
+            if len(a) == 1:
+                faces.append((a[0], b[k2], b[k]))
+            elif len(b) == 1:
+                faces.append((a[k], a[k2], b[0]))
+            else:
+                faces.append((a[k], a[k2], b[k2], b[k]))
+            colors.append(col)
+    mb.add(verts, faces, profile[0][2], smooth=smooth, closed=True, fcolor=colors, grad=(0.45, 1.0))
+
+
+def potion_bottle(mb, side):
+    """Alchemist's bottle (real size: body 6 cm across, 11 cm high; whole bottle 18 cm), gripped round
+    its body: the origin is the middle of the body, the cork points to the thumb side (-Y), so it is
+    up whenever the hand holds the bottle in front of the body.  One closed glass surface; the potion
+    is the colour of its lower bands (no inner surface that would confuse the contact test)."""
+    g, p, c = "glass_light", "glass_lit", "wood_pale"
+    _lathe_y(mb, [(0.0, 0.215, p), (0.075, 0.214, p), (0.1, 0.2, p), (0.108, 0.17, p), (0.108, 0.0, p), (0.108, -0.06, g),
+                  (0.106, -0.15, g), (0.09, -0.2, g), (0.055, -0.235, g), (0.042, -0.27, g), (0.042, -0.315, g),
+                  (0.05, -0.322, g), (0.05, -0.338, c), (0.044, -0.345, c), (0.046, -0.4, c), (0.04, -0.41, c),
+                  (0.0, -0.412, c)])

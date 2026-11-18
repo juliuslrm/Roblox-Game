@@ -326,7 +326,8 @@ def prepared_body(role):
     for side, _sx in SIDES:
         wrist, elbow = _head(body, "wrist." + side), _head(body, "lowerarm01." + side)
         bases = [_head(body, f"finger{i}-1.{side}") for i in range(2, 6)]
-        tip = np.asarray(body.bones[f"finger3-3.{side}"][1])
+        chain3 = [body.bones[f"finger3-{j}.{side}"] for j in (1, 2, 3)]
+        length = float(np.linalg.norm(bases[1] - wrist) + sum(np.linalg.norm(np.asarray(t) - np.asarray(h)) for h, t in chain3))
         links = [f"finger{i}-{j}.{side}" for i in range(2, 6) for j in (1, 2, 3)]
         radii = []
         for b in links:
@@ -337,7 +338,7 @@ def prepared_body(role):
                 q = P_ - h
                 radii.append(np.median(np.linalg.norm(q - np.outer(q @ d, d), axis=1)))
         body.hand_geometry[side] = dict(forearm=_unit(wrist - elbow), hand=_unit(np.mean(bases, axis=0) - wrist),
-                                        length=float(np.linalg.norm(tip - wrist)),
+                                        length=length,
                                         finger_thickness=float(2 * np.median(radii)))
     merge = [f"finger{i}-{j}.{s}" for s, _ in SIDES for i in range(1, 6) for j in (3, 2, 1)]
     merge += [f"{b}.{s}" for s, _ in SIDES for b in ("lowerarm02", "upperarm02")]
@@ -372,6 +373,7 @@ class Character:
         self.tails = {b: np.asarray(body.bones[b][1]) for b in self.bones}
         self.pieces = pieces
         self.report = report
+        self.held = {}                  # side -> (profile id, MeshBuilder in prop space, prop frame 4x4)
 
 
 def _skin_colors(anat, head, role):
@@ -442,7 +444,9 @@ def build(role, seed=None):
     pieces.insert(0, skin)
     for side, (name, mb, frame) in held.items():
         pieces.append(_prop_piece(anat, side, name, mb, frame))
-    return Character(role, body, pieces, report)
+    ch = Character(role, body, pieces, report)
+    ch.held = held
+    return ch
 
 
 # ---------------------------------------------------------------- idle loops

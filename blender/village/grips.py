@@ -27,8 +27,8 @@ PROFILES = {
                     task="hold the crystal by its body, the point free; turn it in the light"),
     "lantern": dict(builder="lantern", kind="hook", tilt=4.0, region=(-0.3, 0.3), forbidden=[], palm=False,
                     task="carry by the bail with the arm down, the lantern hangs below the hand"),
-    "potion_bottle": dict(builder="potion_bottle", kind="power", tilt=0.0, region=(-0.2, 0.2),
-                          forbidden=[("cork", -0.42, -0.3)], palm=True,
+    "potion_bottle": dict(builder="potion_bottle", kind="power", tilt=0.0, region=(-0.19, 0.22),
+                          forbidden=[("cork", -0.42, -0.33), ("neck", -0.33, -0.23)], palm=True,
                           task="hold the bottle round its body, cork up; polish it, hold it to the light"),
     # the flask of the first version, measured before the rework: held by the neck, its body (y 0.12 ..
     # 0.47) hangs below the little finger; the requirement is a grip round the body
