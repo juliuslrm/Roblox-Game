@@ -307,3 +307,15 @@ Offen:
 - Sichtprüfung der Hautverformung und der Animation auf einem Gerät. Headless lässt sich das nicht
   rendern.
 
+## Nachtrag 2026-11-18 (2): Griffe und Armhaltungen der Händler
+
+Griffe, Armhaltungen und Werkzeuggebrauch sind neu gelöst und gemessen (`docs/GRIP_DIAGNOSIS.md`,
+`docs/GRIP_VALIDATION_REPORT.md`). Place-Version 32 ist veröffentlicht und per Open-Cloud-Ausführung
+geprüft: alle fünf Rigs laden, Serverstart fehlerfrei, die Handgelenke liegen im Posen-Nachbau
+höchstens 0,0005 Studs neben Blender.
+
+Weiter UNVERIFIED_IN_STUDIO:
+- Wie die Haut an den jetzt bewegten Handgelenken in Roblox verformt aussieht (Roblox rechnet die
+  Verformung nur beim Rendern; Blender verwendet dieselben Gewichte, aber nicht denselben Renderer).
+- Die Finger sind beim Bauen gegriffen und fest eingebacken; in Roblox gibt es keine Fingerknochen.
+

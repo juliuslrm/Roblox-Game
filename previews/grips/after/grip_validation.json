@@ -645,18 +645,18 @@
     0.138
    ],
    "region_share": 1.0,
-   "wrist_bend": 5.4,
-   "wrist_sideways": 23.0,
-   "wrist_twist": 18.5,
-   "forearm_rotation": 21.6,
+   "wrist_bend": 5.3,
+   "wrist_sideways": 21.7,
+   "wrist_twist": 18.2,
+   "forearm_rotation": 15.7,
    "elbow_flexion": [
     36.2,
-    127.5
+    121.7
    ],
-   "arm_lift_max": 83.8,
+   "arm_lift_max": 73.3,
    "slide": 0.0,
-   "hand_step_max": 0.247,
-   "hand_turn_max_deg": 8.8,
+   "hand_step_max": 0.195,
+   "hand_turn_max_deg": 8.2,
    "seam_step": 0.03,
    "jerk_max": 0.293,
    "scores": {
@@ -670,8 +670,8 @@
    "mandatory": [],
    "role": "aron",
    "side": "R",
-   "body_clearance": -0.0313,
-   "body_clearance_time": 3.25,
+   "body_clearance": -0.0252,
+   "body_clearance_time": 1.0,
    "sheet": "/home/user/Roblox-Game/previews/grips/after/aron_R_hammer.png"
   },
   {
@@ -849,12 +849,28 @@
     "closest": 0.0043,
     "taps": [
      [
+      0.69,
+      0.0764
+     ],
+     [
+      0.75,
+      0.0674
+     ],
+     [
       1.75,
       0.0043
      ],
      [
       2.62,
       0.0043
+     ],
+     [
+      3.5,
+      0.0674
+     ],
+     [
+      3.56,
+      0.0764
      ]
     ]
    }

@@ -72,11 +72,28 @@ Die Händler sind keine Gliederfiguren mehr, sondern realistische Menschen mit v
   Federhut.
 - **Texturen:** Jedes Mesh hat eine eigene, in Blender gebackene Textur: Farbe mal Struktur (Gewebe,
   Leder, Filz, Hautporen, Haarsträhnen) mal Umgebungsverdeckung (Ambient Occlusion).
+- **Griffprofile** (`blender/village/grips.py`): Je Gegenstand Grifftyp (Kraft-, Haken-, Bündel-,
+  Kugel-, Spitzgriff), erlaubter Griffbereich und verbotene Teile (Korken und Hals der Flasche,
+  Hammer- und Axtkopf, Kristallspitze, Blüten). Die Flasche wird am Körper gehalten, der Korken
+  zeigt zur Daumenseite und steht damit oben.
 - **Bewegungsschleifen** (6–8 s, geschlossen): Selma riecht an den Kräutern und legt sie Richtung
-  Korb; Nyra hält den Kristall ins Laternenlicht und dreht ihn; Lio poliert die Flasche und hält sie
-  gegen das Licht; Aron wiegt das Erz und klopft zweimal mit dem Hammer darauf; Esme trägt die Axt
-  auf der Schulter und peilt am Zollstock entlang. Alle atmen leicht. Bewegt werden Wirbelsäule,
-  Hals, Kopf, Ober- und Unterarme; die Haut verformt sich an den Gelenken weich mit.
+  Korb; Nyra hält den Kristall vor die Brust und dreht ihn; Lio poliert die Flasche vor dem Bauch
+  und hält sie seitlich auf Augenhöhe gegen das Licht; Aron hält das Erz vor dem Bauch und trifft es
+  zweimal mit der Hammerfläche; Esme trägt die Axt mit dem Stiel auf der rechten Schulter und peilt am
+  Zollstock entlang. Bewegt werden Wirbelsäule, Hals, Kopf, Ober- und Unterarme und die
+  Handgelenke.
+- **Armhaltungen per IK** (`blender/solve_poses.py`, `blender/village/armik.py`): Die Armwinkel
+  der Haltungen mit Gegenstand sind nicht geschätzt, sondern gelöst: Zielposition des Gegenstands,
+  Gelenkgrenzen, Abstand zum Körper, Handgelenk höchstens 45° gebeugt / 20° seitlich / 20° in sich
+  verdreht, Unterarmdrehung höchstens 80°. Drehen eines Gegenstands in der Hand ist eine gelöste
+  Unterarmdrehung (ein Schlüssel auf einem Euler-Kanal würde den gebeugten Unterarm seitlich
+  schwenken). Arons Schlag ist ein Pfad aus acht gelösten Haltungen entlang der Schlaglinie, eine je
+  Animationsbild, damit der Kopf nie durch das Erz fährt. Ergebnis: `world/solved_poses.json`.
+- **Griffprüfung:** `blender/validate_grips.py` misst jeden Griff über die ganze Schleife (Kontakt,
+  Durchdringung, Griffbereich, Gelenke, Verrutschen, Sprünge), rendert je Griff 14 Ansichten nach
+  `previews/grips/after/` und schreibt `docs/GRIP_VALIDATION_REPORT.md`. Der schnelle Teil
+  (Profile, geschlossene Schleifen, Handgelenkgrenzen) läuft in `scripts/check_all.sh`
+  (`tests/test_grip_profiles.py`). Diagnose des alten Zustands: `docs/GRIP_DIAGNOSIS.md`.
 
 ## Dateien und Aufbau
 
@@ -84,14 +101,16 @@ Die Händler sind keine Gliederfiguren mehr, sondern realistische Menschen mit v
   Linear Blend Skinning.
 - `blender/village/characters.py`: Figuren je Händler, Ruhepose, Greif-Löser, Montage und
   Bewegungsschleifen.
-- `blender/village/props.py`: Werkzeuge in echter Größe.
+- `blender/village/handheld.py`: Werkzeuge in echter Größe (`props.py` enthält die Dorf-Requisiten).
+- `blender/village/grips.py`, `gripcheck.py`, `armik.py`: Griffprofile, Griffmessung, Arm-IK.
 - `blender/village/wardrobe.py`, `outfits.py`: Kleidungstechnik und die Outfits.
 - `blender/village/heads.py`, `looks.py`: Augen, Haare, Bärte, Hüte, Kapuze, Brille.
 - `blender/build_characters.py` baut alles, backt die Texturen, prüft und schreibt:
   - `exports/library/trader_<rolle>.fbx`: Rig, Meshes und Texturen, je ein Roblox-Asset.
   - `exports/textures/traders/*.png`.
   - `roblox/gameplay/server/TraderArt.lua`: Meshes, Höhe und Referenzposen.
-  - `roblox/gameplay/shared/MarketMotion.lua`: lokale Knochenrotationen, 8 Bilder pro Sekunde.
+  - `roblox/gameplay/shared/MarketMotion.lua`: lokale Knochenrotationen (10 Knochen inkl.
+    Handgelenke), 8 Bilder pro Sekunde.
   - `previews/market/01-haendler.png`, `02-bewegung.png`, `03-haende.png`.
 - `blender/build_merchants.py` baut die Marktstände und prüft den Katalog.
 - `roblox/gameplay/server/MarketWorld.lua` klont das Rig an den Stand und verankert es.
@@ -112,11 +131,12 @@ Jeder Händler ist ein eigenes Modell-Asset (IDs in `roblox/VillageAssetIds.lua`
 `ArcaneMarketAssets`). Beim Serverstart wird es nach `ServerStorage.ArcaneMarketAssets` geladen.
 Fehlt ein Rig, erscheint eine einfache Ersatzfigur.
 
-Im Place gemessen (Version 31, `scripts/roblox_verify_server.py`):
+Im Place gemessen (Version 32, `scripts/roblox_verify_server.py`):
 - Je Händler 9 Meshes, alle skinned und texturiert, und 26 Knochen. Die Füße stehen auf dem Boden.
 - Höhen 6,41–6,76 Studs, Gesamtdreiecke 88 000–100 000 je Figur.
 - Der Server stellt die Schleife mit derselben Formel wie der Client für mehrere Zeitpunkte nach.
-  Die Handgelenke liegen dabei höchstens 0,0005 Studs neben den in Blender berechneten Positionen.
+  Die Handgelenke (jetzt selbst animiert) liegen dabei höchstens 0,0005 Studs neben den in Blender
+  berechneten Positionen.
 
 Nicht gesehen: die laufende Animation und die Hautverformung auf einem echten Gerät. Die
 Hautverformung rechnet Roblox nur beim Rendern, auf dem Server lässt sie sich nicht messen.

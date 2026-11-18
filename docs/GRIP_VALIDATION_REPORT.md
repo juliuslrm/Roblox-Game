@@ -121,9 +121,9 @@ visuelle Wertung stammt aus `docs/grip_reviews.json` und wurde nach Ansicht der 
 - Fingerdicke 0.0663 Studs, Handlänge 0.781 Studs
 - Glieder mit Kontakt (Daumen, Zeige-, Mittel-, Ring-, kleiner Finger): [2, 3, 3, 3, 3], Handfläche -0.0129 Studs
 - Tiefste Durchdringung -0.0129 Studs; Kontakt auf dem Griffbereich: 100% (Kontakt bei y [-0.24, 0.138])
-- Handgelenk gebeugt 5.4° / seitlich 23.0°, in sich verdreht 18.5°, Unterarm gedreht 21.6°, Ellbogen 36.2–127.5°, Oberarm max. 83.8° gehoben
-- Verrutschen in der Schleife: 0.0 Studs; größter Handschritt 0.247 Studs, Drehung 8.8°, Naht 0.03
-- Abstand Gegenstand ↔ Körper in der Schleife: -0.0313 Studs
+- Handgelenk gebeugt 5.3° / seitlich 21.7°, in sich verdreht 18.2°, Unterarm gedreht 15.7°, Ellbogen 36.2–121.7°, Oberarm max. 73.3° gehoben
+- Verrutschen in der Schleife: 0.0 Studs; größter Handschritt 0.195 Studs, Drehung 8.2°, Naht 0.03
+- Abstand Gegenstand ↔ Körper in der Schleife: -0.0252 Studs
 - Probleme: keine; Pflichtverletzungen: keine
 - Visuelle Prüfung: Kraftgriff am Stiel, Schlagfläche trifft das Erz zweimal (Messung 0,004 Studs), ohne zu streifen. Abzug: Im Rückschwung steht der Ellbogen weit seitlich ab und die Hand bleibt tief (kurzer Schwung aus dem Unterarm); in Ruhe hängt der Hammer schräg vor der Schürze.
 - Bogen: `previews/grips/after/aron_R_hammer.png`
@@ -156,7 +156,7 @@ visuelle Wertung stammt aus `docs/grip_reviews.json` und wurde nach Ansicht der 
 
 ## Werkzeuggebrauch (Testfall D)
 
-- aron: Hammerkopf ↔ Erz über die Schleife (32 Proben/s): kleinster Abstand 0.0043 Studs, Treffer (lokale Minima unter 0,15 Studs) bei [[1.75, 0.0043], [2.62, 0.0043]]. Ein Treffer gilt, wenn er 0 ± 0,01 Studs erreicht und der Kopf nie tiefer als 0,01 Studs ins Erz geht.
+- aron: Hammerkopf ↔ Erz über die Schleife (32 Proben/s): kleinster Abstand 0.0043 Studs, Treffer (lokale Minima unter 0,15 Studs) bei [(0.69, 0.0764), (0.75, 0.0674), (1.75, 0.0043), (2.62, 0.0043), (3.5, 0.0674), (3.56, 0.0764)]. Ein Treffer gilt, wenn er 0 ± 0,01 Studs erreicht und der Kopf nie tiefer als 0,01 Studs ins Erz geht.
 
 ## Vorher / nachher (automatische Punkte von 85, Pflichtverletzungen)
 

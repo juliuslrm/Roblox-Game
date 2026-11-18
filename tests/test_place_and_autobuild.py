@@ -318,7 +318,8 @@ def check_market_world():
                     assert(dot > 0.97, role .. " " .. bone .. " jumps")
                     travel = travel + math.abs(r[1]-nxt[1]) + math.abs(r[2]-nxt[2]) + math.abs(r[3]-nxt[3])
                 end
-                assert(travel > 1e-3, role .. " " .. bone .. " never moves")
+                -- a wrist may stay still (a hand that only holds); every other animated bone moves
+                assert(travel > 1e-3 or bone:sub(1, 5) == "wrist", role .. " " .. bone .. " never moves")
             end
             assert(bones >= 8)
             local art = Traders.traders[role]
