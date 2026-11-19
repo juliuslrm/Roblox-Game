@@ -131,12 +131,14 @@ Jeder Händler ist ein eigenes Modell-Asset (IDs in `roblox/VillageAssetIds.lua`
 `ArcaneMarketAssets`). Beim Serverstart wird es nach `ServerStorage.ArcaneMarketAssets` geladen.
 Fehlt ein Rig, erscheint eine einfache Ersatzfigur.
 
-Im Place gemessen (Version 32, `scripts/roblox_verify_server.py`):
-- Je Händler 9 Meshes, alle skinned und texturiert, und 26 Knochen. Die Füße stehen auf dem Boden.
-- Höhen 6,41–6,76 Studs, Gesamtdreiecke 88 000–100 000 je Figur.
-- Der Server stellt die Schleife mit derselben Formel wie der Client für mehrere Zeitpunkte nach.
-  Die Handgelenke (jetzt selbst animiert) liegen dabei höchstens 0,0005 Studs neben den in Blender
-  berechneten Positionen.
+Im Place gemessen (Version 34, `scripts/roblox_verify_server.py`):
+- Je Händler 9–12 Meshes, alle skinned und texturiert, und 73 Knochen (inkl. 16 Gesichts- und 30 Fingerknochen). Die Füße stehen auf dem Boden.
+- Höhen 6,40–6,75 Studs, Gesamtdreiecke 78 000–138 000 je Figur.
+- Der Server stellt die Clips mit `MarketPose` (wie der Client) für mehrere Zeitpunkte nach.
+  Die Handgelenke liegen dabei höchstens 0,0001 Studs neben den in Blender berechneten Positionen.
+
+Überarbeitung 2026-11-19 (Gesichts-Rig, Finger, Clips, Blick, saubere Kleidung): `docs/CHARACTER_OVERHAUL_AUDIT.md`,
+`docs/CHARACTER_RIG_SPEC.md`, `docs/CHARACTER_ANIMATION_SPEC.md`, `docs/CHARACTER_QA_REPORT.md`.
 
 Nicht gesehen: die laufende Animation und die Hautverformung auf einem echten Gerät. Die
 Hautverformung rechnet Roblox nur beim Rendern, auf dem Server lässt sie sich nicht messen.

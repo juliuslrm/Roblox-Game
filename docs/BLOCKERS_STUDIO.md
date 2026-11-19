@@ -319,3 +319,10 @@ Weiter UNVERIFIED_IN_STUDIO:
   Verformung nur beim Rendern; Blender verwendet dieselben Gewichte, aber nicht denselben Renderer).
 - Die Finger sind beim Bauen gegriffen und fest eingebacken; in Roblox gibt es keine Fingerknochen.
 
+## Nachtrag 2026-11-19: Händler mit Gesichts-Rig und Animationszuständen
+
+Place-Version 34, auf dem Server geprüft: 5 Rigs mit 73 Knochen, Posen über `MarketPose` auf 0,0001 Studs
+gleich Blender. Weiter UNVERIFIED_IN_STUDIO: der Client `MarketIdle.client.lua` (Clip-Wechsel, Begrüßen,
+Blick, Augen, Blinzeln, Mimik, Detailstufen), die Hautverformung an Gesicht und Fingern, die Leistung
+(bis 138 000 Dreiecke je Händler). Details und offene Punkte: `docs/CHARACTER_QA_REPORT.md`.
+
