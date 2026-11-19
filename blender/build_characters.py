@@ -180,13 +180,50 @@ def detail_material(kind, image):
     elif kind.startswith("prop"):
         col = multiply(col, span(noise(36.0, 5.0), 0.9, 1.06))
     nt.links.new(col, bsdf.inputs["Base Color"])
+    # surface relief (baked into the normal map): pores, weave, grain, strands - in Roblox the
+    # SurfaceAppearance of the imported mesh carries it (an FBX import with a normal-mapped material
+    # creates ColorMap, NormalMap, RoughnessMap and MetalnessMap; measured with a probe asset)
+    height, strength = RELIEF.get(kind if not kind.startswith("prop") else "prop", (None, 0.0))
+    if height is not None:
+        h = {"noise": lambda a: noise(*a), "wave": lambda a: wave(*a)}[height[0]](height[1:])
+        bump = nt.nodes.new("ShaderNodeBump")
+        bump.inputs["Strength"].default_value = strength
+        bump.inputs["Distance"].default_value = 0.01
+        nt.links.new(h, bump.inputs["Height"])
+        nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    lo, hi = ROUGH.get(kind, ROUGH["prop"] if kind.startswith("prop") else (0.8, 0.8))
+    nt.links.new(span(noise(30.0, 3.0), lo, hi), bsdf.inputs["Roughness"])
+    metal = 1.0 if kind == "metal" else 0.0
+    em = "Emission Color" if "Emission Color" in bsdf.inputs else "Emission"
+    bsdf.inputs[em].default_value = (metal, metal, metal, 1.0)
+    bsdf.inputs["Emission Strength"].default_value = 1.0
     img = nt.nodes.new("ShaderNodeTexImage")
     img.image = image
     nt.nodes.active = img
     return mat
 
 
-def final_material(name, image):
+# relief per surface kind: (texture, its parameters) and bump strength.  The detail must stay coarser
+# than a texel (a 1024 map over a trader is about 0.01 studs per texel): finer bands (a weave at 260 per
+# stud) alias into moire patterns.
+RELIEF = {
+    "skin": (("noise", 220.0, 8.0), 0.14),                # pores
+    "cloth": (("noise", 70.0, 10.0), 0.14),               # weave and fibres
+    "felt": (("noise", 50.0, 6.0), 0.25),
+    "leather": (("noise", 40.0, 10.0, 0.5), 0.4),         # grain
+    "hair": (("wave", 55.0, "Z"), 0.3),                   # strand clumps along the fall of the hair
+    "metal": (("noise", 50.0, 4.0), 0.02),
+    "prop": (("noise", 40.0, 5.0), 0.12),
+}
+# roughness range per surface kind (wet eyes and glass shine, cloth and felt are matt)
+ROUGH = {"skin": (0.42, 0.62), "eye": (0.06, 0.1), "glass": (0.04, 0.08), "cloth": (0.82, 0.95), "felt": (0.88, 0.97),
+         "leather": (0.45, 0.7), "hair": (0.38, 0.6), "metal": (0.25, 0.45), "prop": (0.45, 0.7),
+         "prop_potion_bottle": (0.05, 0.12), "prop_crystal": (0.06, 0.14)}
+
+
+def final_material(name, image, normal=None, rough=None, metal=None):
+    """Base colour, tangent-space normal map, roughness and metalness maps (Principled BSDF): the FBX
+    importer turns these into a SurfaceAppearance."""
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
@@ -195,6 +232,23 @@ def final_material(name, image):
     tex.image = image
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.8
+    if normal is not None:
+        tn = nt.nodes.new("ShaderNodeTexImage")
+        tn.image = normal
+        tn.image.colorspace_settings.name = "Non-Color"
+        nm = nt.nodes.new("ShaderNodeNormalMap")
+        nt.links.new(tn.outputs["Color"], nm.inputs["Color"])
+        nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
+    if rough is not None:
+        tr = nt.nodes.new("ShaderNodeTexImage")
+        tr.image = rough
+        tr.image.colorspace_settings.name = "Non-Color"
+        nt.links.new(tr.outputs["Color"], bsdf.inputs["Roughness"])
+    if metal is not None:
+        tm = nt.nodes.new("ShaderNodeTexImage")
+        tm.image = metal
+        tm.image.colorspace_settings.name = "Non-Color"
+        nt.links.new(tm.outputs["Color"], bsdf.inputs["Metallic"])
     return mat
 
 
@@ -273,7 +327,30 @@ def bake_ao(obj, size, mats):
     return ao
 
 
-def finish_texture(obj, albedo, ao, mats, ao_strength=0.62):
+def bake_maps(obj, size, mats):
+    """Normal (tangent space, from the relief), roughness and, if the mesh has metal, metalness."""
+    out = {}
+    kinds = set(json.loads(obj["kinds"]))
+    jobs = [("normal", size, "NORMAL"), ("rough", size // 2, "ROUGHNESS")]
+    if "metal" in kinds:
+        jobs.append(("metal", size // 4, "EMIT"))
+    for name, px, kind in jobs:
+        img = bpy.data.images.new(f"{obj.name}_{name}", px, px)
+        img.colorspace_settings.name = "Non-Color"
+        for m in mats:
+            m.node_tree.nodes.active.image = img
+        _select(obj)
+        bpy.context.scene.cycles.samples = 1
+        bpy.ops.object.bake(type=kind, margin=6, use_clear=True, normal_space="TANGENT")
+        img.filepath_raw = str(TEX_DIR / f"{obj.name}_{name}.png")
+        img.file_format = "PNG"
+        TEX_DIR.mkdir(parents=True, exist_ok=True)
+        img.save()
+        out[name] = img
+    return out
+
+
+def finish_texture(obj, albedo, ao, mats, maps=None, ao_strength=0.62):
     size = albedo.size[0]
     a = np.array(albedo.pixels[:]).reshape(-1, 4)
     o = np.array(ao.pixels[:]).reshape(-1, 4)
@@ -288,7 +365,8 @@ def finish_texture(obj, albedo, ao, mats, ao_strength=0.62):
     out.file_format = "PNG"
     out.save()
     obj.data.materials.clear()
-    obj.data.materials.append(final_material(obj.name, out))
+    maps = maps or {}
+    obj.data.materials.append(final_material(obj.name, out, maps.get("normal"), maps.get("rough"), maps.get("metal")))
     obj.data.polygons.foreach_set("material_index", [0] * len(obj.data.polygons))
     for m in mats:
         bpy.data.materials.remove(m)
@@ -496,8 +574,9 @@ def build_role(role, tex, problems, art, motion):
     set_pose(ch, objs, all_W, {b: C._euler(a) for b, a in BAKE_POSE.items()})
     aos = [bake_ao(obj, img.size[0], mats) for obj, (img, mats) in zip(objs, baked)]
     set_pose(ch, objs, all_W, None)
-    for obj, (img, mats), ao in zip(objs, baked, aos):
-        finish_texture(obj, img, ao, mats)
+    maps = [bake_maps(obj, img.size[0], mats) for obj, (img, mats) in zip(objs, baked)]
+    for obj, (img, mats), ao, mp in zip(objs, baked, aos, maps):
+        finish_texture(obj, img, ao, mats, mp)
     for obj in objs:
         obj.parent = arm
         mod = obj.modifiers.new("Armature", "ARMATURE")
@@ -626,6 +705,46 @@ def render_hands(rigs, out):
     img.save()
 
 
+def render_faces(rigs, out):
+    """Textured close-ups (final PBR materials) of every face, front and three-quarter, and of the
+    upper body, so normal and roughness maps can be judged."""
+    scene = bpy.context.scene
+    cam = scene.camera
+    cam.data.clip_start = 0.02
+    poses = {"selma": 0.0, "nyra": 0.0, "lio": 0.0, "aron": 0.0, "esme": 0.0}
+    tiles = []
+    for role, (arm, objs, ch) in rigs.items():
+        shown = pose_copy(ch, objs, poses[role], (0, 0, 0))
+        mats = ch.body.bone_matrices(C.local_rotations(role, poses[role]))
+        eyes = [(mats["head"] @ np.r_[ch.body.landmarks["eye." + k], 1])[:3] for k in ("L", "R")]
+        face = (eyes[0] + eyes[1]) / 2 + np.array((0.0, 0.0, -0.1))
+        chest = (mats["spine03"] @ np.r_[ch.heads["spine03"], 1])[:3]
+        for k, (target, az, dist) in enumerate(((face, -90, 1.0), (face, -50, 1.05), (chest, -65, 2.6))):
+            sc.orbit(cam, tuple(target), az, 4, dist)
+            cam.data.lens = 50
+            path = str(ROOT / f"world/_face_{role}_{k}.png")
+            scene.render.resolution_x, scene.render.resolution_y = 512, 512
+            sc.render(scene, path)
+            tiles.append(path)
+        for o, _, _ in shown:
+            bpy.data.objects.remove(o)
+    cols, size = 3, 512
+    rows = len(tiles) // cols
+    sheet = np.zeros((rows * size, cols * size, 4), dtype=np.float32)
+    for k, path in enumerate(tiles):
+        img = bpy.data.images.load(path)
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(size, size, 4)
+        r, c = k // cols, k % cols
+        sheet[(rows - r - 1) * size:(rows - r) * size, c * size:(c + 1) * size] = px
+        bpy.data.images.remove(img)
+        os.remove(path)
+    img = bpy.data.images.new("faces", cols * size, rows * size)
+    img.pixels.foreach_set(sheet.ravel())
+    img.filepath_raw = out
+    img.file_format = "PNG"
+    img.save()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-render", action="store_true")
@@ -675,6 +794,7 @@ def main():
         render_lineup(rigs, str(ROOT / "previews/market/01-haendler.png"))
         render_motion(rigs, str(ROOT / "previews/market/02-bewegung.png"))
         render_hands(rigs, str(ROOT / "previews/market/03-haende.png"))
+        render_faces(rigs, str(ROOT / "previews/market/05-gesichter-pbr.png"))
     for p in problems:
         print("  FAIL", p)
     print(f"trader checks: {len(problems)} problems")

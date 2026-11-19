@@ -1,6 +1,6 @@
 # Händler-Überarbeitung: QA-Bericht
 
-Stand: Place-Version 34 (2026-11-19).
+Stand: Place-Version 35 (2026-11-19).
 
 - **Vorher:** Commit `bb97683` / Place 32.
 - **Bilder:**
@@ -23,6 +23,32 @@ Stand: Place-Version 34 (2026-11-19).
 | Finger | eingebacken, keine Knochen | 30 Fingerknochen, Griff als Ruhepose | Place-Messung: 73 Bones |
 | Animation | 8 Bilder/s, Halt an jedem Schlüssel, eine Schleife, kein Blick | Schlüssel exakt ausgewertet, monoton kubisch; zwei Idle-Clips; Begrüßen; Blick, Augen, Blinzeln, Mimik; Detailstufen | `docs/CHARACTER_ANIMATION_SPEC.md` |
 
+## PBR-Oberflächen (Version 35)
+
+**Probe (gemessen):** Ein FBX, dessen Material Normal-, Rauheits-, Metall- und Alphakarte hat, wird von Roblox beim Upload in eine `SurfaceAppearance` übersetzt:
+
+- `ColorMap`, `NormalMap`, `RoughnessMap` und `MetalnessMap` werden als eigene Bild-Assets angelegt.
+- Ein Material mit Alpha-Anschluss erhält `AlphaMode = Transparency`.
+- Das gilt auch für skinned Meshes.
+- Skripte können die Karten nicht lesen, sie liegen aber im Asset.
+
+**Seitdem backt `build_characters.py` je Mesh zusätzlich:**
+
+| Karte | Inhalt |
+|---|---|
+| Normalkarte | Relief je Material: Hautporen, Stofffasern, Ledernarbung, Filz, Haarsträhnen |
+| Rauheit | Augen und Glas glatt, Haut mit Schwankung, Stoff und Filz matt |
+| Metall | Messing |
+
+- **Detailgrenze:** Das Relief ist gröber als ein Texel gehalten; feinere Gewebe erzeugten Moiré.
+- **Gemessen im Place:** 51 von 51 Händler-Meshes haben eine `SurfaceAppearance` mit Normalkarte.
+- **Bild:** `previews/market/05-gesichter-pbr.png` (texturiert, Cycles).
+- **Offen:**
+  - Haarkarten mit Alpha sind möglich, aber noch nicht gebaut.
+  - Das Strähnenrelief läuft quer statt entlang des Haars; beim Bart fällt das als Streifen auf.
+  - Lios und Esmes Westen haben noch kleine Kerben an den Rändern.
+  - Wie Roblox die Karten auf Geräten mit niedriger Grafikstufe darstellt, ist ungesehen.
+
 ## Tatsächlich ausgeführte Prüfungen
 
 | Prüfung | Ergebnis | Status |
@@ -43,11 +69,11 @@ Gewichte laut Auftrag: Anatomie 15, Gesicht 20, Hände 20, Bewegung 20, Kleidung
 
 | Händler | Anatomie | Gesicht | Hände | Bewegung | Kleidung | Identität | Technik | Summe | Status |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| Lio | 11 | 13 | 15 | 12 | 6 | 7 | 4 | **68** | FAIL (Ziel 90) |
-| Esme | 11 | 12 | 14 | 11 | 6 | 7 | 4 | **65** | FAIL (Ziel 90) |
-| Selma | 11 | 12 | 15 | 11 | 7 | 8 | 4 | **68** | FAIL (Ziel 90) |
-| Nyra | 11 | 12 | 13 | 11 | 6 | 8 | 4 | **65** | FAIL (Ziel 90) |
-| Aron | 12 | 11 | 15 | 12 | 6 | 8 | 4 | **68** | FAIL (Ziel 90) |
+| Lio | 11 | 15 | 15 | 12 | 7 | 7 | 4 | **71** | FAIL (Ziel 90) |
+| Esme | 11 | 14 | 14 | 11 | 7 | 7 | 4 | **68** | FAIL (Ziel 90) |
+| Selma | 11 | 14 | 15 | 11 | 8 | 8 | 4 | **71** | FAIL (Ziel 90) |
+| Nyra | 11 | 14 | 13 | 11 | 7 | 8 | 4 | **68** | FAIL (Ziel 90) |
+| Aron | 12 | 13 | 15 | 12 | 7 | 8 | 4 | **71** | FAIL (Ziel 90) |
 
 Begründung der Abzüge (für alle ähnlich):
 
@@ -69,7 +95,7 @@ Begründung der Abzüge (für alle ähnlich):
 
 ## Was für das 90-Punkte-Ziel fehlt (konkret)
 
-1. **Oberflächendetail:**
+1. **Oberflächendetail** (seit Version 35 teilweise erfüllt: prozedurale Normal- und Rauheitskarten; ein skulptierter Hochdetail-Bake fehlt weiter):
    - Normal- und Roughness-Maps für Haut, Stoff und Leder aus einem hochauflösenden Sculpt gebacken.
    - In Roblox über `SurfaceAppearance`, das laut Doku per Skript fast nicht setzbar ist. Ob der FBX-Import eine `SurfaceAppearance` anlegt, muss mit einem Probe-Asset getestet werden.
 2. **Haare als Karten mit Alpha:** Nur mit `SurfaceAppearance.AlphaMode`, also abhängig von Punkt 1.

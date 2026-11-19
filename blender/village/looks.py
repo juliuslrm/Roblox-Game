@@ -121,7 +121,7 @@ def witch_hat(head, color, band_color, rng):
                                axis=1) for dz in (0.012, 0.075)])
     V, F = Wd.grid_solid(outer, inner, True)
     pieces.append(Wd.Piece("hat", V, F, Hd.head_bone(head, len(V)), np.tile(band_color, (len(V), 1)), "leather").orient_outwards())
-    return Wd.merge("hat", pieces)
+    return pieces            # felt, leather band and feather keep their own surface
 
 
 def brim_hat(head, color, band_color, feather_color, rng):
@@ -173,7 +173,7 @@ def brim_hat(head, color, band_color, feather_color, rng):
             V, F = Hd._ribbon(pts, 0.028, 0.004, twist_ref=np.array((1.0, 0.0, 0.0)))
             tone = feather_color * (0.85 + 0.25 * ((i % 3) / 2))
             pieces.append(Wd.Piece("hat", V, F, Hd.head_bone(head, len(V)), np.tile(np.clip(tone, 0, 1), (len(V), 1)), "hair"))
-    return Wd.merge("hat", pieces)
+    return pieces            # felt, leather band and feather keep their own surface
 
 
 def flat_cap(head, color, rng):
@@ -200,7 +200,7 @@ def flat_cap(head, color, rng):
     outer = np.array(rows)
     V, F = Wd.grid_solid(outer, outer - np.array((0, 0, 0.018)), False)
     pieces.append(Wd.Piece("cap", V, F, Hd.head_bone(head, len(V)), np.tile(color * 0.85, (len(V), 1)), "felt").orient_outwards())
-    return Wd.merge("cap", pieces)
+    return [Wd.merge("cap", pieces)]
 
 
 def goggles(head, frame_color, lens_color, strap_color):
@@ -227,7 +227,8 @@ def goggles(head, frame_color, lens_color, strap_color):
         lens = Hd.lathe_piece(head, "goggles", [(0.0, 0.066), (0.062, 0.066), (0.06, 0.072), (0.0, 0.075)], centre,
                               lens_color, "glass", segs=24, tilt=tilt)
         pieces.append(lens)
-    return Wd.merge("goggles", pieces)
+    # separate pieces: strap (leather), frames (metal) and lenses (glass) keep their own surface
+    return pieces
 
 
 def _frame_z(axis):
@@ -272,7 +273,7 @@ def selma(anat, rng):
                 np.array((sx * 0.22, -0.5, anat.shoulder_z - 0.15)),
                 np.array((sx * 0.19, -0.6, anat.shoulder_z - 0.62))]
         out.append(braid(anat, body, "braids", path, 0.03, col["hair"], rng))
-    out.append(witch_hat(head, rgb(col["hat"]), rgb(col["band"]), rng))
+    out += witch_hat(head, rgb(col["hat"]), rgb(col["band"]), rng)
     return out, field > 0.02
 
 
@@ -312,7 +313,7 @@ def lio(anat, rng):
     # short coily hair as a volume (strands of flat ribbons read as torn paper close up)
     field = Hd.scalp_field(head, 0.13, 0.06, head.eye_z - 0.2)
     out.append(Hd.coily_hair(head, "hair", field, col["hair"], rng, height=0.06, curl=0.024))
-    out.append(goggles(head, rgb(col["brass"]), rgb(col["lens"]), rgb("3A2A1E")))
+    out += goggles(head, rgb(col["brass"]), rgb(col["lens"]), rgb("3A2A1E"))
     return out, field > 0.02
 
 
@@ -338,7 +339,7 @@ def aron(anat, rng):
     # the face, so it moves with the jaw and the mouth corners
     out.append(Hd.coily_hair(head, "beard", np.maximum(beard_field, moustache), col["beard"], rng, height=0.012,
                              curl=0.006, density=9000, contrast=0.35, relief=0.35))
-    out.append(flat_cap(head, rgb(col["cap"]), rng))
+    out += flat_cap(head, rgb(col["cap"]), rng)
     return out, field > 0.02
 
 
@@ -372,7 +373,7 @@ def esme(anat, rng):
     ring = Hd.lathe_piece(head, "hair_tie", [(0.03, -0.02), (0.05, -0.02), (0.05, 0.02), (0.03, 0.02)], gather,
                           rgb("4A3020"), "leather", segs=16, tilt=_frame_z(np.array((0.0, 1.0, -0.4))))
     out.append(ring)
-    out.append(brim_hat(head, rgb(col["hat"]), rgb(col["belt"]), rgb(col["feather"]), rng))
+    out += brim_hat(head, rgb(col["hat"]), rgb(col["belt"]), rgb(col["feather"]), rng)
     return out, field > 0.02
 
 

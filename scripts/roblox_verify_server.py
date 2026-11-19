@@ -43,12 +43,14 @@ do -- traders: skinned rigs standing behind their stall; the idle loop moves the
 		else
 			local pivot = figure:GetAttribute("MerchantPivot")
 			local role = figure:GetAttribute("MerchantRole")
-			local parts, skinned, textured, low, high, bones = 0, 0, 0, math.huge, -math.huge, {}
+			local parts, skinned, textured, pbr, low, high, bones = 0, 0, 0, 0, math.huge, -math.huge, {}
 			for _, d in ipairs(figure:GetDescendants()) do
 				if d:IsA("MeshPart") then
 					parts += 1
 					if d.HasSkinnedMesh then skinned += 1 end
-					if d.TextureID ~= "" then textured += 1 end
+					local sa = d:FindFirstChildOfClass("SurfaceAppearance")
+					if d.TextureID ~= "" or sa then textured += 1 end
+					if sa and sa.NormalMapContent.Uri ~= "" then pbr += 1 end
 					low = math.min(low, d.Position.Y - d.Size.Y / 2)
 					high = math.max(high, d.Position.Y + d.Size.Y / 2)
 				elseif d:IsA("Bone") then
@@ -86,8 +88,8 @@ do -- traders: skinned rigs standing behind their stall; the idle loop moves the
 			end
 			for _, e in pairs(entries) do e.bone.Transform = CFrame.new() end
 			local stall = shop:FindFirstChild("stall_" .. shop.Name)
-			lines[#lines + 1] = string.format("%s: %d meshes (%d skinned, %d textured), %d bones, feet %.2f above pivot, top %.2f, posed wrists off by %.4f studs, %d missing, %.1f studs from stall centre",
-				shop.Name, parts, skinned, textured, (function() local n = 0 for _ in pairs(bones) do n += 1 end return n end)(),
+			lines[#lines + 1] = string.format("%s: %d meshes (%d skinned, %d textured, %d with normal map), %d bones, feet %.2f above pivot, top %.2f, posed wrists off by %.4f studs, %d missing, %.1f studs from stall centre",
+				shop.Name, parts, skinned, textured, pbr, (function() local n = 0 for _ in pairs(bones) do n += 1 end return n end)(),
 				low - pivot.Position.Y, high - pivot.Position.Y, worst, missing,
 				stall and (Vector3.new(stall.Position.X, 0, stall.Position.Z) - Vector3.new(pivot.Position.X, 0, pivot.Position.Z)).Magnitude or -1)
 		end
