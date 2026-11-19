@@ -5,3 +5,6 @@ __pycache__/
 /tmp/
 # baked trader textures (also embedded in exports/library/trader_*.fbx)
 exports/textures/traders/
+
+# CharMorph character database (CC-BY / AGPL data, 1.5 GB): fetched by scripts/fetch_charmorph_db.sh
+assets/thirdparty/charmorph-db/

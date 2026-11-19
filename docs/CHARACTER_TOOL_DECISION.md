@@ -21,35 +21,35 @@ Quellen: Herstellerseiten, Dokumentation und Fachpresse (Links unten). Alle Prei
 | **Mixamo** (Adobe) | nur Rigging und Animation | – | – | keine offizielle API (Web-Oberfläche) | FBX | kostenlos, kommerziell lizenzfrei; keine Weitergabe von Rohdateien | ergänzt jede Basis um Animationen |
 | **Asset-Shops** (Fab, CGTrader, TurboSquid, Sketchfab) | sehr unterschiedlich | je nach Modell | selten passend zum eigenen Stil | – | FBX | je Modell verschieden. **MetaHuman ist ausgeschlossen** (nur für Unreal Engine lizenziert) | Lizenz je Asset prüfen, Stil passt selten zu fünf Händlern |
 
-## Entscheidung
+## Entscheidung (aktualisiert: nur kostenlose Werkzeuge und Assets)
 
-**Character Creator 5 als Werkzeug für die Charakterbasis, danach meine automatische Blender → Roblox-Strecke.**
+Vorgabe des Auftraggebers: **nichts bezahlen.** Damit fallen Character Creator 5, Human Generator und die Bezahlpläne von Meshy weg.
 
-**Begründung:**
+**Gewählt: Reom aus der CharMorph-Datenbank (CC-BY) als Körper-, Gesichts- und Hautbasis; Bau, Kleidung, Rig, Griffe und Roblox-Strecke in meiner Blender-Automatisierung.**
 
-- CC5 erzeugt die beste menschliche Anatomie, Gesichter und Hände der geprüften Werkzeuge.
-- CC5 bringt Fantasy-Kleidung und -Haare mit oder nimmt sie auf.
-- Die Lizenz erlaubt eingebettete Modelle in Spielen.
+| Kriterium | Reom (CharMorph-db) |
+|---|---|
+| Qualität | realistisch skulptierter Körper (≈ 8 400 Vertices, sauber in Quads), 4K/8K-Hauttexturen für helle und dunkle Haut mit Poren-, Rauheits- und Höhenkanälen, Augen mit Iris, Hornhaut und Tränenkarunkel |
+| Gesicht, Hände | eigene Gesichtsform, 52 ARKit-Gesichtsformen (Blinzeln, Kiefer, Lächeln …), Hände mit getrennten Fingern, Nägeln und Venen |
+| Anpassung | Hunderte Morphs (Ethnie, Muskel, Fett, Kiefer, Wangen, Lippen …), Augenbrauen als Haarsträhnen |
+| Rig | Rigify-Gewichte für 165 Deform-Knochen inklusive aller Finger und des Gesichts |
+| Automatisierung | reine Daten (`.blend`, `.npz`, Bilder): ich lade sie mit `bpy`, ohne Add-on-Code auszuführen |
+| Lizenz, Kosten | **CC-BY**, kostenlos, kommerziell nutzbar mit Namensnennung (Mesh: ComplexAce; Morphs und Texturen: Hope), siehe `docs/CREDITS.md` |
+| Nacharbeit | Kleidung, Kopfhaar, Rig-Übertragung auf `MarketPose`, Reduktion und Texturbacken für Roblox (≤ 20 000 Dreiecke je Mesh) |
 
-**Nachteil:**
+**Nachteil:** Kleidung und Kopfhaar bringt Reom nicht mit; die baue ich in Blender (Kleidung über den Körper geformt, Haar als Strähnen, für Roblox gebacken). Ein Profi-Werkzeug wie CC5 würde hier mehr fertige Fantasy-Kleidung liefern.
 
-- CC5 läuft nur am Desktop mit Oberfläche. Die Gestaltung von Körper, Gesicht und Kleidung macht deshalb der Auftraggeber oder ein Charakter-Artist in CC5, nicht ich.
-- Ob Roblox als „Spiel“ im Sinn der EULA gilt, ist nicht schriftlich bestätigt: Die Assets liegen privat im eigenen Roblox-Konto und sind nur in diesem Spiel eingebettet. Vor dem Kauf sollte Reallusion das kurz bestätigen.
+**Ausgeschlossen:**
 
-**Alternative**, wenn alles in meiner Automatisierung laufen soll: **Human Generator Ultimate** (kommerzielle Lizenz).
+- **MB-Lab-Figuren** (in derselben Datenbank): erzeugte Modelle stehen unter AGPL-3, für ein geschlossenes Spiel ungeeignet.
+- **MPFB2 / MakeHuman:** kostenlos und CC0, aber dieselbe Basis wie die verworfenen Figuren.
+- **Blender Studio Human Base Meshes (CC0):** wären geeignet, der Download ist in dieser Umgebung durch die Netzregeln gesperrt.
+- **Meshy Free:** Ergebnisse stehen unter CC BY 4.0, aber Gesichter, Hände und Topologie taugen nicht für verformbare Figuren.
+- **Mixamo:** kostenlos und lizenzfrei, aber ohne API und nur über die Weboberfläche; ich animiere über die eigenen Posen-Kanäle.
 
-- Es läuft in Blender und hat eine Python-API, ich könnte Lio skriptgesteuert erzeugen.
-- Dafür müssen Add-on und Inhaltspakete in diese Umgebung kommen: Upload durch den Auftraggeber, nicht ins Repository, da Lizenzinhalt.
-- Ob es ohne Oberfläche läuft, ist erst nach einem Test bekannt.
+Die Vergleichstabelle oben enthält weiter die Bezahlwerkzeuge; die frühere Empfehlung (CC5, Alternative Human Generator) ist nicht mehr der Plan.
 
-**Nicht gewählt:**
-
-- **MPFB2:** gleiche Basis wie die verworfenen Figuren.
-- **Meshy:** Gesichter und Hände unzuverlässig, Topologie.
-- **Mixamo:** nur Ergänzung.
-- **Asset-Shops:** Stil und Lizenz je Modell.
-
-## Was ich übernehme, sobald eine Basis vorliegt
+## Strecke ab der Basis
 
 1. **Import und Prüfung:** Skelett mit Fingern, Gewichte, Dreiecke, Texturen; ein Bericht mit Messwerten.
 2. **Optimierung für Roblox:**
