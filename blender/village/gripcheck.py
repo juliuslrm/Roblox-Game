@@ -265,7 +265,7 @@ def prop_body_clearance(ch, posed_vertices):
     the loop -> {side: (distance, time)}."""
     body = ch.body
     names, W = body.dense_weights()
-    arm = W[:, [names.index(b) for b in names if b.startswith(("wrist", "lowerarm", "upperarm"))]].sum(axis=1) > 0.3
+    arm = W[:, [names.index(b) for b in names if b.startswith(("wrist", "lowerarm", "upperarm", "finger"))]].sum(axis=1) > 0.3
     faces = [body.faces[i] for i in body.face_ids("body")]
     faces = [f for f in faces if not arm[list(f)].any()]
     worst = {}

@@ -6,7 +6,7 @@
   its forbidden parts and lies on the modelled prop;
 - every loop channel is sorted, starts at 0 and ends at the loop's duration with the start pose
   (closed loop, no jump at the seam);
-- over every loop (8 samples per second) the hand is never twisted in the wrist by more than 45
+- over both idle clips and the greeting (8 samples per second) the hand is never twisted in the wrist by more than 45
   degrees, the forearm never turned by more than 95 degrees, the wrist never bent beyond 50 / 25
   degrees (the same limits as blender/village/gripcheck.py).  These need the rest skeleton only,
   not the solved grips, so this runs in about a minute; the full check with contacts and renders
@@ -60,16 +60,21 @@ def check_loop_keys():
 
 def check_wrists():
     for role in C.ROLES:
-        body = C.rest_pose(C.make_body(role))
-        d = C.LOOPS[role]["duration"]
+        leg, tilt = C.STANCE.get(role, (None, 0.0))
+        body = C.rest_pose(C.make_body(role), weight_leg=leg, tilt=tilt)
         for side, _sx in C.SIDES:
             wrist, elbow = C._head(body, "wrist." + side), C._head(body, "lowerarm01." + side)
             bases = [C._head(body, f"finger{i}-1.{side}") for i in range(2, 6)]
             geo = dict(forearm=C._unit(wrist - elbow), hand=C._unit(np.mean(bases, axis=0) - wrist),
                        palm=C.hand_axes(body, side)[4])
             worst = [0.0, 0.0, 0.0, 0.0]
-            for k in range(int(round(d * GC.FPS))):
-                m = body.bone_matrices(C.local_rotations(role, k / GC.FPS))
+            moments = []
+            for name in ("idle", "idle2"):                  # both idle clips, and the greeting on top
+                d = C.clip(role, name)["duration"]
+                moments += [(name, k / GC.FPS, None) for k in range(int(round(d * GC.FPS)))]
+            moments += [("idle", 0.0, g / 8) for g in range(20)]
+            for name, t, g in moments:
+                m = body.bone_matrices(C.local_rotations(role, t, name=name, greet=g))
                 tw, fr = GC.arm_twist(geo, m, side)
                 bend, sideways = GC.wrist_bend(geo, m, side)
                 worst = [max(a, abs(b)) for a, b in zip(worst, (tw, fr, bend, sideways))]

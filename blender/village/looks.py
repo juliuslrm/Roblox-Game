@@ -34,32 +34,6 @@ def _unit(v):
     return v / max(1e-9, np.linalg.norm(v))
 
 
-def tangent_toward(head, target, gravity=0.0):
-    """Direction field: along the head surface towards a point, optionally sagging."""
-    def fn(p, t):
-        hit = head.bvh.find_nearest(Vector(p))
-        n = np.array(hit[1]) if hit[0] is not None else np.array((0, 0, 1.0))
-        d = np.asarray(target) - p
-        d = d - np.dot(d, n) * n
-        return _unit(d) + np.array((0, 0, -gravity))
-    return fn
-
-
-def falling(head, outward=0.25, back=0.0):
-    """Hair that falls down along the head, a little away from it."""
-    def fn(p, t):
-        hit = head.bvh.find_nearest(Vector(p))
-        n = np.array(hit[1]) if hit[0] is not None else np.zeros(3)
-        return np.array((0.0, back, -1.0)) + n * outward * (1 - t)
-    return fn
-
-
-def strand_weights(anat, head_mask_bone="head"):
-    def fn(V):
-        return Wd.fixed_weights(anat, len(V), head_mask_bone)
-    return fn
-
-
 def braid(anat, body, name, path, radius, color, rng):
     """Three interwoven strands along a path (list of points), tied at the end."""
     pts = [np.asarray(p, float) for p in path]
@@ -280,7 +254,7 @@ def hood(anat, F, head, color, rng):
 def _base(anat, role, rng, brow_thick=1.0):
     head = Hd.Head(anat)
     col = O.COLORS[role]
-    pieces = [Hd.eyes(head, col["iris"]), Hd.lashes(head, "1A1210"),
+    pieces = [Hd.eyes(head, col["iris"]), Hd.lashes(head, "2A1D17"),
               Hd.brows(head, col.get("beard", col["hair"]), rng, brow_thick)]
     return head, pieces
 
@@ -289,11 +263,8 @@ def selma(anat, rng):
     head, out = _base(anat, "selma", rng)
     col = O.COLORS["selma"]
     field = Hd.scalp_field(head, 0.11, 0.05, head.eye_z - 0.26)
-    cap = Hd.hair_cap(head, "hair", field, rgb(col["hair"]))
-    out.append(cap)
-    roots = Hd._roots(cap, 260, rng, keep=lambda P: (np.abs(head.angle(P)) > 0.5) & (P[:, 2] < head.eye_z + 0.08))
-    out.append(Hd.strands(head, "hair", roots, falling(head, 0.3, 0.25), lambda p, r: r.uniform(0.12, 0.22), col["hair"], rng,
-                          width=0.03, bone_fn=strand_weights(anat)))
+    out.append(Hd.coily_hair(head, "hair", field, col["hair"], rng, height=0.024, curl=0.012, density=3400,
+                             contrast=0.35, relief=0.35))
     body = Body(anat)
     for sx in (1, -1):
         path = [np.array((sx * head.half_w * 0.75, head.centre[1] + 0.12, head.eye_z - 0.16)),
@@ -311,20 +282,22 @@ def nyra(anat, rng):
     F = O.Fields(anat)
     field = Hd.scalp_field(head, 0.1, 0.04, head.eye_z - 0.3)
     cap = Hd.hair_cap(head, "hair", field, rgb(col["hair"]))
-    out.append(cap)
+    out.append(Hd.coily_hair(head, "hair", field, col["hair"], rng, height=0.02, curl=0.01, density=3000,
+                             contrast=0.35, relief=0.35))
     body = Body(anat)
-    sides = lambda P: (np.abs(head.angle(P)) > 0.55) & (np.abs(head.angle(P)) < 1.5) & (P[:, 2] < head.eye_z + 0.2)
-    roots = Hd._roots(cap, 260, rng, keep=sides)
+    # long hair from the sides and the back of the head, the face stays free
+    sides = lambda P: (np.abs(head.angle(P)) > 0.95) & (P[:, 2] < head.eye_z + 0.2)
+    roots = Hd._roots(cap, 420, rng, keep=sides)
 
     def fall(p, t):
         hit = head.bvh.find_nearest(Vector(p))
         n = np.array(hit[1]) if hit[0] is not None else np.zeros(3)
-        out = np.array((np.sign(p[0]) * 0.25, 0.05, -1.0))
+        out = np.array((np.sign(p[0]) * 0.22, 0.18, -1.0))          # down and a little back, behind the shoulders
         return out + n * 0.35 * (1 - t)
 
     def length(p, r):
         return r.uniform(0.8, 1.05)
-    hair = Hd.strands(head, "hair", roots, fall, length, col["hair"], rng, width=0.05, thickness=0.012, steps=12,
+    hair = Hd.strands(head, "hair", roots, fall, length, col["hair"], rng, width=0.036, thickness=0.028, steps=12,
                       bone_fn=None)
     hair.verts = np.array([body.push_out(v, 0.03) if v[2] < anat.neck_z else v for v in hair.verts])
     hair.weights = Wd.nearest_weights(anat, hair.verts, anat.group(("head", "neck", "spine01", "spine02", "clavicle")))
@@ -336,17 +309,9 @@ def nyra(anat, rng):
 def lio(anat, rng):
     head, out = _base(anat, "lio", rng, 1.1)
     col = O.COLORS["lio"]
+    # short coily hair as a volume (strands of flat ribbons read as torn paper close up)
     field = Hd.scalp_field(head, 0.13, 0.06, head.eye_z - 0.2)
-    cap = Hd.hair_cap(head, "hair", field, rgb(col["hair"]), thickness=0.03)
-    out.append(cap)
-    roots = Hd._roots(cap, 650, rng)
-
-    def fn(p, t):
-        hit = head.bvh.find_nearest(Vector(p))
-        n = np.array(hit[1]) if hit[0] is not None else np.zeros(3)
-        return n * 0.9 + np.array((0.0, 0.25, -0.35))
-    out.append(Hd.strands(head, "hair", roots, fn, lambda p, r: r.uniform(0.05, 0.1), col["hair"], rng, width=0.028,
-                          thickness=0.012, steps=6, lift=lambda t: 0.03 + 0.012 * t, curl=0.9, bone_fn=strand_weights(anat)))
+    out.append(Hd.coily_hair(head, "hair", field, col["hair"], rng, height=0.06, curl=0.024))
     out.append(goggles(head, rgb(col["brass"]), rgb(col["lens"]), rgb("3A2A1E")))
     return out, field > 0.02
 
@@ -355,34 +320,24 @@ def aron(anat, rng):
     head, out = _base(anat, "aron", rng, 1.25)
     col = O.COLORS["aron"]
     field = Hd.scalp_field(head, 0.12, 0.05, head.eye_z - 0.22)
-    cap = Hd.hair_cap(head, "hair", field, rgb(col["hair"]), thickness=0.016)
-    out.append(cap)
-    roots = Hd._roots(cap, 320, rng, keep=lambda P: P[:, 2] < head.eye_z + 0.12)
-    out.append(Hd.strands(head, "hair", roots, falling(head, 0.2, 0.3), lambda p, r: r.uniform(0.03, 0.06), col["hair"], rng,
-                          width=0.026, steps=4, bone_fn=strand_weights(anat)))
+    out.append(Hd.coily_hair(head, "hair", field, col["hair"], rng, height=0.025, curl=0.012, density=3000,
+                             contrast=0.6, relief=0.6))
     # beard: jaw, chin, cheeks and upper lip; the lips stay free
     V = anat.V
     m = head.mouth
     phi = head.angle(V)
-    lips = np.hypot((V[:, 0] - m[0]) / 0.085, (V[:, 2] - m[2]) / 0.035) - 1
-    cheek_line = (head.eye_z - 0.13) - V[:, 2] - 0.1 * np.clip(np.abs(phi) - 0.6, 0, 1)
+    lips = np.hypot((V[:, 0] - m[0]) / 0.09, (V[:, 2] - m[2]) / 0.042) - 1
+    cheek_line = (head.eye_z - 0.19) - V[:, 2] - 0.1 * np.clip(np.abs(phi) - 0.6, 0, 1)
     beard_field = np.minimum(cheek_line, lips)
     beard_field = np.where(np.abs(phi) < 1.75, beard_field, -1.0)
     beard_field = np.minimum(beard_field, V[:, 2] - (head.chin - 0.12))
     beard_field = np.where(head.mask | (anat.weight(("neck",)) > 0.4), beard_field, -1.0)
-    moustache = np.minimum(np.minimum(m[2] + 0.075 - V[:, 2], V[:, 2] - (m[2] + 0.02)), 0.11 - np.abs(V[:, 0] - m[0]))
+    moustache = np.minimum(np.minimum(m[2] + 0.06 - V[:, 2], V[:, 2] - (m[2] + 0.026)), 0.1 - np.abs(V[:, 0] - m[0]))
     moustache = np.where((V[:, 1] < head.centre[1] - 0.1) & head.mask, moustache, -1.0)
-    bcap = Hd.hair_cap(head, "beard", np.maximum(beard_field, moustache), rgb(col["beard"]), thickness=0.02)
-    out.append(bcap)
-    roots = Hd._roots(bcap, 520, rng)
-
-    def bfn(p, t):
-        hit = head.bvh.find_nearest(Vector(p))
-        n = np.array(hit[1]) if hit[0] is not None else np.zeros(3)
-        return np.array((0.0, -0.1, -1.0)) + n * 0.8
-    out.append(Hd.strands(head, "beard", roots, bfn, lambda p, r: r.uniform(0.05, 0.11), col["beard"], rng, width=0.026,
-                          thickness=0.01, steps=5, lift=lambda t: 0.018 + 0.01 * t, curl=0.35,
-                          bone_fn=lambda Vv: Wd.nearest_weights(anat, Vv[:1], head.mask).repeat(len(Vv), axis=0)))
+    # a full beard as a volume (curly, thicker at the chin, thin at the edges); its skin weights come from
+    # the face, so it moves with the jaw and the mouth corners
+    out.append(Hd.coily_hair(head, "beard", np.maximum(beard_field, moustache), col["beard"], rng, height=0.012,
+                             curl=0.006, density=9000, contrast=0.35, relief=0.35))
     out.append(flat_cap(head, rgb(col["cap"]), rng))
     return out, field > 0.02
 
@@ -391,15 +346,9 @@ def esme(anat, rng):
     head, out = _base(anat, "esme", rng)
     col = O.COLORS["esme"]
     field = Hd.scalp_field(head, 0.12, 0.05, head.eye_z - 0.24)
-    cap = Hd.hair_cap(head, "hair", field, rgb(col["hair"]))
-    out.append(cap)
+    out.append(Hd.coily_hair(head, "hair", field, col["hair"], rng, height=0.022, curl=0.011, density=3600,
+                             contrast=0.35, relief=0.35))
     gather = np.array((0.0, head.back_y + 0.03, head.eye_z + 0.02))
-    roots = Hd._roots(cap, 300, rng, keep=lambda P: P[:, 2] < head.eye_z + 0.14)
-
-    def length(p, r):
-        return float(np.linalg.norm(gather - p)) * 1.1
-    out.append(Hd.strands(head, "hair", roots, tangent_toward(head, gather, 0.1), length, col["hair"], rng, width=0.035,
-                          thickness=0.008, steps=9, lift=lambda t: 0.014 + 0.004 * t, bone_fn=strand_weights(anat)))
     # ponytail
     body = Body(anat)
     tail = []
@@ -413,7 +362,7 @@ def esme(anat, rng):
             p = p + np.array((0.012 * math.sin(u * 5 + a), 0.06 * (1 - u) + 0.01, -0.075))
             p = body.push_out(p, 0.03)
             pts.append(p)
-        V, F = Hd._ribbon(pts, 0.04 * rng.uniform(0.8, 1.2), 0.012)
+        V, F = Hd._ribbon(pts, 0.04 * rng.uniform(0.8, 1.2), 0.026)
         c = rgb(col["hair"]) * rng.uniform(0.9, 1.1)
         cols = np.array([np.clip(c * (0.85 + 0.3 * ((i // 4) / 10)), 0, 1) for i in range(len(V))])
         tail.append(Wd.Piece("hair", V, F, None, cols, "hair"))

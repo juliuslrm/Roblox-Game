@@ -36,10 +36,23 @@ end
 -- figure frame around the world origin; it is cloned, moved to the stall and anchored.  Every
 -- client plays the idle loop locally by setting Bone.Transform (MarketIdle.client.lua) and needs the
 -- role and the ground frame of the figure for that.
+-- The rig is found by its meshes (named trader_<role>_<part>; a part over the triangle limit is split
+-- into head1, head2, ...): the first Model with a RootPart that holds one of them.
+local function findTraderRig(templates, role)
+	if not templates then return nil end
+	local prefix = "trader_" .. role .. "_"
+	for _, d in ipairs(templates:GetDescendants()) do
+		if d:IsA("BasePart") and d.Name:sub(1, #prefix) == prefix then
+			local model = d.Parent
+			if model and model:IsA("Model") and model:FindFirstChild("RootPart") then return model end
+		end
+	end
+	return nil
+end
+
 local function importedTrader(parent, templates, role, pivot)
-	local head = templates and templates:FindFirstChild("trader_" .. role .. "_head", true)
-	local template = head and head.Parent
-	if not template or not template:IsA("Model") or not template:FindFirstChild("RootPart") then return false end
+	local template = findTraderRig(templates, role)
+	if not template then return nil end
 	local rig = template:Clone()
 	rig.Name = "Figure"
 	for _, d in ipairs(rig:GetDescendants()) do
@@ -53,7 +66,7 @@ local function importedTrader(parent, templates, role, pivot)
 	rig:SetAttribute("MerchantRole", role)
 	rig:SetAttribute("MerchantPivot", pivot)
 	rig.Parent = parent
-	return true
+	return rig
 end
 
 local function fallbackStall(folder, pivot, accent)
@@ -117,7 +130,8 @@ function World.build(parent, anchors, origin, templates, groundPosition, onOpen)
 				* (origin - origin.Position) * CFrame.Angles(0, math.rad(anchor.yaw), 0)
 			if not imported(folder, templates, "stall_" .. id, pivot) then fallbackStall(folder, pivot, accent) end
 			local npc = pivot * CFrame.new(0, 0, -1.6)
-			if not importedTrader(folder, templates, id, npc) then
+			local rig = importedTrader(folder, templates, id, npc)
+			if not rig then
 				fallbackMerchant(folder, npc, accent)
 			end
 			block(folder, "CounterCollision", pivot * CFrame.new(0, 1.5, 0.45), Vector3.new(8.2, 3, 2.25), WOOD, true, 1)
@@ -127,7 +141,11 @@ function World.build(parent, anchors, origin, templates, groundPosition, onOpen)
 			prompt.ActionText, prompt.ObjectText = "Handeln", def.name
 			prompt.MaxActivationDistance, prompt.RequiresLineOfSight = Market.radius, false
 			prompt.HoldDuration = 0.15
-			prompt.Triggered:Connect(function(player) onOpen(player, id) end)
+			prompt.Triggered:Connect(function(player)
+				-- every client plays the trader's greeting when this changes (MarketIdle.client.lua)
+				if rig then rig:SetAttribute("GreetAt", workspace:GetServerTimeNow()) end
+				onOpen(player, id)
+			end)
 			prompt.Parent = promptAnchor
 			if oldByIndex[anchor.index] then replaced[#replaced + 1] = oldByIndex[anchor.index] end
 		end

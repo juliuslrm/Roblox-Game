@@ -19,6 +19,8 @@ import numpy as np
 from mathutils import Vector
 from mathutils.kdtree import KDTree
 
+from .human import FACE
+
 TAU = 2 * math.pi
 
 
@@ -68,6 +70,9 @@ def merge(name, pieces, kind=None):
 
 
 # ---------------------------------------------------------------- body analysis
+FACE_BONES = set(FACE)    # the face rig counts as head for garment and hair fields
+
+
 class Anatomy:
     """Per-vertex facts about the body used to cut and fold garments."""
 
@@ -100,13 +105,15 @@ class Anatomy:
 
     def group(self, names):
         """Vertices whose dominant bone is one of `names` (prefix match: 'upperarm' matches both)."""
-        names = tuple(names)
-        return np.array([d.startswith(names) for d in self.dom])
+        names = tuple(names) + (("finger",) if "wrist" in names else ())
+        return np.array([d.startswith(names) or ("head" in names and d in FACE_BONES) for d in self.dom])
 
     def weight(self, prefixes):
         """Summed skin weight of the bones whose names start with one of `prefixes` (continuous
         region membership, unlike the dominant bone)."""
-        cols = [i for i, b in enumerate(self.names) if b.startswith(tuple(prefixes))]
+        prefixes = tuple(prefixes) + (("finger",) if "wrist" in prefixes else ())      # the fingers are hand
+        cols = [i for i, b in enumerate(self.names)
+                if b.startswith(prefixes) or ("head" in prefixes and b in FACE_BONES)]
         return self.W[:, cols].sum(axis=1)
 
     def side_of(self):
@@ -184,49 +191,54 @@ def fitted(anat, name, field, offset, color, kind, colors=None, inner_gap=0.004,
     edges onto the zero line, so every cut is a smooth line instead of following the mesh.  Each
     vertex is pushed out along the body normal by `offset`; every edge gets a thick hem."""
     f = np.asarray(field, dtype=np.float64)
-    # faces with at least two corners inside: a face touching the region with one corner only would
-    # stand out as a spike along the edge
-    faces = [fc for fc in anat.faces if (f[list(fc)] > 0).sum() >= 2]
-    used = sorted({i for fc in faces for i in fc})
-    remap = {v: k for k, v in enumerate(used)}
-    idx = np.array(used)
-    P = anat.V[idx].copy()
-    N = anat.normals[idx].copy()
-    O = np.asarray(offset, dtype=np.float64)[idx].copy()
-    W = anat.W[idx].copy()
-    col = np.tile(color, (len(idx), 1)) if colors is None else np.asarray(colors)[idx].copy()
-    # outside corners: move to the zero crossing towards their inside neighbours in the kept faces
-    acc = {}
-    for fc in faces:
+    offset = np.asarray(offset, dtype=np.float64)
+    # every body face with a corner inside is clipped exactly at the zero line of the field (one shared
+    # vertex per cut edge, interpolated linearly), so the garment edge is a smooth curve that does not
+    # follow the quads of the body mesh
+    inside = f > 0
+    keep = [fc for fc in anat.faces if inside[list(fc)].any()]
+    rows = {}                                          # key -> new index; key = vertex or (a, b) edge cut
+    src = []                                           # (a, b, t): new vertex = a + (b - a) * t
+
+    def vid(key, a, b, t):
+        if key not in rows:
+            rows[key] = len(src)
+            src.append((a, b, t))
+        return rows[key]
+    faces, cut = [], set()
+    for fc in keep:
         n = len(fc)
-        for k, v in enumerate(fc):
-            if f[v] > 0:
-                continue
-            for nb in (fc[(k - 1) % n], fc[(k + 1) % n]):
-                if f[nb] > 0:
-                    t = f[nb] / (f[nb] - f[v])                 # 0 at the inside neighbour, 1 at v
-                    acc.setdefault(v, []).append((nb, t))
-    for v, lst in acc.items():
-        k = remap[v]
-        pos, nrm, off, w, c = 0, 0, 0, 0, 0
-        for nb, t in lst:
-            j = remap[nb]
-            pos = pos + (P[j] + (anat.V[v] - P[j]) * t)
-            nrm = nrm + (N[j] * (1 - t) + anat.normals[v] * t)
-            off = off + (O[j] * (1 - t) + offset[v] * t)
-            w = w + (W[j] * (1 - t) + anat.W[v] * t)
-        m = len(lst)
-        P[k], N[k], O[k], W[k] = pos / m, nrm / np.linalg.norm(nrm), off / m, w / m
-    # corners outside with no inside neighbour (a face touching the region at one corner) collapse
-    # onto that face's inside corner
-    for fc in faces:
-        ins = [v for v in fc if f[v] > 0]
-        for v in fc:
-            if f[v] <= 0 and v not in acc:
-                j = remap[ins[0]]
-                P[remap[v]], N[remap[v]], O[remap[v]], W[remap[v]] = P[j], N[j], O[j], W[j]
+        poly = []
+        for k in range(n):
+            a, b = fc[k], fc[(k + 1) % n]
+            if inside[a]:
+                poly.append(vid(a, a, a, 0.0))
+            if inside[a] != inside[b]:
+                key = (min(a, b), max(a, b))
+                t = f[a] / (f[a] - f[b])
+                i = vid(key, a, b, t)
+                cut.add(i)
+                poly.append(i)
+        if len(poly) >= 3:
+            faces.append(tuple(poly))
+    ia = np.array([r[0] for r in src])
+    ib = np.array([r[1] for r in src])
+    tt = np.array([r[2] for r in src])[:, None]
+
+    def lerp(X):
+        X = np.asarray(X)
+        return X[ia] * (1 - tt) + X[ib] * tt
+    P = lerp(anat.V)
+    N = lerp(anat.normals)
+    N /= np.linalg.norm(N, axis=1, keepdims=True)
+    O = lerp(offset[:, None])[:, 0]
+    W = lerp(anat.W)
+    W /= np.maximum(W.sum(axis=1, keepdims=True), 1e-9)
+    col = np.tile(color, (len(src), 1)) if colors is None else lerp(colors)
     V = P + N * O[:, None]
-    F = [tuple(remap[i] for i in fc) for fc in faces]
+    F = [tuple(fc) for fc in faces]
+    on_cut = np.zeros(len(V), dtype=bool)
+    on_cut[list(cut)] = True
     if relax:
         # cloth and leather smooth out the body's small forms: Laplacian relaxation, then every
         # vertex is pushed back to at least 60 % of its offset above the skin
@@ -236,13 +248,9 @@ def fitted(anat, name, field, offset, color, kind, colors=None, inner_gap=0.004,
                 nbs[a2].add(b2)
                 nbs[b2].add(a2)
         nb_idx = [np.array(sorted(n)) for n in nbs]
-        movable = np.ones(len(V), dtype=bool)
-        for fc in faces:                                  # edge vertices stay on the cut line
-            for v in fc:
-                if f[v] <= 0:
-                    movable[remap[v]] = False
+        movable = ~on_cut                                 # edge vertices stay on the cut line
         if relax_mask is not None:
-            movable &= np.asarray(relax_mask)[idx]
+            movable &= lerp(np.asarray(relax_mask, dtype=np.float64)[:, None])[:, 0] > 0.5
         for _ in range(relax):
             avg = np.array([V[n].mean(axis=0) if len(n) else V[k] for k, n in enumerate(nb_idx)])
             V = np.where(movable[:, None], V + 0.5 * (avg - V), V)

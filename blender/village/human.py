@@ -170,6 +170,13 @@ KEEP = {
     "pelvis.L": "root", "upperleg01.L": "pelvis.L", "lowerleg01.L": "upperleg01.L", "foot.L": "lowerleg01.L",
     "pelvis.R": "root", "upperleg01.R": "pelvis.R", "lowerleg01.R": "upperleg01.R", "foot.R": "lowerleg01.R",
 }
+# face bones of the MakeHuman skeleton that stay as an animatable face rig (bone based, so it works in
+# Roblox, which plays skinned bones but not shape keys): eyes, upper and lower lids, brows, lip corners
+# (upper and lower), upper and lower lip, cheeks, jaw.  Each keeps its own MakeHuman skin weights and
+# hangs from its nearest kept ancestor (head or jaw).
+FACE = ("jaw", "eye.L", "eye.R", "orbicularis03.L", "orbicularis03.R", "orbicularis04.L", "orbicularis04.R",
+        "oculi01.L", "oculi01.R", "oris03.L", "oris03.R", "oris07.L", "oris07.R", "oris05", "oris01",
+        "risorius03.L", "risorius03.R")
 # twist bones (upperarm02, lowerarm02) and finger bones keep their own weights while the rest pose
 # and the grip are baked (they spread the forearm twist and close the hand); then they are merged
 FINGERS = [f"finger{i}-{j}" for i in range(1, 6) for j in range(1, 4)]
@@ -212,6 +219,11 @@ class Body:
                 name = f"{f}.{side}"
                 p = full_parent[name]
                 keep[name] = "wrist." + side if p.startswith("metacarpal") else p
+        for name in FACE:
+            p = full_parent[name]
+            while p not in keep and p not in FACE:
+                p = full_parent[p]
+            keep[name] = p
         # weights: every bone gives its weights to the nearest kept ancestor
         raw = load_weights()
         n = len(verts)
@@ -271,16 +283,18 @@ class Body:
         self.order = _topo(self.parents)
 
     # ---------------------------------------------------------------- posing
-    def bone_matrices(self, local_rot):
-        """local_rot: bone -> 3x3 rotation in figure axes about the bone head, relative to the parent.
-        -> bone -> 4x4 world transform (posed = M @ rest)."""
+    def bone_matrices(self, local_rot, local_move=None):
+        """local_rot: bone -> 3x3 rotation in figure axes about the bone head, relative to the parent;
+        local_move: bone -> translation in figure axes (parent space; the face rig slides lip corners and
+        brows).  -> bone -> 4x4 world transform (posed = M @ rest)."""
         out = {}
+        local_move = local_move or {}
         for b in self.order:
             head = self.bones[b][0]
             R = local_rot.get(b, np.eye(3))
             L = np.eye(4)
             L[:3, :3] = R
-            L[:3, 3] = head - R @ head
+            L[:3, 3] = head - R @ head + np.asarray(local_move.get(b, (0.0, 0.0, 0.0)))
             p = self.parents[b]
             out[b] = out[p] @ L if p else L
         return out

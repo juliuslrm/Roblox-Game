@@ -55,20 +55,27 @@ do -- traders: skinned rigs standing behind their stall; the idle loop moves the
 					bones[d.Name] = d
 				end
 			end
-			-- pose the rig like the client does and compare the wrists with the Blender reference
+			-- pose the rig like the client does (MarketPose evaluates the clips) and compare the wrists
+			-- with the Blender reference
+			local Pose = require(game:GetService("ReplicatedStorage").ArcaneShared.MarketPose)
+			Pose.BREATH = Motion.breath
 			local data, worst, missing = Motion.roles[role], 0, 0
+			local prep = Pose.prepare(data)
 			local figureRot = pivot - pivot.Position
 			local entries = {}
-			for name, rows in pairs(data.bones) do
-				local bone = bones[name]
-				if not bone then missing += 1 else
-					local rest = bone.WorldCFrame - bone.WorldCFrame.Position
-					entries[#entries + 1] = { bone = bone, rows = rows, pre = rest:Inverse() * figureRot, post = figureRot:Inverse() * rest }
+			for _, list in pairs(Motion.channels) do
+				for _, b in ipairs(list) do
+					local bone = bones[b[1]]
+					if not bone then missing += 1 else
+						local rest = bone.WorldCFrame - bone.WorldCFrame.Position
+						entries[b[1]] = { bone = bone, pre = rest:Inverse() * figureRot, post = figureRot:Inverse() * rest }
+					end
 				end
 			end
 			for _, ref in ipairs(Art.traders[role].check) do
-				for _, e in ipairs(entries) do
-					local r = e.rows[ref.sample]
+				local q = Pose.evaluate(Motion.channels, prep, ref.clip, ref.t, ref.greet)
+				for name, e in pairs(entries) do
+					local r = q[name]
 					e.bone.Transform = e.pre * CFrame.new(0, 0, 0, r[1], r[2], r[3], r[4]) * e.post
 				end
 				for side, key in pairs({ L = "wristL", R = "wristR" }) do
@@ -77,7 +84,7 @@ do -- traders: skinned rigs standing behind their stall; the idle loop moves the
 					if w then worst = math.max(worst, (w.TransformedWorldCFrame.Position - want).Magnitude) else missing += 1 end
 				end
 			end
-			for _, e in ipairs(entries) do e.bone.Transform = CFrame.new() end
+			for _, e in pairs(entries) do e.bone.Transform = CFrame.new() end
 			local stall = shop:FindFirstChild("stall_" .. shop.Name)
 			lines[#lines + 1] = string.format("%s: %d meshes (%d skinned, %d textured), %d bones, feet %.2f above pivot, top %.2f, posed wrists off by %.4f studs, %d missing, %.1f studs from stall centre",
 				shop.Name, parts, skinned, textured, (function() local n = 0 for _ in pairs(bones) do n += 1 end return n end)(),

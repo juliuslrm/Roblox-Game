@@ -249,7 +249,8 @@ def box(centre, size):
 def bib(anat, F, name, color, z0, z1, half_width, offset, kind="cloth"):
     """Front panel on the chest (apron bib): between heights z0..z1, |x| < half_width, front only."""
     field = _min(F.z - z0, z1 - F.z, half_width - np.abs(F.x), -F.y - 0.02, 0.4 - F.w_arm - F.w_hand - F.w_head)
-    return Wd.fitted(anat, name, field, np.full(len(anat.V), offset) + F.fill(1.0), color, kind, relax=14)
+    # leather and stiff cloth lie flat over the chest and belly instead of tracing the muscles
+    return Wd.fitted(anat, name, field, np.full(len(anat.V), offset) + F.fill(1.0), color, kind, relax=45)
 
 
 def legs_under(anat, F, z_hem, z_top):
@@ -325,7 +326,7 @@ def nyra(anat):
 def lio(anat):
     F, a, role = Fields(anat), anat, "lio"
     out, cov = [], np.zeros(len(anat.V), dtype=bool)
-    p, c = shirt(a, F, "shirt", C(role, "shirt"), cuff=0.94, bottom_z=a.waist_z - 0.42, vneck=0.32)
+    p, c = shirt(a, F, "shirt", C(role, "shirt"), cuff=0.94, bottom_z=a.waist_z - 0.42, vneck=0.15)
     out.append(p)
     cov |= c
     p, c = trousers(a, F, "trousers", C(role, "trousers"), top_z=a.waist_z - 0.08, end_t=0.9)
@@ -336,7 +337,7 @@ def lio(anat):
     cov |= c
     vest = _min(0.35 - F.w_arm - F.w_hand - F.w_head, F.z - (a.waist_z - 0.3), (a.neck_z - 0.02) - F.z,
                 np.where(F.y < 0, np.abs(F.x) - 0.08, 1.0))
-    out.append(Wd.fitted(a, "vest", vest, np.full(len(a.V), 0.05) + F.fill(1.0), C(role, "vest"), "leather", relax=14))
+    out.append(Wd.fitted(a, "vest", vest, np.full(len(a.V), 0.05) + F.fill(1.0), C(role, "vest"), "leather", relax=30))
     out.append(band(a, "belt", a.waist_z - 0.14, 0.085, C(role, "belt"), ease=0.05, buckle=C(role, "brass")))
     return out, cov
 
@@ -379,7 +380,7 @@ def esme(anat):
     cov |= c
     vest = _min(0.35 - F.w_arm - F.w_hand - F.w_head, F.z - (a.waist_z - 0.22), (a.neck_z - 0.1) - F.z,
                 np.where(F.y < 0, np.abs(F.x) - 0.05, 1.0))
-    out.append(Wd.fitted(a, "vest", vest, np.full(len(a.V), 0.045) + F.fill(1.0), C(role, "vest"), "leather", relax=14))
+    out.append(Wd.fitted(a, "vest", vest, np.full(len(a.V), 0.045) + F.fill(1.0), C(role, "vest"), "leather", relax=30))
     out.append(band(a, "belt", a.waist_z - 0.1, 0.075, C(role, "belt"), ease=0.1, buckle=C(role, "brass")))
     return out, cov
 

@@ -17,6 +17,7 @@ run "village builder (mock)"    "$PY" tests/test_roblox_builder.py
 run "place file + auto build"   "$PY" tests/test_place_and_autobuild.py
 run "asset registry"            "$PY" tests/test_asset_registry.py
 run "grip profiles + loop wrists" "$PY" tests/test_grip_profiles.py
+run "trader animation Lua = Python" "$PY" tests/test_market_pose.py
 if [ "${1:-}" = "--full" ]; then
   run "gameplay assets"         "$PY" blender/build_gameplay_assets.py
   run "resource assets"         "$PY" blender/build_resource_assets.py

@@ -71,7 +71,8 @@ def hand_frame(body, side):
     return (index + little) / 2 - wrist, little - index
 
 
-def rest_pose(body, upper_out=6.0, upper_fwd=4.0, elbow=10.0, shoulder_drop=4.0, stance=0.36):
+def rest_pose(body, upper_out=6.0, upper_fwd=4.0, elbow=10.0, shoulder_drop=4.0, stance=0.36, weight_leg=None,
+              tilt=0.0):
     """Arms down along the body (A-pose of the base mesh -> village rest pose).  Each step rotates one
     bone and bakes the result, so every rotation is a plain world rotation about the bone head."""
     for side, sx in SIDES:
@@ -103,11 +104,62 @@ def rest_pose(body, upper_out=6.0, upper_fwd=4.0, elbow=10.0, shoulder_drop=4.0,
         turn = H.rotation_between(ankle - hip, target)
         body.apply_pose({"upperleg01." + side: turn})
         body.apply_pose({"foot." + side: turn.T})
+    if weight_leg:
+        contrapposto(body, weight_leg, tilt)
     # stand on the ground with the soles of the skin (the helper geometry of the base mesh reaches lower)
     skin = sorted({v for i in body.face_ids("body") for v in body.faces[i]})
     lift = body.verts[skin, 2].min()
     body.verts[:, 2] -= lift
     body.bones = {b: (h - (0, 0, lift), t - (0, 0, lift)) for b, (h, t) in body.bones.items()}
+    return body
+
+
+# weight on one leg (contrapposto) per trader: standing leg, pelvis tilt in degrees
+STANCE = {"selma": ("R", 2.5), "nyra": ("L", 2.0), "lio": ("L", 3.0), "aron": ("R", 2.0), "esme": ("L", 3.0)}
+
+
+def contrapposto(body, weight_leg, tilt):
+    """Weight on one leg: the pelvis rises on the standing side, the spine leans back the other way so
+    the shoulders stay nearly level, the free leg bends its knee just enough for both soles to stay on
+    the ground; both feet keep their place and stay flat.  The upper body keeps its orientation within
+    a fraction of a degree, so the solved arm poses and grips stay valid."""
+    sx = 1.0 if weight_leg == "L" else -1.0
+    ankles = {s: _head(body, "foot." + s) for s, _ in SIDES}
+    foot_dir = {s: np.asarray(body.bones["foot." + s][1]) - ankles[s] for s, _ in SIDES}
+    body.apply_pose({"root": H.rot((0.0, 1.0, 0.0), -sx * tilt)})
+    body.apply_pose({"spine05": H.rot((0.0, 1.0, 0.0), sx * tilt * 1.15)})
+
+    def aim(side):
+        hip = _head(body, "upperleg01." + side)
+        now = _head(body, "foot." + side)
+        want = np.array((ankles[side][0], ankles[side][1], now[2]))
+        turn = H.rotation_between(now - hip, want - hip)
+        body.apply_pose({"upperleg01." + side: turn})
+        body.apply_pose({"foot." + side: turn.T})
+    for side, _ in SIDES:
+        aim(side)
+    stand = "L" if sx > 0 else "R"
+    free = "R" if stand == "L" else "L"
+    target_z = _head(body, "foot." + stand)[2]
+    # bend the free knee (thigh forward, shin back) until its ankle is as high as the standing one
+    lo, hi = 0.0, 30.0
+    snapshot = (body.verts.copy(), dict(body.bones))
+    for _ in range(18):
+        mid = (lo + hi) / 2
+        body.verts, body.bones = snapshot[0].copy(), dict(snapshot[1])
+        knee = _head(body, "lowerleg01." + free)
+        body.apply_pose({"upperleg01." + free: H.rot((1.0, 0.0, 0.0), -mid * 0.5)})
+        body.apply_pose({"lowerleg01." + free: H.rot((1.0, 0.0, 0.0), mid)})
+        if _head(body, "foot." + free)[2] < target_z:
+            lo = mid
+        else:
+            hi = mid
+    aim(free)
+    # both feet keep the direction they had (flat on the ground)
+    for side, _ in SIDES:
+        foot = _head(body, "foot." + side)
+        toe = np.asarray(body.bones["foot." + side][1])
+        body.apply_pose({"foot." + side: H.rotation_between(toe - foot, foot_dir[side])})
     return body
 
 
@@ -308,7 +360,8 @@ def prepared_body(role):
     from . import grips as G
     from . import handheld as P
     from .meshkit import MeshBuilder
-    body = rest_pose(make_body(role))
+    leg, tilt = STANCE.get(role, (None, 0.0))
+    body = rest_pose(make_body(role), weight_leg=leg, tilt=tilt)
     held, report = {}, {}
     for side, sx in SIDES:
         prof = G.profile(role, side)
@@ -341,8 +394,9 @@ def prepared_body(role):
                                         palm=hand_axes(body, side)[4],
                                         length=length,
                                         finger_thickness=float(2 * np.median(radii)))
-    merge = [f"finger{i}-{j}.{s}" for s, _ in SIDES for i in range(1, 6) for j in (3, 2, 1)]
-    merge += [f"{b}.{s}" for s, _ in SIDES for b in ("lowerarm02", "upperarm02")]
+    # the finger bones stay in the rig (the grip is their rest pose, so they can open, close and
+    # adjust at run time); only the twist bones that spread the forearm turn while posing go
+    merge = [f"{b}.{s}" for s, _ in SIDES for b in ("lowerarm02", "upperarm02")]
     body.merge_bones(merge)
     return body, held, report
 
@@ -395,7 +449,7 @@ def _skin_colors(anat, head, role):
         d = np.linalg.norm(V - cheek, axis=1)
         col = blend(np.exp(-(d / 0.07) ** 2) * 0.22 * front, np.array((0.85, 0.45, 0.42)))
         d = np.linalg.norm(V - c, axis=1)
-        col = col * (1 - 0.12 * np.exp(-(d / (r * 1.9)) ** 2))[:, None]          # soft shadow around the eyes
+        col = col * (1 - 0.05 * np.exp(-(d / (r * 1.7)) ** 2))[:, None]          # faint shadow in the eye socket
     ears = np.exp(-((np.abs(V[:, 0]) - head.half_w) / 0.05) ** 2) * np.exp(-((V[:, 2] - head.eye_z + 0.05) / 0.12) ** 2)
     col = blend(ears * 0.25 * (anat.weight(("head",)) > 0.5), np.array((0.85, 0.5, 0.45)))
     hands = anat.weight(("wrist",))
@@ -513,30 +567,30 @@ LOOPS = {
     # the ore's surface at the taps (1.75 s and 2.625 s); the swing is a solved path along the line of
     # the blow with one pose per sample (blender/solve_poses.py), so the head never passes through the ore.
     "aron": dict(duration=6.0, keys={
-        "upper_l": [(0, (11.1, 0.9, -5.2)), (4.25, (11.1, 0.9, -5.2)), (5.0, (7.1, 0.9, -5.2)), (6, (11.1, 0.9, -5.2))],
-        "fore_l": [(0, (-97.4, 0.0, -10.1)), (4.25, (-97.4, 0.0, -10.1)), (5.0, (-108.4, 0.0, -10.1)), (6, (-97.4, 0.0, -10.1))],
-        "hand_l": [(0, (-0.7, 0.0, -2.8)), (6, (-0.7, 0.0, -2.8))],
-        "upper_r": [(0, (-6, 10, 6)), (1.125, (67.7, 39.0, 47.7)), (1.25, (56.9, 35.3, 41.8)),
-                   (1.375, (48.0, 32.6, 37.2)), (1.5, (42.9, 30.8, 34.2)), (1.625, (39.2, 29.5, 32.4)),
-                   (1.75, (37.3, 28.0, 32.3)), (1.875, (42.9, 30.8, 34.2)), (2.0, (48.0, 32.6, 37.2)),
-                   (2.125, (56.9, 35.3, 41.8)), (2.25, (48.0, 32.6, 37.2)), (2.375, (42.9, 30.8, 34.2)),
-                   (2.5, (39.2, 29.5, 32.4)), (2.625, (37.3, 28.0, 32.3)), (2.75, (42.9, 30.8, 34.2)),
-                   (2.875, (48.0, 32.6, 37.2)), (3.0, (56.9, 35.3, 41.8)), (3.125, (67.7, 39.0, 47.7)),
-                   (4.25, (-6, 10, 6)), (6, (-6, 10, 6))],
-        "fore_r": [(0, (-30, 0, 0)), (1.125, (-114.2, 0.0, 29.0)), (1.25, (-107.6, 0.0, 24.3)),
-                  (1.375, (-100.9, 0.0, 18.3)), (1.5, (-97.2, 0.0, 13.9)), (1.625, (-94.6, 0.0, 10.9)),
-                  (1.75, (-92.6, 0.0, 10.6)), (1.875, (-97.2, 0.0, 13.9)), (2.0, (-100.9, 0.0, 18.3)),
-                  (2.125, (-107.6, 0.0, 24.3)), (2.25, (-100.9, 0.0, 18.3)), (2.375, (-97.2, 0.0, 13.9)),
-                  (2.5, (-94.6, 0.0, 10.9)), (2.625, (-92.6, 0.0, 10.6)), (2.75, (-97.2, 0.0, 13.9)),
-                  (2.875, (-100.9, 0.0, 18.3)), (3.0, (-107.6, 0.0, 24.3)), (3.125, (-114.2, 0.0, 29.0)),
-                  (4.25, (-30, 0, 0)), (6, (-30, 0, 0))],
-        "hand_r": [(0, (0, 0, 0)), (1.125, (-21.4, 0.0, -19.9)), (1.25, (-20.9, 0.0, -17.0)),
-                  (1.375, (-20.9, 0.0, -10.6)), (1.5, (-21.1, 0.0, -4.4)), (1.625, (-21.2, 0.0, 0.6)),
-                  (1.75, (-21.0, 0.0, 0.3)), (1.875, (-21.1, 0.0, -4.4)), (2.0, (-20.9, 0.0, -10.6)),
-                  (2.125, (-20.9, 0.0, -17.0)), (2.25, (-20.9, 0.0, -10.6)), (2.375, (-21.1, 0.0, -4.4)),
-                  (2.5, (-21.2, 0.0, 0.6)), (2.625, (-21.0, 0.0, 0.3)), (2.75, (-21.1, 0.0, -4.4)),
-                  (2.875, (-20.9, 0.0, -10.6)), (3.0, (-20.9, 0.0, -17.0)), (3.125, (-21.4, 0.0, -19.9)),
-                  (4.25, (0, 0, 0)), (6, (0, 0, 0))],
+        "upper_l": [(0, (11.2, 0.7, -5.8)), (4.25, (11.2, 0.7, -5.8)), (5.0, (7.2, 0.7, -5.8)), (6, (11.2, 0.7, -5.8))],
+        "fore_l": [(0, (-97.0, 0.0, -9.9)), (4.25, (-97.0, 0.0, -9.9)), (5.0, (-108.0, 0.0, -9.9)), (6, (-97.0, 0.0, -9.9))],
+        "hand_l": [(0, (-1.8, 0.0, -2.5)), (6, (-1.8, 0.0, -2.5))],
+        "upper_r": [(0, (-6, 10, 6)), (0.95, (66.2, 41.1, 45.8)), (1.125, (66.2, 41.1, 45.8)),
+                   (1.25, (55.5, 37.4, 40.0)), (1.375, (46.8, 34.3, 35.4)), (1.5, (41.8, 32.2, 32.5)),
+                   (1.625, (38.2, 30.6, 30.8)), (1.75, (36.3, 29.1, 30.7)), (1.875, (41.8, 32.2, 32.5)),
+                   (2.0, (46.8, 34.3, 35.4)), (2.125, (55.5, 37.4, 40.0)), (2.25, (46.8, 34.3, 35.4)),
+                   (2.375, (41.8, 32.2, 32.5)), (2.5, (38.2, 30.6, 30.8)), (2.625, (36.3, 29.1, 30.7)),
+                   (2.75, (41.8, 32.2, 32.5)), (2.875, (46.8, 34.3, 35.4)), (3.0, (55.5, 37.4, 40.0)),
+                   (3.125, (66.2, 41.1, 45.8)), (3.3, (66.2, 41.1, 45.8)), (4.25, (-6, 10, 6)), (6, (-6, 10, 6))],
+        "fore_r": [(0, (-30, 0, 0)), (0.95, (-114.0, 0.0, 31.5)), (1.125, (-114.0, 0.0, 31.5)),
+                  (1.25, (-107.6, 0.0, 26.8)), (1.375, (-100.9, 0.0, 20.5)), (1.5, (-97.2, 0.0, 16.2)),
+                  (1.625, (-94.5, 0.0, 13.4)), (1.75, (-92.5, 0.0, 13.0)), (1.875, (-97.2, 0.0, 16.2)),
+                  (2.0, (-100.9, 0.0, 20.5)), (2.125, (-107.6, 0.0, 26.8)), (2.25, (-100.9, 0.0, 20.5)),
+                  (2.375, (-97.2, 0.0, 16.2)), (2.5, (-94.5, 0.0, 13.4)), (2.625, (-92.5, 0.0, 13.0)),
+                  (2.75, (-97.2, 0.0, 16.2)), (2.875, (-100.9, 0.0, 20.5)), (3.0, (-107.6, 0.0, 26.8)),
+                  (3.125, (-114.0, 0.0, 31.5)), (3.3, (-114.0, 0.0, 31.5)), (4.25, (-30, 0, 0)), (6, (-30, 0, 0))],
+        "hand_r": [(0, (0, 0, 0)), (0.95, (-21.3, 0.0, -20.4)), (1.125, (-21.3, 0.0, -20.4)),
+                  (1.25, (-20.8, 0.0, -17.5)), (1.375, (-20.9, 0.0, -11.1)), (1.5, (-21.0, 0.0, -5.2)),
+                  (1.625, (-21.2, 0.0, -0.7)), (1.75, (-21.0, 0.0, -1.0)), (1.875, (-21.0, 0.0, -5.2)),
+                  (2.0, (-20.9, 0.0, -11.1)), (2.125, (-20.8, 0.0, -17.5)), (2.25, (-20.9, 0.0, -11.1)),
+                  (2.375, (-21.0, 0.0, -5.2)), (2.5, (-21.2, 0.0, -0.7)), (2.625, (-21.0, 0.0, -1.0)),
+                  (2.75, (-21.0, 0.0, -5.2)), (2.875, (-20.9, 0.0, -11.1)), (3.0, (-20.8, 0.0, -17.5)),
+                  (3.125, (-21.3, 0.0, -20.4)), (3.3, (-21.3, 0.0, -20.4)), (4.25, (0, 0, 0)), (6, (0, 0, 0))],
         "head": [(0, (14, 0, 4)), (1.2, (22, 0, 2)), (2.4, (22, 0, 2)), (3.4, (10, 0, 4)), (4.4, (16, -4, 8)),
                  (5.2, (10, 0, 6)), (6, (14, 0, 4))],
         "torso": [(0, (2, 0, 0)), (1.2, (6, 0, -2)), (2.4, (6, 0, -2)), (4.4, (2, 0, 4)), (6, (2, 0, 0))],
@@ -544,10 +598,10 @@ LOOPS = {
     # Esme rests the axe on her right shoulder (the handle lies on it; pose solved:
     # blender/solve_poses.py) and sights along the folding rule.
     "esme": dict(duration=8.0, keys={
-        "upper_r": [(0, (-29.5, -9.9, 1.8)), (2, (-30.5, -9.9, 1.8)), (4, (-29.5, -9.9, 1.8)),
-                   (6, (-30.5, -9.9, 1.8)), (8, (-29.5, -9.9, 1.8))],
-        "fore_r": [(0, (-134.6, 0.0, -0.4)), (4, (-133.6, 0.0, -0.4)), (8, (-134.6, 0.0, -0.4))],
-        "hand_r": [(0, (-21.5, 0.0, -2.9)), (8, (-21.5, 0.0, -2.9))],
+        "upper_r": [(0, (-27.6, -10.2, 1.7)), (2, (-28.6, -10.2, 1.7)), (4, (-27.6, -10.2, 1.7)),
+                   (6, (-28.6, -10.2, 1.7)), (8, (-27.6, -10.2, 1.7))],
+        "fore_r": [(0, (-134.7, 0.0, 1.2)), (4, (-133.7, 0.0, 1.2)), (8, (-134.7, 0.0, 1.2))],
+        "hand_r": [(0, (-21.8, 0.0, -1.5)), (8, (-21.8, 0.0, -1.5))],
         "upper_l": [(0, (-20, -8, 0)), (2.2, (-68, -20, 12)), (3.4, (-68, -30, 26)), (4.6, (-68, -20, 12)),
                     (5.6, (-68, -20, 12)), (8, (-20, -8, 0))],
         "fore_l": [(0, (-54, 0, 0)), (2.2, (-34, 0, 0)), (3.4, (-26, 0, 0)), (4.6, (-34, 0, 0)), (5.6, (-40, 0, 0)),
@@ -558,6 +612,41 @@ LOOPS = {
     }),
 }
 
+# ---------------------------------------------------------------- face rig poses
+# Expressions of the bone face rig (human.FACE).  Per bone: rotation (degrees, figure axes, about the
+# bone head) and/or move (studs, figure axes: x = figure's left, y = back, z = up; 0.0037 studs = 1 mm).
+# ".X" entries are mirrored to both sides (x of the move flips for the right side).  At run time the
+# client blends them with weights 0..1 (MarketMotion.poses); the rest pose is the neutral face.
+FACE_POSES = {
+    "blink": {"orbicularis03.X": dict(rot=(30, 0, 0)), "orbicularis04.X": dict(rot=(-7, 0, 0))},
+    "smile": {"oris03.X": dict(move=(0.021, 0.009, 0.022)), "oris07.X": dict(move=(0.014, 0.006, 0.015)),
+              "risorius03.X": dict(move=(0.006, 0.003, 0.018)), "orbicularis04.X": dict(rot=(-8, 0, 0)),
+              "oris05": dict(move=(0.0, 0.0, -0.008)), "oris01": dict(move=(0.0, 0.0, 0.008))},     # lips stay closed
+    "brows_up": {"oculi01.X": dict(move=(0.0, 0.0, 0.016)), "orbicularis03.X": dict(rot=(-5, 0, 0))},
+    "focus": {"oculi01.X": dict(move=(-0.003, 0.0, -0.006)), "orbicularis03.X": dict(rot=(9, 0, 0)),
+              "orbicularis04.X": dict(rot=(-4, 0, 0))},
+    "talk": {"jaw": dict(rot=(4, 0, 0)), "oris05": dict(move=(0.0, 0.0, 0.002))},
+    "skeptic": {"oculi01.L": dict(move=(0.0, 0.0, 0.010)), "oculi01.R": dict(move=(0.002, 0.0, -0.005)),
+                "oris03.L": dict(move=(0.004, 0.0, 0.004)), "orbicularis03.R": dict(rot=(7, 0, 0))},
+}
+
+
+def face_pose(name, weight=1.0):
+    """-> (rotations, moves) of one expression at `weight`, ready for Body.bone_matrices."""
+    rots, moves = {}, {}
+    for key, spec in FACE_POSES[name].items():
+        sides = (("L", 1.0), ("R", -1.0)) if key.endswith(".X") else ((None, 1.0),)
+        for side, sx in sides:
+            bone = key[:-2] + "." + side if side else key
+            if "rot" in spec:
+                rx, ry, rz = (weight * a for a in spec["rot"])
+                rots[bone] = _euler((rx, sx * ry, sx * rz))
+            if "move" in spec:
+                x, y, z = spec["move"]
+                moves[bone] = np.array((sx * x, y, z)) * weight
+    return rots, moves
+
+
 # loop channel -> bones that share its rotation (fraction of the angles each)
 CHANNELS = {
     "torso": (("spine03", 0.5), ("spine01", 0.5)),
@@ -565,26 +654,154 @@ CHANNELS = {
     "upper_l": (("upperarm01.L", 1.0),), "fore_l": (("lowerarm01.L", 1.0),),
     "upper_r": (("upperarm01.R", 1.0),), "fore_r": (("lowerarm01.R", 1.0),),
     "hand_l": (("wrist.L", 1.0),), "hand_r": (("wrist.R", 1.0),),
+    "clav_l": (("clavicle.L", 1.0),), "clav_r": (("clavicle.R", 1.0),),
 }
 ANIMATED = ("spine03", "spine01", "neck01", "head", "upperarm01.L", "lowerarm01.L", "wrist.L", "upperarm01.R",
-            "lowerarm01.R", "wrist.R")
+            "lowerarm01.R", "wrist.R", "clavicle.L", "clavicle.R")
+
+# ---------------------------------------------------------------- clips
+# Each trader has the idle loop (LOOPS), a second idle ("idle2") and a greeting.
+#   idle2   a loop that starts and ends in the idle's first pose, so the client can switch between the
+#           two at a loop boundary without a blend.  Given as offsets (degrees) added to the idle's
+#           first pose; channels not listed hold that pose.  The arms only move within their solved
+#           holding poses (small bends that keep the grips and the wrist limits).
+#   greet   additive (offsets on top of whatever idle plays): a nod, a slight bow and a smile.
+#   face    expression weights 0..1 over time (FACE_POSES).
+IDLE2 = {
+    "lio": dict(duration=9.0, offsets={
+        "hand_r": [(0, (0, 0, 0)), (2.0, (-8, 0, 0)), (4.6, (-8, 0, 0)), (6.0, (0, 0, 0)), (9, (0, 0, 0))],
+        "head": [(0, (0, 0, 0)), (1.6, (6, 0, -8)), (4.4, (6, 2, -8)), (6.0, (-14, 0, 12)), (7.6, (-14, -2, 10)),
+                 (9, (0, 0, 0))],
+        "torso": [(0, (0, 0, 0)), (2.0, (2, -1.5, 0)), (6.0, (-2, 1.5, 3)), (9, (0, 0, 0))],
+        "clav_r": [(0, (0, 0, 0)), (6.2, (0, 0, 0)), (7.0, (0, 3, 0)), (8.0, (0, 0, 0)), (9, (0, 0, 0))],
+    }, face={"focus": [(0, 0), (1.6, 0.8), (4.4, 0.8), (5.4, 0), (9, 0)],
+             "smile": [(0, 0), (5.6, 0), (6.4, 0.35), (7.6, 0.35), (8.6, 0), (9, 0)]}),
+    "esme": dict(duration=9.0, offsets={
+        "head": [(0, (0, 0, 0)), (1.8, (2, 0, 20)), (3.4, (2, 0, 20)), (4.4, (0, 0, 0)), (5.4, (-3, 2, -16)),
+                 (6.8, (-3, 2, -16)), (8.0, (0, 0, 0)), (9, (0, 0, 0))],
+        "upper_l": [(0, (0, 0, 0)), (1.6, (12, 0, 0)), (6.8, (12, 0, 0)), (8.2, (0, 0, 0)), (9, (0, 0, 0))],
+        "fore_l": [(0, (0, 0, 0)), (1.6, (8, 0, 0)), (6.8, (8, 0, 0)), (8.2, (0, 0, 0)), (9, (0, 0, 0))],
+        "torso": [(0, (0, 0, 0)), (2.0, (0, 0, 4)), (5.6, (0, 1.5, -4)), (9, (0, 0, 0))],
+    }, face={"skeptic": [(0, 0), (5.2, 0), (5.8, 0.5), (6.8, 0.5), (7.6, 0), (9, 0)]}),
+    "selma": dict(duration=9.0, offsets={
+        "head": [(0, (0, 0, 0)), (1.6, (16, 0, 14)), (3.8, (16, 2, 14)), (5.2, (0, 0, 0)), (6.2, (-6, 0, -6)),
+                 (7.8, (-6, 0, -6)), (9, (0, 0, 0))],
+        "upper_r": [(0, (0, 0, 0)), (2.8, (-8, 0, 0)), (4.6, (-8, 0, 0)), (6.0, (0, 0, 0)), (9, (0, 0, 0))],
+        "torso": [(0, (0, 0, 0)), (2.0, (3, 0, 4)), (6.0, (0, 1, -2)), (9, (0, 0, 0))],
+    }, face={"smile": [(0, 0), (5.8, 0), (6.6, 0.5), (7.8, 0.5), (8.8, 0), (9, 0)]}),
+    "nyra": dict(duration=9.0, offsets={
+        "fore_l": [(0, (0, 0, 0)), (1.6, (-10, 0, 0)), (4.4, (-10, 0, 0)), (5.8, (0, 0, 0)), (9, (0, 0, 0))],
+        "head": [(0, (0, 0, 0)), (1.6, (10, 0, 18)), (4.4, (10, -3, 18)), (6.0, (-4, 0, -10)), (7.8, (-4, 0, -10)),
+                 (9, (0, 0, 0))],
+        "torso": [(0, (0, 0, 0)), (2.0, (0, 0, 3)), (6.4, (0, 0, -2)), (9, (0, 0, 0))],
+    }, face={"focus": [(0, 0), (1.8, 0.5), (4.4, 0.5), (5.2, 0), (9, 0)],
+             "smile": [(0, 0), (6.0, 0), (6.8, 0.25), (7.8, 0.25), (8.6, 0), (9, 0)]}),
+    "aron": dict(duration=9.0, offsets={
+        "clav_l": [(0, (0, 0, 0)), (1.0, (0, -6, 0)), (1.8, (0, 0, 0)), (9, (0, 0, 0))],
+        "clav_r": [(0, (0, 0, 0)), (1.0, (0, 6, 0)), (1.8, (0, 0, 0)), (9, (0, 0, 0))],
+        "fore_l": [(0, (0, 0, 0)), (2.6, (-8, 0, 0)), (4.8, (-8, 0, 0)), (6.0, (0, 0, 0)), (9, (0, 0, 0))],
+        "head": [(0, (0, 0, 0)), (1.2, (-4, 0, 4)), (2.8, (6, 0, 0)), (4.8, (6, 0, 0)), (6.2, (-12, 0, -10)),
+                 (7.6, (-12, 0, -10)), (9, (0, 0, 0))],
+        "torso": [(0, (0, 0, 0)), (1.2, (-2, 0, 0)), (3.0, (2, 0, 2)), (9, (0, 0, 0))],
+    }, face={"skeptic": [(0, 0), (2.6, 0), (3.2, 0.4), (4.8, 0.4), (5.4, 0), (9, 0)],
+             "smile": [(0, 0), (6.2, 0), (6.8, 0.3), (7.8, 0.3), (8.6, 0), (9, 0)]}),
+}
+GREET_SMILE = {"selma": 1.0, "nyra": 0.55, "lio": 0.9, "aron": 0.45, "esme": 0.7}
 
 
-def _ease(u):
-    return u * u * (3 - 2 * u)
+def _greet(role):
+    k = GREET_SMILE.get(role, 0.7)
+    return dict(duration=2.4, loop=False, additive=True,
+                keys={"head": [(0, (0, 0, 0)), (0.55, (10, 0, 0)), (1.2, (0, 0, 0)), (2.4, (0, 0, 0))],
+                      "torso": [(0, (0, 0, 0)), (0.6, (3, 0, 0)), (1.3, (0, 0, 0)), (2.4, (0, 0, 0))]},
+                face={"smile": [(0, 0), (0.5, k), (1.9, k), (2.4, 0)],
+                      "brows_up": [(0, 0), (0.3, 0.6), (0.9, 0), (2.4, 0)]})
+
+
+_CLIPS = {}
+
+
+def clip(role, name="idle"):
+    """dict(duration, loop, additive, keys = {channel: [(t, (rx, ry, rz))]}, face = {pose: [(t, w)]})."""
+    if (role, name) in _CLIPS:
+        return _CLIPS[(role, name)]
+    if name == "idle":
+        L = LOOPS[role]
+        out = dict(duration=L["duration"], loop=True, additive=False, keys=L["keys"], face=L.get("face", {}))
+    elif name == "idle2":
+        L, d = LOOPS[role], IDLE2[role]
+        keys = {ch: list(v) for ch, v in L["keys"].items()}
+        for ch, offs in d["offsets"].items():
+            base = L["keys"][ch][0][1] if ch in L["keys"] else (0.0, 0.0, 0.0)
+            keys[ch] = [(t, tuple(base[i] + o[i] for i in range(3))) for t, o in offs]
+        for ch in L["keys"]:
+            if ch not in d["offsets"]:
+                keys[ch] = [(0, L["keys"][ch][0][1]), (d["duration"], L["keys"][ch][0][1])]
+        out = dict(duration=d["duration"], loop=True, additive=False, keys=keys, face=d.get("face", {}))
+    elif name == "greet":
+        out = _greet(role)
+    else:
+        raise KeyError(name)
+    _CLIPS[(role, name)] = out
+    return out
+
+
+def _tangents(ts, ys, cyclic, duration):
+    """Monotone cubic (Fritsch-Butland) slopes at the keys: no overshoot, flat at holds and at turning
+    points, smooth through keys on a steady move.  Cyclic: the loop's seam is treated like any key."""
+    n = len(ts)
+    if cyclic and n > 2:
+        ts = [ts[-2] - duration] + list(ts) + [ts[1] + duration]
+        ys = [ys[-2]] + list(ys) + [ys[1]]
+    h = [ts[k + 1] - ts[k] for k in range(len(ts) - 1)]
+    d = [(ys[k + 1] - ys[k]) / h[k] if h[k] > 0 else 0.0 for k in range(len(ts) - 1)]
+    m = [0.0] * len(ts)
+    for k in range(1, len(ts) - 1):
+        if d[k - 1] * d[k] > 0:
+            m[k] = 3 * (h[k - 1] + h[k]) / ((2 * h[k] + h[k - 1]) / d[k - 1] + (h[k] + 2 * h[k - 1]) / d[k])
+    return m[1:-1] if cyclic and n > 2 else m
+
+
+def _cubic(keys, t, cyclic, duration):
+    ts = [k[0] for k in keys]
+    if t <= ts[0]:
+        return keys[0][1]
+    if t >= ts[-1]:
+        return keys[-1][1]
+    j = max(i for i in range(len(ts) - 1) if ts[i] <= t)
+    t0, t1 = ts[j], ts[j + 1]
+    h = t1 - t0
+    if h <= 0:
+        return keys[j + 1][1]
+    u = (t - t0) / h
+    h00, h10, h01, h11 = 2 * u ** 3 - 3 * u ** 2 + 1, u ** 3 - 2 * u ** 2 + u, -2 * u ** 3 + 3 * u ** 2, u ** 3 - u ** 2
+    out = []
+    dim = len(keys[0][1]) if isinstance(keys[0][1], (tuple, list)) else 0
+    for c in range(max(dim, 1)):
+        ys = [(k[1][c] if dim else k[1]) for k in keys]
+        m = _tangents(ts, ys, cyclic, duration)
+        out.append(h00 * ys[j] + h10 * h * m[j] + h01 * ys[j + 1] + h11 * h * m[j + 1])
+    return tuple(out) if dim else out[0]
+
+
+def clip_angles(cl, channel, t):
+    keys = cl["keys"].get(channel)
+    if not keys:
+        return (0.0, 0.0, 0.0)
+    if cl["loop"]:
+        t = t % cl["duration"]
+    return _cubic(keys, t, cl["loop"], cl["duration"])
 
 
 def loop_angles(role, channel, t):
-    loop = LOOPS[role]
-    keys = loop["keys"].get(channel)
-    if not keys:
-        return (0.0, 0.0, 0.0)
-    t = t % loop["duration"]
-    for (t0, a), (t1, b) in zip(keys, keys[1:]):
-        if t0 <= t <= t1:
-            u = _ease((t - t0) / (t1 - t0)) if t1 > t0 else 0.0
-            return tuple(a[i] + (b[i] - a[i]) * u for i in range(3))
-    return keys[-1][1]
+    return clip_angles(clip(role, "idle"), channel, t)
+
+
+def face_weights(role, name, t):
+    cl = clip(role, name)
+    if cl["loop"]:
+        t = t % cl["duration"]
+    return {p: max(0.0, min(1.0, _cubic(keys, t, cl["loop"], cl["duration"]))) for p, keys in cl["face"].items()}
 
 
 def _euler(a):
@@ -592,16 +809,29 @@ def _euler(a):
     return H.rot((0, 0, 1), a[2]) @ H.rot((0, 1, 0), a[1]) @ H.rot((1, 0, 0), a[0])
 
 
-def local_rotations(role, t, override=None):
-    """Bone -> 3x3 rotation (figure axes, about the bone head, relative to the parent) at loop time t.
-    override = {channel: angles} replaces channels (used by the pose solver)."""
+BREATH = 3.4          # seconds per breath, rounded so that a whole number of breaths fills each loop
+
+
+def breath_angle(duration, t):
+    period = duration / max(1, round(duration / BREATH))
+    return 1.2 * math.sin(TAU_LOOP * t / period)
+
+
+def local_rotations(role, t, override=None, name="idle", greet=None):
+    """Bone -> 3x3 rotation (figure axes, about the bone head, relative to the parent) at clip time t.
+    override = {channel: angles} replaces channels (used by the pose solver); greet = time in the
+    additive greeting (None: not greeting)."""
+    cl = clip(role, name)
     out = {}
+    add = clip(role, "greet") if greet is not None else None
     for channel, bones in CHANNELS.items():
-        a = (override or {}).get(channel) or loop_angles(role, channel, t)
+        a = (override or {}).get(channel) or clip_angles(cl, channel, t)
+        if add is not None and channel in add["keys"]:
+            g = clip_angles(add, channel, greet)
+            a = tuple(a[i] + g[i] for i in range(3))
         for bone, share in bones:
             out[bone] = _euler(tuple(x * share for x in a))
-    breathe = 1.2 * math.sin(TAU_LOOP * t / 3.2)                 # slow breathing in the upper chest
-    out["spine01"] = out.get("spine01", np.eye(3)) @ H.rot((1, 0, 0), -breathe)
+    out["spine01"] = out.get("spine01", np.eye(3)) @ H.rot((1, 0, 0), -breath_angle(cl["duration"], t % cl["duration"]))
     return out
 
 

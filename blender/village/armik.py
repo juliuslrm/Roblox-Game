@@ -68,7 +68,7 @@ class Scene:
         body = ch.body
         names, W = body.dense_weights()
         self.W = W
-        arm = W[:, [names.index(b) for b in names if b.startswith(("wrist", "lowerarm", "upperarm"))]].sum(axis=1) > 0.3
+        arm = W[:, [names.index(b) for b in names if b.startswith(("wrist", "lowerarm", "upperarm", "finger"))]].sum(axis=1) > 0.3
         faces = [body.faces[i] for i in body.face_ids("body")]
         self.faces = [f for f in faces if not arm[list(f)].any()]
         self.trunk = ~arm                       # body vertices without the arms (targets are measured on it)

@@ -351,43 +351,67 @@ def make_armature(ch, scene):
 
 
 # ---------------------------------------------------------------- motion
-def sample_motion(ch):
-    """Local rotations of the animated bones per sample, as quaternions in the Roblox template frame,
-    and the posed wrist positions (template frame) of a few samples for the server check."""
+def _q(R):
+    q = Matrix((TO_ROBLOX @ R @ TO_ROBLOX.T).tolist()).to_quaternion()
+    return [round(q.x, 6), round(q.y, 6), round(q.z, 6), round(q.w, 6)]
+
+
+def _keys(keys, dim=3):
+    if dim == 3:
+        return [[round(float(t), 4)] + [round(float(x), 4) for x in v] for t, v in keys]
+    return [[round(float(t), 4), round(float(v), 4)] for t, v in keys]
+
+
+CHECK_TIMES = {"idle": (0.0, 0.31, 0.5, 0.77), "idle2": (0.25, 0.5, 0.8)}      # fractions of the clip
+
+
+def motion_data(ch):
+    """Animation data of a trader for MarketMotion.lua: the clips as keys (MarketPose.lua evaluates them
+    exactly like characters.py), the face poses (quaternion + move in the Roblox frame per face bone),
+    and posed wrist positions at some clip times for the server check.  Also measures the largest hand
+    step at 30 samples per second over every clip."""
     role = ch.role
-    duration = C.LOOPS[role]["duration"]
-    count = int(round(duration * FPS))
-    tracks = {BONE_NAME.get(b, b): [] for b in C.ANIMATED + ("spine01",)}
-    check = []
-    worst = 0.0
-    prev = None
-    first = None
-    for i in range(count + 1):
-        t = duration * (i % count) / count
-        rots = C.local_rotations(role, t)
+    clips = {}
+    for name in ("idle", "idle2", "greet"):
+        cl = C.clip(role, name)
+        clips[name] = {"duration": cl["duration"], "loop": cl["loop"], "additive": cl["additive"],
+                       "keys": {c: _keys(k) for c, k in cl["keys"].items()},
+                       "face": {f: _keys(k, 1) for f, k in cl["face"].items()}}
+    poses = {}
+    for name in C.FACE_POSES:
+        rots, moves = C.face_pose(name)
+        entry = {}
+        for b in sorted(set(rots) | set(moves)):
+            e = {"q": _q(rots.get(b, np.eye(3)))}
+            if b in moves:
+                e["p"] = [round(float(x), 5) for x in TO_ROBLOX @ moves[b]]
+            entry[b] = e
+        poses[name] = entry
+    check, worst = [], 0.0
+
+    def wrists(rots):
         mats = ch.body.bone_matrices(rots)
-        wrists = {s: (mats["wrist." + s] @ np.r_[ch.heads["wrist." + s], 1])[:3] for s in ("L", "R")}
-        if prev is not None:
-            worst = max(worst, max(np.linalg.norm(wrists[s] - prev[s]) for s in wrists))
-        prev = wrists
-        if i == count:
-            break
-        if first is None:
-            first = wrists
-        for b in tracks:
-            src = {v: k for k, v in BONE_NAME.items()}.get(b, b)
-            R = rots.get(src, np.eye(3))
-            Rr = TO_ROBLOX @ R @ TO_ROBLOX.T
-            q = Matrix(Rr.tolist()).to_quaternion()
-            if tracks[b] and np.dot(tracks[b][-1], (q.x, q.y, q.z, q.w)) < 0:
-                q = -q
-            tracks[b].append([round(q.x, 5), round(q.y, 5), round(q.z, 5), round(q.w, 5)])
-        if i % max(1, count // 4) == 0:
-            check.append({"sample": i + 1, "wristL": [round(float(x), 4) for x in TO_ROBLOX @ wrists["L"]],
-                          "wristR": [round(float(x), 4) for x in TO_ROBLOX @ wrists["R"]]})
-    # the fastest intended move (the hammer tap) covers about 0.3 studs per sample
-    assert worst < 0.6, f"{role}: a hand jumps {worst:.2f} studs between two samples"
-    return {"duration": duration, "bones": tracks}, check, worst
+        return {s: (mats["wrist." + s] @ np.r_[ch.heads["wrist." + s], 1])[:3] for s in ("L", "R")}
+    for name in ("idle", "idle2"):
+        d = C.clip(role, name)["duration"]
+        prev = None
+        for i in range(int(d * 30) + 1):
+            w = wrists(C.local_rotations(role, d * i / int(d * 30), name=name))
+            if prev is not None:
+                worst = max(worst, max(np.linalg.norm(w[s] - prev[s]) for s in w))
+            prev = w
+        for f in CHECK_TIMES[name]:
+            t = round(d * f, 4)
+            w = wrists(C.local_rotations(role, t, name=name))
+            check.append({"clip": name, "t": t, "wristL": [round(float(x), 4) for x in TO_ROBLOX @ w["L"]],
+                          "wristR": [round(float(x), 4) for x in TO_ROBLOX @ w["R"]]})
+    t, g = 1.1, 0.55
+    w = wrists(C.local_rotations(role, t, greet=g))
+    check.append({"clip": "idle", "t": t, "greet": g, "wristL": [round(float(x), 4) for x in TO_ROBLOX @ w["L"]],
+                  "wristR": [round(float(x), 4) for x in TO_ROBLOX @ w["R"]]})
+    # the fastest intended move (the hammer tap) covers about 0.1 studs per 1/30 s
+    assert worst < 0.25, f"{role}: a hand jumps {worst:.2f} studs between two samples (1/30 s)"
+    return {"clips": clips, "poses": poses}, check, worst
 
 
 def posed_vertices(ch, pieces_W, verts, rots):
@@ -408,14 +432,17 @@ def prop_clearance(ch):
     body = ch.body
     names, W = body.dense_weights()
     assert names == ch.bones
-    arm = W[:, [names.index(b) for b in names if b.startswith(("wrist", "lowerarm", "upperarm"))]].sum(axis=1) > 0.3
+    arm = W[:, [names.index(b) for b in names if b.startswith(("wrist", "lowerarm", "upperarm", "finger"))]].sum(axis=1) > 0.3
     faces = [body.faces[i] for i in body.face_ids("body")]
     faces = [f for f in faces if not arm[list(f)].any()]
     worst = (1e9, None)
-    duration = C.LOOPS[ch.role]["duration"]
-    for i in range(0, int(duration * FPS), 2):
-        t = i / FPS
-        rots = C.local_rotations(ch.role, t)
+    moments = []
+    for name in ("idle", "idle2"):
+        d = C.clip(ch.role, name)["duration"]
+        moments += [(name, i / FPS, None) for i in range(0, int(d * FPS), 2)]
+    moments += [("idle", 0.0, g) for g in (0.3, 0.55, 0.9)]          # greeting on top of the idle
+    for name, t, g in moments:
+        rots = C.local_rotations(ch.role, t, name=name, greet=g)
         P = posed_vertices(ch, W, body.verts, rots)
         bvh = BVHTree.FromPolygons([Vector(v) for v in P], [list(f) for f in faces], all_triangles=False)
         for prop in (p for p in ch.pieces if p.name.startswith("prop")):
@@ -427,11 +454,24 @@ def prop_clearance(ch):
                 d = Vector(q) - hit[0]
                 s = d.length if d.dot(hit[1]) >= 0 else -d.length
                 if s < worst[0]:
-                    worst = (s, (prop.name, round(t, 2)))
+                    worst = (s, (prop.name, f"{name} {round(t, 2)}" + (f" greet {g}" if g else "")))
     return worst
 
 
 # ---------------------------------------------------------------- main
+def motion_only(role, problems, art, motion):
+    """Animation data and reference poses without meshes, bake or export (fast check of the motion)."""
+    ch = C.build(role)
+    for p in C.grip_problems(ch.report):
+        problems.append(f"{role}: {p}")
+    mo, check, step = motion_data(ch)
+    motion[role] = mo
+    V = np.vstack([p.verts for p in ch.pieces])
+    art[role] = {"height": round(float(V[:, 2].max()), 3), "meshes": [f"trader_{role}_{m}" for m, _ in meshes_of(ch)],
+                 "check": check, "rig": f"trader_{role}"}
+    print(f"[traders] {role}: motion only, largest hand step {step:.3f}", flush=True)
+
+
 def build_role(role, tex, problems, art, motion):
     scene = bpy.context.scene
     ch = C.build(role)
@@ -467,7 +507,7 @@ def build_role(role, tex, problems, art, motion):
     clearance = prop_clearance(ch)
     if clearance[0] < -0.03:                    # 3 cm into the skin: a prop passes through the body
         problems.append(f"{role}: {clearance[1][0]} goes {-clearance[0]:.2f} studs into the body at t={clearance[1][1]} s")
-    mo, check, step = sample_motion(ch)
+    mo, check, step = motion_data(ch)
     motion[role] = mo
     art[role] = {"height": round(height, 3), "meshes": [o.name for o in objs], "check": check,
                  "rig": f"trader_{role}"}
@@ -591,6 +631,8 @@ def main():
     ap.add_argument("--no-render", action="store_true")
     ap.add_argument("--only")
     ap.add_argument("--tex", type=int, default=1024)
+    ap.add_argument("--motion-only", action="store_true",
+                    help="only MarketMotion.lua and TraderArt.lua (no meshes, bake, FBX or renders)")
     args = ap.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:])
     scene = export.new_scene()
     scene.render.engine = "CYCLES"
@@ -599,6 +641,9 @@ def main():
     problems, art, motion, rigs = [], {}, {}, {}
     roles = [args.only] if args.only else list(C.ROLES)
     for role in roles:
+        if args.motion_only:
+            motion_only(role, problems, art, motion)
+            continue
         arm, objs, ch = build_role(role, args.tex, problems, art, motion)
         rigs[role] = (arm, objs, ch)
         export_rig(arm, objs, str(ROOT / f"exports/library/trader_{role}.fbx"))
@@ -609,19 +654,24 @@ def main():
         (ROOT / "roblox/gameplay/server/TraderArt.lua").write_text(
             "-- Generated by blender/build_characters.py. Do not edit.\n"
             "-- Skinned traders: rig model name, meshes, height; check = posed wrist positions (Roblox template\n"
-            "-- frame, relative to the figure's ground point) for some samples of the idle loop.\nreturn "
+            "-- frame, relative to the figure's ground point) at some times of the clips (greet = time in the\n"
+            "-- additive greeting).\nreturn "
             + luadata.to_lua({"traders": art, "animated": bones}, inline_depth=4) + "\n", encoding="utf-8")
+        channels = {c: [[BONE_NAME.get(b, b), share] for b, share in bones_] for c, bones_ in C.CHANNELS.items()}
         text = ("-- Generated by blender/build_characters.py. Do not edit.\n"
-                "-- Idle loops of the traders: per animated bone one local rotation per sample, { qx, qy, qz, qw },\n"
-                "-- about the bone's own joint, in the Roblox frame of the figure (relative to its parent bone).\n"
-                "-- A bone's Transform is  restRot^-1 * (figureRot * q * figureRot^-1) * restRot.\nreturn "
-                + luadata.to_lua({"fps": FPS, "roles": motion}, inline_depth=4) + "\n")
+                "-- Animation of the traders, evaluated by MarketPose.lua exactly like blender/village/characters.py:\n"
+                "-- clips (idle, idle2: loops that start in the same pose; greet: additive) with keys per channel\n"
+                "-- {t, rx, ry, rz} (degrees, figure axes), face weights per expression {t, w}; channels -> bones;\n"
+                "-- poses: per expression and face bone a local rotation q {x, y, z, w} and a move p (Roblox frame).\n"
+                "-- A bone's Transform is  restRot^-1 * (figureRot * CFrame(p) * q * figureRot^-1) * restRot.\nreturn "
+                + luadata.to_lua({"version": 2, "breath": C.BREATH, "channels": channels, "roles": motion},
+                                 inline_depth=5) + "\n")
         (ROOT / "roblox/gameplay/shared/MarketMotion.lua").write_text(text, encoding="utf-8")
         size = len(text.encode())
         print(f"[traders] MarketMotion.lua {size} bytes")
         if size > 190_000:
             problems.append(f"MarketMotion.lua has {size} bytes (Roblox script limit 200 000)")
-    if not args.no_render:
+    if not args.no_render and not args.motion_only:
         render_lineup(rigs, str(ROOT / "previews/market/01-haendler.png"))
         render_motion(rigs, str(ROOT / "previews/market/02-bewegung.png"))
         render_hands(rigs, str(ROOT / "previews/market/03-haende.png"))

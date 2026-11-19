@@ -15,11 +15,11 @@ return {
 			100548175724336, -- arcane_machines.fbx (new conveyors, 2026-11-17)
 		},
 		ArcaneMarketAssets = {
-			102593741391234, -- trader_selma.fbx: skinned rig, solved grips (2026-11-18)
-			108048366764790, -- trader_nyra.fbx
-			86257344031359, -- trader_lio.fbx
-			90222244544083, -- trader_aron.fbx
-			129560284909085, -- trader_esme.fbx
+			91874824862297, -- trader_selma.fbx: skinned rig, face rig, fingers (2026-11-19)
+			97808738255335, -- trader_nyra.fbx
+			83275101006090, -- trader_lio.fbx
+			101545940277205, -- trader_aron.fbx
+			82808133546602, -- trader_esme.fbx
 			122869519424675, -- arcane_market.fbx: the five stalls
 		},
 		ArcaneResourceAssets = { 119763588026096 }, -- arcane_resources.fbx: one model per raw item

@@ -79,7 +79,8 @@ def esme(ch):
         c += 20 * max(0.0, S[2] + 0.3 - Hd[0][2]) ** 2                   # ... and above it
         c += 30 * sc.inside(np.vstack((H[::3], Hd)), 0.04)
         w = sc.joint(m, "wrist.R")
-        c += 5 * max(0.0, w[2] - (S[2] - 0.25)) ** 2 + 5 * max(0.0, (S[2] - 1.0) - w[2]) ** 2
+        # the hand at chest height (higher, the handle passes in front of the mouth)
+        c += 5 * max(0.0, w[2] - (S[2] - 0.45)) ** 2 + 5 * max(0.0, (S[2] - 1.0) - w[2]) ** 2
         # the hand in front of the same shoulder, the handle running front to back over it (not across
         # the throat)
         c += 30 * (w[0] - S[0]) ** 2

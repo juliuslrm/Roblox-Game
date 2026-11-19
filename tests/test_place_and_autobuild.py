@@ -254,7 +254,7 @@ def check_market_world():
         local function rig(role, withRoot)
             local model = Instance.new("Model", templates)
             model.Name = "Trader_" .. role
-            for _, n in ipairs({ "head", "wear1", "hair1", "prop_L" }) do
+            for _, n in ipairs({ "head1", "head2", "wear1", "hair1", "prop_L" }) do      -- head split over the limit
                 local mesh = Instance.new("MeshPart", model)
                 mesh.Name, mesh.Size = "trader_" .. role .. "_" .. n, Vector3.new(1, 2, 1)
                 mesh.CFrame = placed * CFrame.new(0, 3, 0)
@@ -294,42 +294,56 @@ def check_market_world():
                 assert((d.CFrame.Position - want.Position).Magnitude < 0.001, d.Name)
             end
         end
-        assert(count == 5)
-        assert(templates:FindFirstChild("trader_nyra_head", true), "template stays in storage")
+        assert(count == 6)
+        assert(templates:FindFirstChild("trader_nyra_head1", true), "template stays in storage")
         assert(market.nyra.CounterCollision.CanCollide)
         market.nyra.TradePrompt.ProximityPrompt.OnTrigger("Player-")
         assert(called == "Player-nyra")
 
-        -- idle loops: every animated bone, unit rotations, closed, something moves; reference poses exist
+        assert(figure:GetAttribute("GreetAt") ~= nil, "opening the trade lets the trader greet")
+
+        -- animation data: every channel drives existing animated bones, the clips are complete, the
+        -- idle clips loop, the greeting is additive; face poses use unit quaternions; reference poses
+        -- name a clip and a time inside it (the values are compared with Blender in test_market_pose.py)
+        local driven = {}
+        for channel, list in pairs(Motion.channels) do
+            for _, e in ipairs(list) do driven[e[1]] = true end
+        end
+        for _, name in ipairs(Traders.animated) do assert(driven[name], "no channel drives " .. name) end
         local roles = 0
         for role, data in pairs(Motion.roles) do
             roles = roles + 1
-            local samples = math.floor(data.duration * Motion.fps + 0.5)
-            local bones = 0
-            for _, name in ipairs(Traders.animated) do assert(data.bones[name], role .. " " .. name) end
-            for bone, rows in pairs(data.bones) do
-                bones = bones + 1
-                assert(#rows == samples, role .. " " .. bone)
-                local travel = 0
-                for i, r in ipairs(rows) do
-                    assert(math.abs(r[1]^2 + r[2]^2 + r[3]^2 + r[4]^2 - 1) < 1e-3)
-                    local nxt = rows[i % #rows + 1]
-                    local dot = math.abs(r[1]*nxt[1] + r[2]*nxt[2] + r[3]*nxt[3] + r[4]*nxt[4])
-                    assert(dot > 0.97, role .. " " .. bone .. " jumps")
-                    travel = travel + math.abs(r[1]-nxt[1]) + math.abs(r[2]-nxt[2]) + math.abs(r[3]-nxt[3])
+            local idle, idle2, greet = data.clips.idle, data.clips.idle2, data.clips.greet
+            assert(idle and idle2 and greet, role)
+            assert(idle.loop and idle2.loop and not greet.loop and greet.additive and not idle.additive, role)
+            for name, clip in pairs(data.clips) do
+                for channel, keys in pairs(clip.keys) do
+                    assert(Motion.channels[channel], role .. " " .. channel)
+                    assert(keys[1][1] == 0 and math.abs(keys[#keys][1] - clip.duration) < 1e-6, role .. " " .. name .. " " .. channel)
+                    if clip.loop then
+                        for c = 2, 4 do assert(keys[1][c] == keys[#keys][c], role .. " " .. name .. " " .. channel .. " not closed") end
+                    end
                 end
-                -- a wrist may stay still (a hand that only holds); every other animated bone moves
-                assert(travel > 1e-3 or bone:sub(1, 5) == "wrist", role .. " " .. bone .. " never moves")
             end
-            assert(bones >= 8)
+            local poses = 0
+            for pname, bones in pairs(data.poses) do
+                poses = poses + 1
+                for bone, e in pairs(bones) do
+                    local q = e.q
+                    assert(math.abs(q[1]^2 + q[2]^2 + q[3]^2 + q[4]^2 - 1) < 1e-4, role .. " " .. pname .. " " .. bone)
+                end
+            end
+            assert(data.poses.blink and data.poses.smile and poses >= 5, role)
             local art = Traders.traders[role]
-            assert(art and #art.check >= 3 and art.height > 5.5 and art.height < 8)
-            for _, c in ipairs(art.check) do assert(c.sample >= 1 and c.sample <= samples and #c.wristL == 3) end
+            assert(art and #art.check >= 6 and art.height > 5.5 and art.height < 8)
+            for _, c in ipairs(art.check) do
+                assert(data.clips[c.clip] and c.t >= 0 and c.t <= data.clips[c.clip].duration and #c.wristL == 3)
+            end
         end
         assert(roles == 5)
     """)
     print("  ok  market: five shops, skinned trader rigs placed and anchored, stand-in for missing or broken rigs,\n"
-          "      prompt, closed bone loops for 5 traders with reference poses")
+          "      prompt and greeting, clips and face poses for 5 traders with reference poses")
 
 
 def check_workshop_plots():

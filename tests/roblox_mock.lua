@@ -254,6 +254,9 @@ function methods:GetFullName()
 end
 
 -- ---------------------------------------------------------------- globals
+-- server time (seconds); the mock has no real clock, a counter is enough for the scripts' bookkeeping
+function methods:GetServerTimeNow() return os.clock() end
+
 workspace = Instance.new("Folder")
 workspace.Name = "Workspace"
 MOCK_FILLS = {}

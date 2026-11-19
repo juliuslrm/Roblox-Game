@@ -114,28 +114,50 @@ def eyes(head, iris_hex, name="eyes"):
         col[ang < 15] = iris * 1.18
         col[ang < 9.6] = rgb("0E0B0A")                                # pupil
         col[ang > 70] = rgb("D8C8C0")                                 # pinkish towards the back
-        W = Wd.fixed_weights(a, len(V), "head")
+        W = Wd.fixed_weights(a, len(V), "eye." + side)             # the eyeball turns with its eye bone
         pieces.append(Wd.Piece(name, V, F, W, col, "eye").orient_outwards())
     return Wd.merge(name, pieces)
 
 
-def lashes(head, color_hex):
-    """Eyelashes from the helper strips of the base mesh, made double-sided with a little thickness."""
+def lashes(head, color_hex, upper=44, lower=12, rng_seed=3):
+    """Eyelashes as single tapered hairs along the lid edges.  The helper strips of the base mesh
+    (cards made for an alpha texture) only give the lid edge (their row nearest to the eyeball) and the
+    direction the lashes grow (towards their far row); as solid geometry the strips themselves read
+    as a thick black line around the eye."""
+    import random
+    rng = random.Random(rng_seed)
     a, b = head.a, head.a.body
     pieces = []
     for side in ("l", "r"):
+        c, r = head.eyes[side.upper()]
         for k in (1, 2):
             fids = b.face_ids(f"helper-{side}-eyelashes-{k}")
             used = sorted({v for i in fids for v in b.faces[i]})
-            rm = {v: j for j, v in enumerate(used)}
             P = b.verts[used]
-            F = [tuple(rm[v] for v in b.faces[i]) for i in fids]
-            N = Wd._vertex_normals(P, F)
-            V = np.vstack((P + N * 0.0015, P - N * 0.0015))
-            n = len(P)
-            faces = F + [tuple(reversed([i + n for i in f])) for f in F]
-            W = a.W[used]
-            pieces.append(Wd.Piece("lashes", V, faces, np.vstack((W, W)), np.tile(rgb(color_hex), (len(V), 1)), "hair"))
+            top = P[:, 2].mean() > c[2]                      # the strip order is not upper / lower
+            count, length, width = (upper, 0.022, 0.002) if top else (lower, 0.01, 0.0016)
+            d = np.linalg.norm(P - c, axis=1)
+            lo, hi = d.min(), d.max()
+            near = P[d < lo + 0.3 * (hi - lo)]
+            far = P[d > lo + 0.7 * (hi - lo)]
+            if len(near) < 2 or len(far) < 1:
+                continue
+            # order the lid edge from one corner to the other (largest spread axis)
+            ax = np.linalg.svd(near - near.mean(axis=0))[2][0]
+            near = near[np.argsort((near - near.mean(axis=0)) @ ax)]
+            seg = np.r_[0, np.cumsum(np.linalg.norm(np.diff(near, axis=0), axis=1))]
+            for j in range(count):
+                u = (j + rng.uniform(0.2, 0.8)) / count
+                root = np.array([np.interp(u * seg[-1], seg, near[:, q]) for q in range(3)])
+                tip_dir = far[np.argmin(np.linalg.norm(far - root, axis=1))] - root
+                tip_dir /= max(1e-9, np.linalg.norm(tip_dir))
+                out_dir = (root - c) / np.linalg.norm(root - c)
+                L = length * (0.55 + 0.45 * math.sin(math.pi * u)) * rng.uniform(0.85, 1.1)
+                pts = [root + (tip_dir * 0.75 + out_dir * 0.25) * L * t + out_dir * L * 0.25 * t * t
+                       for t in (0.0, 0.33, 0.66, 1.0)]
+                V, F = _ribbon(pts, width, 0.0012)
+                pieces.append(Wd.Piece("lashes", V, F, np.repeat(a.W[used][np.argmin(d)][None], len(V), axis=0),
+                                       np.tile(rgb(color_hex), (len(V), 1)), "hair"))
     return Wd.merge("lashes", pieces)
 
 
@@ -273,8 +295,8 @@ def brows(head, color_hex, rng, thick=1.0):
     for side, (c, r) in head.eyes.items():
         sx = 1 if side == "L" else -1
         roots = []
-        for i in range(34):
-            u = i / 33                                                   # 0 inner end .. 1 outer end
+        for i in range(64):
+            u = i / 63                                                   # 0 inner end .. 1 outer end
             x = c[0] + sx * (-1.25 * r + 2.9 * r * u)
             z = c[2] + r * (1.55 + 0.35 * math.sin(math.pi * min(1, u * 1.2)) - 0.25 * u)
             p = np.array((x, c[1] - 2 * r, z + rng.uniform(-0.15, 0.15) * r * thick))
@@ -285,9 +307,10 @@ def brows(head, color_hex, rng, thick=1.0):
         for p, n, u in roots:
             d = np.array((sx * 1.0, 0.0, 0.55 - 0.7 * u))
             d = d - np.dot(d, n) * n
-            pts = [p + n * 0.003 + d / np.linalg.norm(d) * 0.013 * k * thick for k in range(4)]
-            V, F = _ribbon(pts, 0.009 * thick, 0.0035)
-            pieces.append(Wd.Piece("brows", V, F, head_bone(head, len(V)), np.tile(rgb(color_hex), (len(V), 1)), "hair"))
+            pts = [p + n * 0.003 + d / np.linalg.norm(d) * 0.008 * k * (0.7 + 0.3 * thick) for k in range(4)]
+            V, F = _ribbon(pts, 0.006 * thick, 0.0028)
+            W = np.repeat(Wd.nearest_weights(head.a, [p], head.mask, k=4), len(V), axis=0)   # brows move with the skin
+            pieces.append(Wd.Piece("brows", V, F, W, np.tile(rgb(color_hex), (len(V), 1)), "hair"))
     return Wd.merge("brows", pieces)
 
 
@@ -332,3 +355,95 @@ def head_ring(head, z):
     """Radius of the head outline at height z (support function, 64 directions)."""
     th, rings = Wd.support_rings(head.a, [z], head.mask, 64, centre=head.centre[:2])
     return th, rings[0][1]
+
+
+# ---------------------------------------------------------------- short coily hair as a volume
+def subdivide(piece):
+    """Every n-gon -> n quads (face centre, edge midpoints, corner); no smoothing, attributes are
+    interpolated linearly.  Shared edge midpoints keep the mesh closed."""
+    V, W, Cc = piece.verts, piece.weights, piece.colors
+    nv, nw, nc = [V], [W], [Cc]
+    n = len(V)
+    mid = {}
+
+    def add(pos, w, c):
+        nonlocal n
+        nv.append(pos[None])
+        nw.append(w[None])
+        nc.append(c[None])
+        n += 1
+        return n - 1
+    faces = []
+    for f in piece.faces:
+        k = len(f)
+        ci = add(V[list(f)].mean(axis=0), W[list(f)].mean(axis=0), Cc[list(f)].mean(axis=0))
+        mids = []
+        for i in range(k):
+            a, b = f[i], f[(i + 1) % k]
+            key = (min(a, b), max(a, b))
+            if key not in mid:
+                mid[key] = add((V[a] + V[b]) / 2, (W[a] + W[b]) / 2, (Cc[a] + Cc[b]) / 2)
+            mids.append(mid[key])
+        for i in range(k):
+            faces.append((f[i], mids[i], ci, mids[i - 1]))
+    return Wd.Piece(piece.name, np.vstack(nv), faces, np.vstack(nw), np.vstack(nc), piece.kind, piece.smooth)
+
+
+def coily_hair(head, name, field, color, rng, height=0.05, curl=0.022, density=5200, levels=2, contrast=1.0, relief=1.0):
+    """Short tightly curled hair: a scalp cap, subdivided, pushed out by `height` (thinning to nothing
+    at the hairline) and covered with round curl bumps of radius ~`curl`.  Crevices between the
+    curls are darker, curl tops lighter, so the volume reads as hair at every distance."""
+    a = head.a
+    base = rgb(color) if isinstance(color, str) else np.asarray(color)
+    cap = Wd.fitted(a, name, field, np.full(len(a.V), 0.004), base, "hair", inner_gap=0.001, relax=0)
+    for k in range(levels):
+        cap = subdivide(cap)
+    V = cap.verts
+    F = cap.faces
+    N = Wd._vertex_normals(V, F)
+    # graph distance to the open border (the hairline): taper of the volume
+    nbs = [[] for _ in range(len(V))]
+    edges = {}
+    for f in F:
+        for x, y in zip(f, f[1:] + f[:1]):
+            nbs[x].append(y)
+            edges[(x, y)] = edges.get((x, y), 0) + 1
+    border = {x for (x, y) in edges if (y, x) not in edges}
+    dist = np.full(len(V), np.inf)
+    frontier = list(border)
+    for b in frontier:
+        dist[b] = 0.0
+    import heapq
+    heap = [(0.0, b) for b in frontier]
+    while heap:
+        d, x = heapq.heappop(heap)
+        if d > dist[x]:
+            continue
+        for y in nbs[x]:
+            nd = d + float(np.linalg.norm(V[x] - V[y]))
+            if nd < dist[y]:
+                dist[y] = nd
+                heapq.heappush(heap, (nd, y))
+    taper = np.clip(dist / 0.07, 0, 1)
+    taper = taper * taper * (3 - 2 * taper)
+    # curl bumps: random centres on the cap, each a rounded dome
+    tri_area = []
+    for f in F:
+        tri_area.append(np.linalg.norm(np.cross(V[f[1]] - V[f[0]], V[f[2]] - V[f[0]])))
+    prob = np.array(tri_area) / np.sum(tri_area)
+    picks = rng.choices(range(len(F)), weights=prob, k=density)
+    centres = np.array([V[list(F[i])].mean(axis=0) for i in picks])
+    radii = np.array([curl * rng.uniform(0.7, 1.3) for _ in picks])
+    bump = np.zeros(len(V))
+    for s in range(0, len(centres), 400):
+        C_ = centres[s:s + 400]
+        R_ = radii[s:s + 400]
+        d2 = ((V[:, None, :] - C_[None]) ** 2).sum(axis=2)
+        h = np.clip(1 - d2 / (R_[None] ** 2), 0, None)
+        bump = np.maximum(bump, (np.sqrt(h) * R_[None]).max(axis=1))
+    out = height * taper + relief * bump * (0.35 + 0.65 * taper)          # relief < 1: smooth, straight hair
+    cap.verts = V + N * out[:, None]
+    shade = 1.0 + contrast * (0.75 * np.clip(bump / curl, 0, 1) - 0.45)
+    jitter = np.array([rng.uniform(1 - 0.1 * contrast, 1 + 0.1 * contrast) for _ in range(len(V))])
+    cap.colors = np.clip(base[None] * (shade * jitter)[:, None], 0, 1)
+    return cap
