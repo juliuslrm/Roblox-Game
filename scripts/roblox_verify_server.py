@@ -65,7 +65,8 @@ do -- traders: skinned rigs standing behind their stall; the idle loop moves the
 			local prep = Pose.prepare(data)
 			local figureRot = pivot - pivot.Position
 			local entries = {}
-			for _, list in pairs(Motion.channels) do
+			local channels, rigNames = Pose.channelsOf(Motion, role), Pose.rigOf(Motion, role)
+			for _, list in pairs(channels) do
 				for _, b in ipairs(list) do
 					local bone = bones[b[1]]
 					if not bone then missing += 1 else
@@ -75,13 +76,13 @@ do -- traders: skinned rigs standing behind their stall; the idle loop moves the
 				end
 			end
 			for _, ref in ipairs(Art.traders[role].check) do
-				local q = Pose.evaluate(Motion.channels, prep, ref.clip, ref.t, ref.greet)
+				local q = Pose.evaluate(channels, prep, ref.clip, ref.t, ref.greet, rigNames.breath)
 				for name, e in pairs(entries) do
 					local r = q[name]
 					e.bone.Transform = e.pre * CFrame.new(0, 0, 0, r[1], r[2], r[3], r[4]) * e.post
 				end
 				for side, key in pairs({ L = "wristL", R = "wristR" }) do
-					local w = bones["wrist." .. side]
+					local w = bones[rigNames.wrists[side]]
 					local want = pivot * Vector3.new(table.unpack(ref[key]))
 					if w then worst = math.max(worst, (w.TransformedWorldCFrame.Position - want).Magnitude) else missing += 1 end
 				end

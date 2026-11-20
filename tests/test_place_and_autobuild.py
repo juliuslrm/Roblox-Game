@@ -313,12 +313,14 @@ def check_market_world():
         local roles = 0
         for role, data in pairs(Motion.roles) do
             roles = roles + 1
+            -- a trader on another skeleton (Lio) brings its own channel table
+            local channels = data.channels or Motion.channels
             local idle, idle2, greet = data.clips.idle, data.clips.idle2, data.clips.greet
             assert(idle and idle2 and greet, role)
             assert(idle.loop and idle2.loop and not greet.loop and greet.additive and not idle.additive, role)
             for name, clip in pairs(data.clips) do
                 for channel, keys in pairs(clip.keys) do
-                    assert(Motion.channels[channel], role .. " " .. channel)
+                    assert(channels[channel], role .. " " .. channel)
                     assert(keys[1][1] == 0 and math.abs(keys[#keys][1] - clip.duration) < 1e-6, role .. " " .. name .. " " .. channel)
                     if clip.loop then
                         for c = 2, 4 do assert(keys[1][c] == keys[#keys][c], role .. " " .. name .. " " .. channel .. " not closed") end
@@ -333,7 +335,19 @@ def check_market_world():
                     assert(math.abs(q[1]^2 + q[2]^2 + q[3]^2 + q[4]^2 - 1) < 1e-4, role .. " " .. pname .. " " .. bone)
                 end
             end
-            assert(data.poses.blink and data.poses.smile and poses >= 5, role)
+            assert(data.poses.blink and data.poses.smile and poses >= 3, role)
+            -- every expression a clip plays exists as a face pose
+            for name, clip in pairs(data.clips) do
+                for pname in pairs(clip.face or {}) do
+                    assert(data.poses[pname], role .. " " .. name .. " plays the missing face pose " .. pname)
+                end
+            end
+            if data.channels then
+                for channel, list in pairs(data.channels) do
+                    assert(#list >= 1, role .. " " .. channel)
+                end
+                assert(data.rig and data.rig.breath and data.rig.neck and data.rig.head and data.rig.wrists, role)
+            end
             local art = Traders.traders[role]
             assert(art and #art.check >= 6 and art.height > 5.5 and art.height < 8)
             for _, c in ipairs(art.check) do

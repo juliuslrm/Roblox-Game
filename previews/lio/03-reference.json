@@ -1,109 +1,35 @@
 {
  "inspect": {
   "elbow": [
-   -0.3438,
-   -0.0885,
-   1.3992
+   -0.432,
+   0.0135,
+   1.4687
   ],
-  "reach": 0.670809933698076,
-  "wrist_bend": 61.15483639413953,
+  "reach": 0.6567994058535556,
+  "wrist_bend": 15.621832792282037,
+  "error_mm": 0.0017585895647921478,
+  "palm_turn": 10,
   "fingers": {
    "f_index": {
     "angles": [
-     2.0,
-     34.0,
-     28.0
+     12.0,
+     24.0,
+     32.0
     ],
     "touch": true
    },
    "f_middle": {
     "angles": [
-     10.0,
-     22.0,
-     62.0
+     16.0,
+     24.0,
+     48.0
     ],
     "touch": true
    },
    "f_ring": {
-    "angles": [
-     0.0,
-     18.0,
-     28.0
-    ],
-    "touch": true
-   },
-   "f_pinky": {
-    "angles": [
-     0.0,
-     0.0,
-     76.0
-    ],
-    "touch": true
-   },
-   "thumb": {
-    "angles": [
-     40.0,
-     24.0,
-     0.0
-    ],
-    "touch": true
-   }
-  },
-  "contact": {
-   "deepest_mm": 3.0,
-   "nearest_mm": {
-    "DEF-f_index.01.R": -1.0,
-    "DEF-f_index.02.R": 2.5,
-    "DEF-f_index.03.R": 3.2,
-    "DEF-f_middle.01.R": -1.7,
-    "DEF-f_middle.02.R": -0.6,
-    "DEF-f_middle.03.R": 2.7,
-    "DEF-f_ring.01.R": -1.2,
-    "DEF-f_ring.02.R": -1.9,
-    "DEF-f_ring.03.R": 0.8,
-    "DEF-f_pinky.01.R": -3.0,
-    "DEF-f_pinky.02.R": -0.9,
-    "DEF-f_pinky.03.R": 6.9,
-    "DEF-thumb.01.R": 28.4,
-    "DEF-thumb.02.R": 15.1,
-    "DEF-thumb.03.R": 1.3,
-    "DEF-palm.01.R": -0.4,
-    "DEF-palm.02.R": 7.6,
-    "DEF-palm.03.R": 19.6,
-    "DEF-palm.04.R": 12.1,
-    "DEF-hand.R": 25.7
-   }
-  }
- },
- "offer": {
-  "elbow": [
-   -0.2347,
-   -0.0801,
-   1.3011
-  ],
-  "reach": 0.865209204446585,
-  "wrist_bend": 7.230851481820284,
-  "fingers": {
-   "f_index": {
     "angles": [
      6.0,
      18.0,
-     42.0
-    ],
-    "touch": true
-   },
-   "f_middle": {
-    "angles": [
-     10.0,
-     24.0,
-     44.0
-    ],
-    "touch": true
-   },
-   "f_ring": {
-    "angles": [
-     2.0,
-     14.0,
      24.0
     ],
     "touch": true
@@ -112,58 +38,60 @@
     "angles": [
      0.0,
      0.0,
-     58.0
+     0.0
     ],
     "touch": true
    },
    "thumb": {
     "angles": [
      40.0,
-     24.0,
+     12.0,
      0.0
     ],
     "touch": true
    }
   },
   "contact": {
-   "deepest_mm": 1.7,
+   "deepest_mm": 2.6,
    "nearest_mm": {
     "DEF-f_index.01.R": -0.2,
-    "DEF-f_index.02.R": 1.8,
-    "DEF-f_index.03.R": 3.2,
-    "DEF-f_middle.01.R": 0.8,
-    "DEF-f_middle.02.R": -1.0,
-    "DEF-f_middle.03.R": 2.3,
-    "DEF-f_ring.01.R": -0.1,
-    "DEF-f_ring.02.R": -1.7,
-    "DEF-f_ring.03.R": 0.5,
-    "DEF-f_pinky.01.R": 0.7,
-    "DEF-f_pinky.02.R": -1.2,
-    "DEF-f_pinky.03.R": 4.5,
-    "DEF-thumb.01.R": 31.7,
-    "DEF-thumb.02.R": 17.8,
+    "DEF-f_index.02.R": 1.6,
+    "DEF-f_index.03.R": 3.1,
+    "DEF-f_middle.01.R": 0.0,
+    "DEF-f_middle.02.R": -1.1,
+    "DEF-f_middle.03.R": 2.2,
+    "DEF-f_ring.01.R": -0.7,
+    "DEF-f_ring.02.R": -1.9,
+    "DEF-f_ring.03.R": 0.6,
+    "DEF-f_pinky.01.R": -0.6,
+    "DEF-f_pinky.02.R": -2.6,
+    "DEF-f_pinky.03.R": 3.6,
+    "DEF-thumb.01.R": 25.6,
+    "DEF-thumb.02.R": 11.3,
     "DEF-thumb.03.R": 1.7,
-    "DEF-palm.01.R": 3.7,
-    "DEF-palm.02.R": 11.7,
-    "DEF-palm.03.R": 23.4,
-    "DEF-palm.04.R": 16.1,
-    "DEF-hand.R": 29.6
+    "DEF-palm.01.R": 2.3,
+    "DEF-palm.02.R": 8.7,
+    "DEF-palm.03.R": 21.6,
+    "DEF-palm.04.R": 12.4,
+    "DEF-hand.R": 24.8
    }
   }
  },
- "polish": {
+ "offer": {
   "elbow": [
-   0.2147,
-   0.0531,
-   1.2323
+   -0.232,
+   -0.0856,
+   1.3054
   ],
-  "reach": 0.7423635281344615,
-  "wrist_bend": 50.451868493027014,
+  "reach": 0.8742649466700739,
+  "wrist_bend": 6.568174148827776,
+  "error_mm": 0.00242742614324217,
+  "palm_turn": 0,
   "fingers": {
    "f_index": {
     "angles": [
-     10.0,
-     16.0,
+     12.0,
+     24.0,
      32.0
     ],
     "touch": true
@@ -171,16 +99,16 @@
    "f_middle": {
     "angles": [
      16.0,
-     10.0,
-     56.0
+     24.0,
+     48.0
     ],
     "touch": true
    },
    "f_ring": {
     "angles": [
-     8.0,
-     4.0,
-     28.0
+     6.0,
+     18.0,
+     24.0
     ],
     "touch": true
    },
@@ -195,42 +123,122 @@
    "thumb": {
     "angles": [
      40.0,
+     12.0,
+     0.0
+    ],
+    "touch": true
+   }
+  },
+  "contact": {
+   "deepest_mm": 2.6,
+   "nearest_mm": {
+    "DEF-f_index.01.R": -0.2,
+    "DEF-f_index.02.R": 1.6,
+    "DEF-f_index.03.R": 3.1,
+    "DEF-f_middle.01.R": 0.0,
+    "DEF-f_middle.02.R": -1.1,
+    "DEF-f_middle.03.R": 2.2,
+    "DEF-f_ring.01.R": -0.7,
+    "DEF-f_ring.02.R": -1.9,
+    "DEF-f_ring.03.R": 0.6,
+    "DEF-f_pinky.01.R": -0.6,
+    "DEF-f_pinky.02.R": -2.6,
+    "DEF-f_pinky.03.R": 3.6,
+    "DEF-thumb.01.R": 25.6,
+    "DEF-thumb.02.R": 11.3,
+    "DEF-thumb.03.R": 1.7,
+    "DEF-palm.01.R": 2.3,
+    "DEF-palm.02.R": 8.7,
+    "DEF-palm.03.R": 21.6,
+    "DEF-palm.04.R": 12.4,
+    "DEF-hand.R": 24.8
+   }
+  }
+ },
+ "polish": {
+  "elbow": [
+   -0.24,
+   0.0261,
+   1.2466
+  ],
+  "reach": 0.7783752122050343,
+  "wrist_bend": 7.465820234552478,
+  "error_mm": 0.0011462519088283525,
+  "palm_turn": 40,
+  "fingers": {
+   "f_index": {
+    "angles": [
+     12.0,
+     24.0,
+     32.0
+    ],
+    "touch": true
+   },
+   "f_middle": {
+    "angles": [
+     16.0,
+     24.0,
+     48.0
+    ],
+    "touch": true
+   },
+   "f_ring": {
+    "angles": [
+     6.0,
      18.0,
-     2.0
+     24.0
+    ],
+    "touch": true
+   },
+   "f_pinky": {
+    "angles": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "touch": true
+   },
+   "thumb": {
+    "angles": [
+     40.0,
+     12.0,
+     0.0
     ],
     "touch": true
    }
   },
   "second": {
    "elbow": [
-    -0.1769,
-    0.0444,
-    1.2297
+    0.2259,
+    0.024,
+    1.2435
    ],
-   "reach": 0.7273489225375159,
-   "wrist_bend": 55.90543645091828,
+   "reach": 0.7462164368705487,
+   "wrist_bend": 6.617817244375899,
+   "error_mm": 0.0011129082649849558,
+   "palm_turn": -40,
    "fingers": {
     "f_index": {
      "angles": [
-      8.0,
-      2.0,
-      44.0
+      6.0,
+      20.0,
+      30.0
      ],
      "touch": true
     },
     "f_middle": {
      "angles": [
+      12.0,
       14.0,
-      0.0,
-      58.0
+      56.0
      ],
      "touch": true
     },
     "f_ring": {
      "angles": [
-      6.0,
-      2.0,
-      18.0
+      4.0,
+      8.0,
+      26.0
      ],
      "touch": true
     },
@@ -245,36 +253,36 @@
     "thumb": {
      "angles": [
       40.0,
-      42.0,
-      0.0
+      24.0,
+      2.0
      ],
      "touch": true
     }
    }
   },
   "contact": {
-   "deepest_mm": 1.8,
+   "deepest_mm": 2.6,
    "nearest_mm": {
-    "DEF-f_index.01.L": 1.6,
-    "DEF-f_index.02.L": 1.9,
-    "DEF-f_index.03.L": 3.3,
-    "DEF-f_middle.01.L": 0.9,
-    "DEF-f_middle.02.L": -0.8,
-    "DEF-f_middle.03.L": 2.4,
-    "DEF-f_ring.01.L": -0.4,
-    "DEF-f_ring.02.L": -1.8,
-    "DEF-f_ring.03.L": 0.9,
-    "DEF-f_pinky.01.L": 4.4,
-    "DEF-f_pinky.02.L": 0.6,
-    "DEF-f_pinky.03.L": 3.7,
-    "DEF-thumb.01.L": 29.4,
-    "DEF-thumb.02.L": 14.1,
-    "DEF-thumb.03.L": 1.6,
-    "DEF-palm.01.L": 7.5,
-    "DEF-palm.02.L": 15.1,
-    "DEF-palm.03.L": 20.3,
-    "DEF-palm.04.L": 19.2,
-    "DEF-hand.L": 31.9
+    "DEF-f_index.01.R": -0.2,
+    "DEF-f_index.02.R": 1.6,
+    "DEF-f_index.03.R": 3.1,
+    "DEF-f_middle.01.R": 0.0,
+    "DEF-f_middle.02.R": -1.1,
+    "DEF-f_middle.03.R": 2.2,
+    "DEF-f_ring.01.R": -0.7,
+    "DEF-f_ring.02.R": -1.9,
+    "DEF-f_ring.03.R": 0.6,
+    "DEF-f_pinky.01.R": -0.6,
+    "DEF-f_pinky.02.R": -2.6,
+    "DEF-f_pinky.03.R": 3.6,
+    "DEF-thumb.01.R": 25.6,
+    "DEF-thumb.02.R": 11.3,
+    "DEF-thumb.03.R": 1.7,
+    "DEF-palm.01.R": 2.3,
+    "DEF-palm.02.R": 8.7,
+    "DEF-palm.03.R": 21.6,
+    "DEF-palm.04.R": 12.4,
+    "DEF-hand.R": 24.8
    }
   }
  }

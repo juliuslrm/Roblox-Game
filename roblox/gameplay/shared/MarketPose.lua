@@ -198,8 +198,9 @@ function Pose.breath(duration, t)
 end
 
 -- local rotations of the animated bones: {bone = quaternion} (Roblox frame).  greetT = time in the
--- greeting or nil.  channels: MarketMotion.channels ({channel = {{bone, share}, ...}}).
-function Pose.evaluate(channels, prepared, clipName, t, greetT)
+-- greeting or nil.  channels: Pose.channelsOf(Motion, role) ({channel = {{bone, share}, ...}}).
+-- breathBone: the bone that carries the breathing (default "spine01").
+function Pose.evaluate(channels, prepared, clipName, t, greetT, breathBone)
 	local clip = prepared.clips[clipName]
 	if clip.loop then
 		t = t % clip.duration
@@ -226,7 +227,8 @@ function Pose.evaluate(channels, prepared, clipName, t, greetT)
 		end
 	end
 	local b = Pose.breath(clip.duration, t)
-	mats.spine01 = mul(mats.spine01 or rot(1, 0, 0, 0), rot(1, 0, 0, -b))
+	local bb = breathBone or "spine01"
+	mats[bb] = mul(mats[bb] or rot(1, 0, 0, 0), rot(1, 0, 0, -b))
 	for bone, m in pairs(mats) do
 		out[bone] = quat(toRoblox(m))
 	end
@@ -248,5 +250,33 @@ function Pose.faceWeights(prepared, clipName, t)
 end
 
 Pose.BREATH = 3.4
+
+-- Per-role rig description.  A role of MarketMotion may bring its own channel table and bone names
+-- (traders built on another skeleton, e.g. Lio on the Rigify rig); the others use the shared ones.
+local DEFAULT_RIG = {
+	breath = "spine01",
+	neck = "neck01",
+	head = "head",
+	eyes = { "eye.L", "eye.R" },
+	wrists = { L = "wrist.L", R = "wrist.R" },
+}
+
+function Pose.channelsOf(motion, role)
+	local data = motion.roles[role]
+	return (data and data.channels) or motion.channels
+end
+
+function Pose.rigOf(motion, role)
+	local data = motion.roles[role]
+	local rig = data and data.rig
+	if not rig then return DEFAULT_RIG end
+	return {
+		breath = rig.breath or DEFAULT_RIG.breath,
+		neck = rig.neck or DEFAULT_RIG.neck,
+		head = rig.head or DEFAULT_RIG.head,
+		eyes = rig.eyes or DEFAULT_RIG.eyes,
+		wrists = rig.wrists or DEFAULT_RIG.wrists,
+	}
+end
 
 return Pose

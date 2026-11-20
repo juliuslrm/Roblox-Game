@@ -61,20 +61,28 @@ local function register(figure)
 		bones[name] = e
 		return e
 	end
-	for _, list in pairs(Motion.channels) do
+	local channels = Pose.channelsOf(Motion, role)
+	local rig = Pose.rigOf(Motion, role)
+	for _, list in pairs(channels) do
 		for _, b in ipairs(list) do
 			if not entry(b[1]) then return end      -- not everything has arrived yet, try again later
 		end
 	end
-	local faceBones = {}
+	local faceBones, eyes = {}, {}
 	for _, pose in pairs(data.poses) do
 		for name in pairs(pose) do
 			if entry(name) then faceBones[name] = true end
 		end
 	end
+	for _, name in ipairs(rig.eyes) do
+		eyes[name] = true
+		-- roles with their own rig list the eyes explicitly; the others turn them only if a face pose uses them
+		if data.rig and entry(name) then faceBones[name] = true end
+	end
 	local now = workspace:GetServerTimeNow()
 	figures[figure] = {
 		role = role, data = data, prep = prepared[role], bones = bones, faceBones = faceBones,
+		channels = channels, rig = rig, eyes = eyes,
 		figureRot = figureRot, centre = pivot.Position + Vector3.new(0, 5.6, 0),
 		clip = "idle", clipStart = now - rng:NextNumber(0, data.clips.idle.duration),
 		prevClip = nil, prevStart = 0, blendStart = -10,
@@ -120,10 +128,10 @@ local function bodyPose(f, now)
 			f.greetStart, greetT = nil, nil
 		end
 	end
-	local pose = Pose.evaluate(Motion.channels, f.prep, f.clip, t, greetT)
+	local pose = Pose.evaluate(f.channels, f.prep, f.clip, t, greetT, f.rig.breath)
 	local blend = (now - f.blendStart) / BLEND
 	if f.prevClip and blend < 1 then
-		local old = Pose.evaluate(Motion.channels, f.prep, f.prevClip, now - f.prevStart, greetT)
+		local old = Pose.evaluate(f.channels, f.prep, f.prevClip, now - f.prevStart, greetT, f.rig.breath)
 		local u = blend * blend * (3 - 2 * blend)
 		for bone, q in pairs(pose) do
 			local o = old[bone]
@@ -225,9 +233,10 @@ local function apply(f, now, dt, withFace)
 		transforms[name] = quatCF(q)
 	end
 	-- the look turn is shared by neck (40 %) and head (60 %), on top of the clip
-	local neck, head = transforms.neck01, transforms.head
-	if neck then transforms.neck01 = CFrame.new():Lerp(look, 0.4) * neck end
-	if head then transforms.head = CFrame.new():Lerp(look, 0.6) * head end
+	local neckName, headName = f.rig.neck, f.rig.head
+	local neck, head = transforms[neckName], transforms[headName]
+	if neck then transforms[neckName] = CFrame.new():Lerp(look, 0.4) * neck end
+	if head then transforms[headName] = CFrame.new():Lerp(look, 0.6) * head end
 	if withFace then
 		weights.blink = math.max(weights.blink or 0, blinkWeight(f, now))
 		local face = {}
@@ -247,7 +256,7 @@ local function apply(f, now, dt, withFace)
 		for bone in pairs(f.faceBones) do
 			local cur = face[bone]
 			local cf = cur and (CFrame.new(cur.move) * cur.rot) or CFrame.new()
-			if bone == "eye.L" or bone == "eye.R" then
+			if f.eyes[bone] then
 				cf = cf * CFrame.Angles(0, f.eyeYaw, 0) * CFrame.Angles(f.eyePitch, 0, 0)
 			end
 			transforms[bone] = cf

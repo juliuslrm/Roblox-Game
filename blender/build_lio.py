@@ -17,7 +17,7 @@ sys.path[:0] = [str(HERE)]
 
 import bpy  # noqa: E402
 import numpy as np  # noqa: E402
-from mathutils import Matrix, Vector  # noqa: E402
+from mathutils import Matrix, Quaternion, Vector  # noqa: E402
 
 from village import garments as G  # noqa: E402
 from village import hair, posing, reom, reom_rig  # noqa: E402
@@ -404,22 +404,33 @@ def place(obj, centre, axis):
     obj.matrix_world = m
 
 
-def hold(rig, side, centre, axis, palm_normal, hint, cal, along_offset=0.022):
+def hold(rig, side, centre, axis, palm_normal, hint, cal, along_offset=0.022, turn=(-50, 50, 10)):
     """Arm IK and finger grip so the hand holds a bottle at `centre` (grip zone), axis `axis`, with the
-    palm facing `palm_normal`.  Returns the measurements."""
-    n = Vector(palm_normal).normalized()
+    palm facing about `palm_normal`.  The palm may turn about the bottle axis within `turn` (degrees:
+    from, to, step): the turn with the least bent wrist is used (the bottle is round, so its place in
+    the hand stays the same).  Returns the measurements."""
     a = Vector(axis).normalized()
-    n = (n - a * n.dot(a)).normalized()
-    R = posing.grip_hand_rotation(a, n, cal)
+    n0 = Vector(palm_normal).normalized()
+    n0 = (n0 - a * n0.dot(a)).normalized()
     # knuckles relative to the wrist, from the rest pose of the hand
     hb = rig.data.bones[f"DEF-hand.{side}"]
     rest_inv = hb.matrix_local.to_3x3().inverted()
     kn = sum((rig.data.bones[f"DEF-palm.0{i}.{side}"].tail_local for i in range(1, 5)), Vector()) / 4
     k_local = rest_inv @ (kn - hb.head_local)
-    along = Vector(R.col[1])
-    K = Vector(centre) - n * (BOTTLE_R + 0.015) - along * along_offset
-    wrist = K - R @ k_local
-    info = posing.arm_ik(rig, side, wrist, R, hint)
+
+    def place_hand(n):
+        R = posing.grip_hand_rotation(a, n, cal)
+        K = Vector(centre) - n * (BOTTLE_R + 0.015) - Vector(R.col[1]) * along_offset
+        return posing.arm_ik(rig, side, K - R @ k_local, R, hint)
+    best = None
+    lo, hi, step = turn
+    for deg in range(lo, hi + 1, step):
+        n = Quaternion(a, math.radians(deg)) @ n0
+        bend = place_hand(n)["wrist_bend"]
+        if best is None or bend < best[0] - 1e-6:
+            best = (bend, n, deg)
+    info = place_hand(best[1])
+    info["palm_turn"] = best[2]
     cyl = posing.Cylinder(centre, a, BOTTLE_R, BOTTLE_HALF)
     info["fingers"] = posing.curl_grip(rig, side, cyl, cal=cal)
     return info, cyl
@@ -427,14 +438,16 @@ def hold(rig, side, centre, axis, palm_normal, hint, cal, along_offset=0.022):
 
 POSES = {
     # holds the bottle up beside his face and looks through it
-    "inspect": dict(side="R", centre=(-0.24, -0.32, 1.60), axis=(0.15, 0.0, 1.0), palm=(1.0, 0.1, 0.0),
-                    hint=(-0.35, 0.25, -0.9), look=(-0.24, -0.32, 1.63), smile=0.0, other="relaxed"),
+    # (elbow out at shoulder height, bottle tilted ~20 degrees: searched for the least bent wrist, 16 deg)
+    "inspect": dict(side="R", centre=(-0.26, -0.30, 1.55), axis=(0.3, 0.25, 1.0), palm=(1.0, 0.1, 0.0),
+                    hint=(-0.95, -0.1, -0.2), look=(-0.26, -0.30, 1.58), smile=0.0, other="relaxed"),
     # offers it to the customer at chest height
     "offer": dict(side="R", centre=(-0.07, -0.42, 1.30), axis=(0.0, 0.0, 1.0), palm=(1.0, 0.25, 0.0),
                   hint=(-0.6, 0.4, -0.7), look=(0.0, -2.0, 1.62), smile=0.75, other="relaxed"),
-    # polishes it in both hands in front of the chest
-    "polish": dict(side="L", centre=(0.03, -0.27, 1.22), axis=(-0.05, 0.1, 1.0), palm=(-1.0, -0.2, 0.0),
-                   hint=(0.6, 0.4, -0.7), look=(0.03, -0.27, 1.22), smile=0.15, other="second"),
+    # polishes it in front of the chest: the right hand holds it (the bottle always hangs on the right
+    # hand in the game), the left one rubs the shoulder of the bottle
+    "polish": dict(side="R", centre=(-0.02, -0.27, 1.22), axis=(0.05, 0.1, 1.0), palm=(1.0, -0.2, 0.0),
+                   hint=(-0.6, 0.4, -0.7), look=(-0.02, -0.27, 1.22), smile=0.15, other="second"),
 }
 
 
@@ -453,8 +466,10 @@ def set_expression(obj, weights):
         kb.value = w
 
 
-def apply_pose(rig, obj, name, bottle_obj, cal):
-    P = POSES[name]
+def apply_pose(rig, obj, name, bottle_obj, cal, P=None, eyes=True, face=True):
+    """Poses the rig (P: a pose dict like POSES[name]; name only picks the body lean).  eyes: turn the
+    eyes towards the look target too; face: ARKit expression shape keys (render only)."""
+    P = P or POSES[name]
     posing.reset(rig)
     # weight on the right leg, slight counter-turn of the chest
     posing.rotate(rig, "DEF-spine.003", (0, 0, 1), 4 if name != "polish" else 0)
@@ -465,7 +480,7 @@ def apply_pose(rig, obj, name, bottle_obj, cal):
     other = "L" if side == "R" else "R"
     if P["other"] == "second":
         # the free hand holds the upper part of the bottle from the other side
-        c2 = Vector(P["centre"]) + Vector(P["axis"]).normalized() * 0.035
+        c2 = Vector(P["centre"]) + Vector(P["axis"]).normalized() * P.get("second_up", 0.035)
         info2, _ = hold(rig, other, c2, P["axis"], (-P["palm"][0], P["palm"][1], 0.0),
                         (-P["hint"][0], P["hint"][1], P["hint"][2]), cal[other], along_offset=0.03)
         info["second"] = info2
@@ -474,9 +489,10 @@ def apply_pose(rig, obj, name, bottle_obj, cal):
         posing.rotate(rig, f"DEF-upper_arm.{other}", (0, 1, 0), sx * 12)
         posing.rotate(rig, f"DEF-forearm.{other}", (1, 0, 0), -14)
         posing.relaxed_hand(rig, other, cal=cal[other])
-    posing.look_at(rig, P["look"])
-    set_expression(obj, {"mouthSmileLeft": P["smile"], "mouthSmileRight": P["smile"],
-                         "eyeSquintLeft": P["smile"] * 0.4, "eyeSquintRight": P["smile"] * 0.4})
+    posing.look_at(rig, P["look"], eyes=eyes)
+    if face:
+        set_expression(obj, {"mouthSmileLeft": P["smile"], "mouthSmileRight": P["smile"],
+                             "eyeSquintLeft": P["smile"] * 0.4, "eyeSquintRight": P["smile"] * 0.4})
     info["contact"] = posing.skin_contact(obj, reom.vertex_groups(), side, cyl)
     return info
 

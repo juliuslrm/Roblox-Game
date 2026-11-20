@@ -17,7 +17,7 @@ return {
 		ArcaneMarketAssets = {
 			112405603844665, -- trader_selma.fbx: skinned rig, face rig, fingers, PBR maps (2026-11-19)
 			108051845917119, -- trader_nyra.fbx
-			87519481610544, -- trader_lio.fbx
+			131339803075041, -- trader_lio.fbx: Reom base (CC-BY), Rigify rig with fingers, cloth-simulated outfit (2026-11-20)
 			97062981895864, -- trader_aron.fbx
 			84388846974618, -- trader_esme.fbx
 			122869519424675, -- arcane_market.fbx: the five stalls

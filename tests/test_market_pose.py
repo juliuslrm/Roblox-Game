@@ -8,6 +8,7 @@ figure) equals the Python rotation converted to the Roblox frame (angle between 
 the expression weights agree to 1e-6.  Runs on the generated roblox/gameplay/shared/MarketMotion.lua,
 so it also proves that the export carries the keys the Python side uses.
 """
+import json
 import math
 import sys
 from pathlib import Path
@@ -20,6 +21,8 @@ import numpy as np  # noqa: E402
 from lupa import LuaRuntime  # noqa: E402
 
 from village import characters as C  # noqa: E402
+
+REPLACED = {"lio": ROOT / "exports/library/trader_lio.json"}       # as in blender/build_characters.py
 
 TO_ROBLOX = np.array(((1.0, 0, 0), (0, 0, 1.0), (0, -1.0, 0)))
 NAME = {"root": "hips"}
@@ -37,6 +40,16 @@ def angle(A, B):
     return math.degrees(math.acos(max(-1.0, min(1.0, c))))
 
 
+def quat_angle(a, b):
+    """Rotation angle (degrees) between two quaternions, stable for tiny angles: the reference values
+    are rounded to 6 decimals, and acos of a matrix trace would turn that rounding into ~0.06 deg."""
+    a = np.asarray(a, float) / np.linalg.norm(a)
+    b = np.asarray(b, float) / np.linalg.norm(b)
+    if a @ b < 0:
+        b = -b
+    return math.degrees(4 * math.asin(min(1.0, np.linalg.norm(a - b) / 2)))
+
+
 def main():
     lua = LuaRuntime(unpack_returned_tuples=True)
     motion = lua.execute((ROOT / "roblox/gameplay/shared/MarketMotion.lua").read_text(encoding="utf-8"))
@@ -45,6 +58,8 @@ def main():
     assert abs(motion.breath - C.BREATH) < 1e-9
     worst, worst_face, count = 0.0, 0.0, 0
     for role in C.ROLES:
+        if motion.roles[role].channels:          # a trader with its own rig: checked below
+            continue
         prep = pose.prepare(motion.roles[role])
         for name in ("idle", "idle2"):
             d = C.clip(role, name)["duration"]
@@ -67,8 +82,24 @@ def main():
             for pname, w in C.face_weights(role, "greet", g).items():
                 worst_face = max(worst_face, abs(fw_lua[pname] - w))
     assert worst < 0.01, f"Lua and Python bone rotations differ by {worst:.4f} degrees"
+    # traders with their own rig (Lio): the export stores reference rotations from its Python evaluator
+    # of the same format (blender/export_lio.py, which also checks the keys against the solved poses)
+    own = 0
+    for role, path in sorted(REPLACED.items()):
+        entry = json.loads(path.read_text(encoding="utf-8"))
+        prep = pose.prepare(motion.roles[role])
+        channels = pose.channelsOf(motion, role)
+        rig = pose.rigOf(motion, role)
+        for ref in entry["reference"]:
+            q_lua = pose.evaluate(channels, prep, ref["clip"], ref["t"], ref["greet"], rig.breath)
+            for bone, q in ref["q"].items():
+                a = q_lua[bone]
+                worst = max(worst, quat_angle([a[1], a[2], a[3], a[4]], q))
+                own += 1
+    assert worst < 0.01, f"Lua and the export's reference rotations differ by {worst:.4f} degrees"
     assert worst_face < 1e-6, f"face weights differ by {worst_face}"
-    print(f"  ok  MarketPose.lua = characters.py: {count} bone rotations (worst {worst:.5f} deg), face weights "
+    print(f"  ok  MarketPose.lua = characters.py / export references: {count} + {own} bone rotations "
+          f"(worst {worst:.5f} deg), face weights "
           f"(worst {worst_face:.1e})")
 
 

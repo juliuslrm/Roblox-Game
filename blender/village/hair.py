@@ -90,30 +90,41 @@ def eyebrows(base, morphed, style="Eyebrows001", children=10, spread=0.002, mela
     return _curves_object("Eyebrows", strands, 0.00007, 0.00003, mat)
 
 
-def _scalp_samples(obj, density, rng, mask_threshold=0.08, min_below_eyes=0.075):
-    """Random points on the scalp: (position, normal, mask value) by area-weighted sampling of the
-    face-material triangles, weighted by the green channel of the scalp mask."""
+def scalp_mask(obj, min_below_eyes=0.075):
+    """Scalp weight per vertex (0..1): the green channel of Reom's scalp mask at the vertex's UV corners
+    on the face material (largest corner, so there is no gap along UV seams), zero below the ear lobes
+    (the mask's UV region also covers the sides and front of the neck).  Uses the undeformed mesh."""
     from PIL import Image
     mask = np.asarray(Image.open(reom.CHAR / "textures/Head_ScalpBeardShadowMask.png").convert("RGB"),
                       dtype=np.float32)[:, :, 1] / 255.0
     H, W = mask.shape
     me = obj.data
-    me.calc_loop_triangles()
     face_slot = reom.MATERIALS.index("Face")
-    uv = me.uv_layers.active.data
+    uv = me.uv_layers[0].data
     co = np.array([v.co[:] for v in me.vertices])
-    # mask value per vertex (largest over its UV corners), so strands do not thin out along UV seams
     vm = np.zeros(len(co))
-    face_loops = [li for p in me.polygons if p.material_index == face_slot for li in p.loop_indices]
-    for lp in (me.loops[i] for i in face_loops):
-        u, v = uv[lp.index].uv
-        vm[lp.vertex_index] = max(vm[lp.vertex_index], mask[min(H - 1, max(0, int((1 - v) * H))),
-                                                            min(W - 1, max(0, int(u * W)))])
-    tris = np.array([t.vertices[:] for t in me.loop_triangles if t.material_index == face_slot])
-    # the mask's UV region also covers the sides and front of the neck: no hair below the ear lobes
+    for p in me.polygons:
+        if p.material_index != face_slot:
+            continue
+        for li in p.loop_indices:
+            u, v = uv[li].uv
+            vi = me.loops[li].vertex_index
+            vm[vi] = max(vm[vi], mask[min(H - 1, max(0, int((1 - v) * H))), min(W - 1, max(0, int(u * W)))])
     eyes_z = np.mean([co[v][2] for p in me.polygons if p.material_index == reom.MATERIALS.index("Iris")
                       for v in p.vertices])
     vm[co[:, 2] < eyes_z - min_below_eyes] = 0.0
+    return vm
+
+
+def _scalp_samples(obj, density, rng, mask_threshold=0.08, min_below_eyes=0.075):
+    """Random points on the scalp: (position, normal, mask value) by area-weighted sampling of the
+    face-material triangles, weighted by the scalp mask."""
+    me = obj.data
+    me.calc_loop_triangles()
+    face_slot = reom.MATERIALS.index("Face")
+    co = np.array([v.co[:] for v in me.vertices])
+    vm = scalp_mask(obj, min_below_eyes)
+    tris = np.array([t.vertices[:] for t in me.loop_triangles if t.material_index == face_slot])
     tris = tris[vm[tris].max(axis=1) > 0.02]
     a, b, c = co[tris[:, 0]], co[tris[:, 1]], co[tris[:, 2]]
     cross = np.cross(b - a, c - a)

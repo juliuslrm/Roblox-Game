@@ -51,7 +51,23 @@ def reset(rig):
 
 
 # --------------------------------------------------------------------------------------------- arms
-def arm_ik(rig, side, wrist, hand_rot, hint):
+def arm_ik(rig, side, wrist, hand_rot, hint, iterations=6):
+    """arm_ik_once, repeated with the target moved by the remaining error: the hand bone's head does not
+    sit exactly on the forearm's tail in this rig, so one analytic solve leaves the hand up to about a
+    centimetre off, depending on the arm's pose."""
+    target = Vector(wrist)
+    info = None
+    for _ in range(iterations):
+        info = arm_ik_once(rig, side, target, hand_rot, hint)
+        err = Vector(wrist) - pose_matrix(rig, f"DEF-hand.{side}").translation
+        info["error_mm"] = err.length * 1000
+        if err.length < 1e-5:
+            break
+        target = target + err
+    return info
+
+
+def arm_ik_once(rig, side, wrist, hand_rot, hint):
     """Places the arm so the hand bone's head is at `wrist` with orientation `hand_rot` (3x3).
     hint: direction the elbow should point to.  Upper arm and forearm are split in two halves (as in
     Rigify); the halves stay in line, the forearm twist is shared between them."""
