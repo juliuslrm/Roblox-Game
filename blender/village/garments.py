@@ -522,7 +522,13 @@ def apron(body, material, top_below_neck=0.15, bottom=None, half_top=0.10, half_
     centre = np.array([front(0.0, z, 0.10) for z in zs])
     ok = ~np.isnan(centre)
     centre = np.interp(np.arange(rows), np.flatnonzero(ok), centre[ok])
-    hang = np.minimum.accumulate(centre)           # never further back than anything above it
+    # above the belt the bib lies on the chest and stomach (the belt holds it there); below the belt it
+    # hangs straight down: never further back than anything between the belt and that row
+    hang = centre.copy()
+    below = zs < belt_z
+    if below.any():
+        k0 = int(np.argmax(below))
+        hang[k0:] = np.minimum.accumulate(np.r_[centre[max(0, k0 - 1)], centre[k0:]])[1:]
     for _ in range(4):
         hang[1:-1] = np.minimum(hang[1:-1], (hang[:-2] + hang[1:-1] + hang[2:]) / 3)
     grid = np.zeros((rows, cols, 3))
@@ -624,6 +630,44 @@ def ring_outline(points, centre, z, segments=96, pad=0.0):
     out += pad
     return np.array([(centre[0] + r * math.cos(a), centre[1] + r * math.sin(a), z)
                      for r, a in zip(out, np.linspace(-math.pi, math.pi, segments, endpoint=False))])
+
+
+def evaluated_points(objs):
+    """World positions of the evaluated (deformed, subdivided) meshes."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    out = []
+    for o in objs:
+        e = o.evaluated_get(dg)
+        me = e.to_mesh()
+        out.append(np.array([(e.matrix_world @ v.co)[:] for v in me.vertices]))
+        e.to_mesh_clear()
+    return np.vstack(out)
+
+
+def band_outline(points, centre, zfun, half_width, segments=96, pad=0.0015):
+    """Closed ring that lies on the outside of a point cloud over a whole band: for every angle the
+    largest radius of the points within half_width of the band's centre line z = zfun(angle), so a
+    strap of that width touches the highest point under it and floats nowhere by more than the
+    surface dips.  Returns (ring points, outward unit directions)."""
+    rel = points - np.array((centre[0], centre[1], 0))
+    ang = np.arctan2(rel[:, 1], rel[:, 0])
+    rad = np.hypot(rel[:, 0], rel[:, 1])
+    angles = np.linspace(-math.pi, math.pi, segments, endpoint=False)
+    r = np.full(segments, np.nan)
+    for k, a in enumerate(angles):
+        d = np.abs((ang - a + math.pi) % (2 * math.pi) - math.pi)
+        sel = (d < (2 * math.pi / segments) * 0.75) & (np.abs(points[:, 2] - zfun(a)) < half_width)
+        if sel.any():
+            r[k] = rad[sel].max()
+    ok = ~np.isnan(r)
+    r = np.interp(np.arange(segments), np.flatnonzero(ok), r[ok], period=segments)
+    # a strap cannot follow dents narrower than itself: close them, never cut into a bulge
+    r = np.maximum(r, (np.roll(r, 1) + r + np.roll(r, -1)) / 3)
+    r += pad
+    ring = np.array([(centre[0] + ri * math.cos(a), centre[1] + ri * math.sin(a), zfun(a))
+                     for ri, a in zip(r, angles)])
+    out = np.column_stack((np.cos(angles), np.sin(angles), np.zeros(segments)))
+    return ring, out
 
 
 def box(name, centre, size, material, frame=None, bevel=0.004):

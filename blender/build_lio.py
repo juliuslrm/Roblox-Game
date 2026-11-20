@@ -1,6 +1,6 @@
 """Lio, the reference trader of the new character pipeline: Reom base (CC-BY) shaped into Lio.
 
-    python blender/build_lio.py -- [--stage base|face|dressed|poses] [--samples 64]
+    python blender/build_lio.py -- [--stage base|face|dressed|poses|belt] [--samples 64]
 
 Stage "base": the body in the neutral A-pose without clothes, rendered for review
 (previews/lio/01-base.png: front, back, side, face front, three-quarter and back, both hands).
@@ -177,11 +177,12 @@ def dress(obj):
     pieces = [sh, tr] + G.boots(body, boot_leather, under=[tr])
     G.collider(tr, 0.003)
     ap, grid = G.apron(body, apron_leather)
+    cinch_under_belt(body, sh, tr, ap)
     pieces.append(ap)
     pieces += shirt_trim(body, sh, linen)
     for p in pieces:
         G.bind(p, body)
-    pieces += belt(body, strap_leather, metal)
+    pieces += belt(body, strap_leather, metal, [sh, tr, ap])
     pieces += apron_straps(body, grid, strap_leather)
     pieces += goggles(body, strap_leather, metal)
     for name in ("Eyebrows", "ScalpHair"):
@@ -198,22 +199,47 @@ def shirt_trim(body, sh, linen):
     return out
 
 
-def belt(body, leather, metal):
-    torso = body.V[(body.arm_w("L") + body.arm_w("R")) < 0.2]
-    z = body.head("DEF-thigh.L")[2] + 0.045
-    sl = torso[np.abs(torso[:, 2] - z) < 0.012]
+BELT_WIDTH = 0.045
+
+
+def belt_z(body):
+    return body.head("DEF-thigh.L")[2] + 0.045
+
+
+def cinch_under_belt(body, sh, tr, ap):
+    """A belt pulls what is under it to the waist: the trouser waistband onto the shirt and body, the
+    apron onto the trousers.  Full pull within the belt's width, fading out 4 cm above and below."""
+    z0 = belt_z(body)
+
+    def band(obj):
+        z = np.array([v.co.z for v in obj.data.vertices])
+        return np.clip(1 - (np.abs(z - z0) - BELT_WIDTH / 2) / 0.04, 0, 1)
+    G.cinch(tr, band(tr), body.bvh, 0.009)
+    G.keep_outside(tr, [(G.obj_bvh(sh), 0.008)])
+    G.cinch(ap, band(ap), G.obj_bvh(tr), 0.006)
+
+
+def belt(body, leather, metal, layers):
+    """Belt over the outermost clothing (layers: the garments under it, evaluated in the rest pose):
+    it lies on the highest point under its whole width all round and dips 1.2 cm towards the front,
+    as a worn belt does."""
+    z0 = belt_z(body)
     c = body.head("DEF-spine")
-    ring = G.ring_outline(sl, c, z, segments=72, pad=0.024)
-    out = (ring - np.array((c[0], c[1], z)))
-    out /= np.linalg.norm(out, axis=1, keepdims=True)
-    belt = G.flat_strap("Belt", ring, 0.045, 0.005, leather, closed=True, normal_hint=out)
+
+    def zfun(a):                     # angle -90 degrees = front (-Y), +90 = back
+        return z0 - 0.006 * (1 - math.sin(a))
+    pts = G.evaluated_points(layers)
+    pts = pts[np.abs(pts[:, 2] - z0) < 0.06]
+    ring, out = G.band_outline(pts, c, zfun, BELT_WIDTH / 2 - 0.004, segments=96, pad=0.0015)
+    belt = G.flat_strap("Belt", ring, BELT_WIDTH, 0.005, leather, closed=True, normal_hint=out)
     G.bind(belt, body)
     parts = [belt]
-    front = ring[np.argmin(ring[:, 1])]
+    kf = int(np.argmin(ring[:, 1]))
+    front = ring[kf] + out[kf] * 0.005      # on the outside of the strap
     for k, (dx, dz, sx, sz) in enumerate(((-0.028, 0, 0.007, 0.056), (0.028, 0, 0.007, 0.056),
                                          (0, 0.0245, 0.063, 0.007), (0, -0.0245, 0.063, 0.007))):
-        parts.append(G.box(f"Buckle.{k}", front + np.array((dx, -0.007, dz)), (sx, 0.006, sz), metal, None, 0.0015))
-    parts.append(G.box("BuckleTongue", front + np.array((0.008, -0.009, 0)), (0.04, 0.004, 0.005), metal, None,
+        parts.append(G.box(f"Buckle.{k}", front + np.array((dx, -0.003, dz)), (sx, 0.006, sz), metal, None, 0.0015))
+    parts.append(G.box("BuckleTongue", front + np.array((0.008, -0.005, 0)), (0.04, 0.004, 0.005), metal, None,
                        0.001))
 
     def at(direction):
@@ -224,7 +250,7 @@ def belt(body, leather, metal):
     # pouch on the right hip
     p, n = at((-0.85, -0.45))
     fr = np.column_stack((np.cross((0, 0, 1), n) / np.linalg.norm(np.cross((0, 0, 1), n)), (0, 0, 1), n))
-    centre = p + n * 0.028 + np.array((0, 0, -0.045))
+    centre = p + n * 0.026 + np.array((0, 0, -0.045))
     parts.append(G.box("Pouch", centre, (0.10, 0.12, 0.042), leather, fr, 0.012))
     parts.append(G.box("PouchFlap", centre + n * 0.022 + np.array((0, 0, 0.035)), (0.104, 0.055, 0.006),
                        leather, fr, 0.003))
@@ -234,7 +260,7 @@ def belt(body, leather, metal):
     liquids = [(0.10, 0.65, 0.62), (0.85, 0.48, 0.10), (0.48, 0.20, 0.75)]
     for k, ang in enumerate((-0.35, -0.6, -0.85)):
         p, n = at((math.cos(ang), math.sin(ang)))
-        c0 = p + n * 0.016 + np.array((0, 0, -0.035))
+        c0 = p + n * 0.0215 + np.array((0, 0, -0.035))
         parts += vial(f"Vial.{k}", c0, liquids[k], metal)
         loop = [c0 + np.array((0.0165 * math.cos(a), 0.0165 * math.sin(a), 0.035))
                 for a in np.linspace(0, 2 * math.pi, 20, endpoint=False)]
@@ -503,6 +529,19 @@ def stage_poses(samples):
     print(json.dumps(report, indent=1, default=lambda v: [round(x, 4) for x in v]))
 
 
+def stage_belt(samples):
+    """Close views of the belt from four sides at waist height (previews/lio/04-belt.png)."""
+    sc, cam = scene_setup(samples)
+    obj, V = build_body()
+    rig, body, pieces = dress(obj)
+    c = body.head("DEF-spine") * np.array((1, 1, 0)) + np.array((0, 0, belt_z(body) - 0.01))
+    tmp = OUT / "_tiles"
+    tmp.mkdir(parents=True, exist_ok=True)
+    tiles = [shoot(sc, cam, tmp / f"b{k}.png", c, d, 0.75, lens=50)
+             for k, d in enumerate(((0, -1, 0.15), (1, -0.3, 0.15), (0, 1, 0.15), (-1, -0.5, 0.15)))]
+    sheet(tiles, OUT / "04-belt.png", cols=4)
+
+
 def stage_face(samples):
     """Quick look at the head only: front, three-quarter, back (previews/lio/00-face.png)."""
     sc, cam = scene_setup(samples)
@@ -524,7 +563,8 @@ def main():
     ap.add_argument("--samples", type=int, default=64)
     args = ap.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
     OUT.mkdir(parents=True, exist_ok=True)
-    {"base": stage_base, "face": stage_face, "dressed": stage_dressed, "poses": stage_poses}[args.stage](args.samples)
+    {"base": stage_base, "face": stage_face, "dressed": stage_dressed, "poses": stage_poses,
+     "belt": stage_belt}[args.stage](args.samples)
 
 
 if __name__ == "__main__":

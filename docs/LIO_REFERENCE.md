@@ -16,6 +16,7 @@ Die Stufen bauen aufeinander auf:
 | `face` | `previews/lio/00-face.png` | Kopf vorne, Dreiviertel, hinten |
 | `dressed` | `previews/lio/02-dressed.png` | bekleidet in A-Pose |
 | `poses` | `previews/lio/03-reference.png` und `03-reference.json` | A-Pose, Hände, drei Posen, Griffmessung |
+| `belt` | `previews/lio/04-belt.png` | Gürtel von vier Seiten |
 
 Alles läuft als Code; vom CharMorph-Add-on wird nichts ausgeführt, nur die Daten werden geladen.
 
@@ -36,6 +37,18 @@ Alles läuft als Code; vom CharMorph-Add-on wird nichts ausgeführt, nur die Dat
 | Polieren (zweihändig) | alle 4 + Daumen, beide Hände | 1,8 mm | 50° / 56° |
 
 „Kontakt“ heißt: Ein Fingerknochen liegt innerhalb von 8,5 mm Fingerradius an der Flaschenwand. In der Hautmessung liegen die Fingerglieder dann zwischen −1,8 und +3 mm an der Oberfläche.
+
+## Gürtel
+
+**Erster Stand (Rückmeldung „der Gürtel sitzt nicht“):** Der Gürtel war ein starrer Ring um den nackten Körper. Gemessen an 72 Punkten schwebte er bis 16 mm über der Hose und lag an 11 Punkten bis 6 mm in der Schürze.
+
+**Jetzt:**
+
+- Hosenbund und Schürze werden im Gürtelband an die Taille gezogen. Volle Wirkung über die Gürtelbreite, nach oben und unten über 4 cm auslaufend.
+- Der Gürtel liegt auf der äußersten Schicht unter seiner ganzen Breite, vorne 1,2 cm tiefer.
+- Oberhalb des Gürtels folgt die Schürze dem Oberkörper und hängt erst darunter frei.
+
+**Gemessen an 96 Punkten:** 0 Punkte in der Kleidung, Luft 1,6–10,6 mm. Die größeren Werte liegen über Hosenfalten am Rücken.
 
 ## Eigene Einschätzung (nach Ansicht der Bilder)
 
